@@ -28,8 +28,10 @@ static void dispatchButton(Btn id, bool pressed);
 static void dispatchEncoder(Enc id, int8_t dir);
 
 void setup() {
-  // CDC 调试串口（platformio.ini 已开 USB CDC On Boot）
-  Serial.begin(115200);
+  // 板载 RGB 启动信标（未焊接阶段唯一的可视化调试手段）
+  // 绿=进入setup 蓝=即将启动USB 青×3=全部完成
+  neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
+  delay(300);
 
   battery.begin();
   leds.begin();
@@ -37,6 +39,8 @@ void setup() {
   encoders.begin();
   presets.begin();
 
+  neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
+  delay(300);
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
   leds.showPreset(presets.active().accent, presets.active().name);
   leds.setModeColor(0, 60, 0);  // LED1 绿 = USB 模式
@@ -47,8 +51,6 @@ void setup() {
     neopixelWrite(PIN_BOARD_RGB, 0, 0, 0);
     delay(120);
   }
-  Serial.printf("[Navio] v" NAVIO_CHRON_FW_VERSION " ready, preset: %s\n",
-                presets.active().name);
 }
 
 void loop() {
@@ -71,6 +73,8 @@ void loop() {
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();
+
+  delay(1);  // 让出 CPU（避免忙转饿死其他任务）
 }
 
 static void switchPreset() {

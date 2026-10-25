@@ -30,6 +30,7 @@ void LedController::setModeColor(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void LedController::setBatteryLow(bool low) {
+  if (low == lowBattery_) return;  // 状态无变化不重刷（rmtWriteBlocking 忙等，禁止高频调用）
   lowBattery_ = low;
   if (!low) {
     chain_.setPixelColor(2, 0, 0, 0);
