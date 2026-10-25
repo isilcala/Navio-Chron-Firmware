@@ -26,15 +26,16 @@ static UsbTransport usbTransport;  // TODO(ble): BleTransport + 按连接状态�
 static ITransport* transport = &usbTransport;
 
 static void dispatchButton(Btn id, bool pressed);
-static void checkBootKeyForReflash();
+static void checkLongPressActions();
 static void enterDownloadMode();  // 紫灯提示后重启进 ROM 下载模式
 
 // 主控板上 BOOT 键 = GPIO0（矩阵/编码器均未占用）。
-// 长按 3 秒 = 写 RTC 强制下载标志并重启，免插拔即可重新烧录。
+// 长按 3 秒 = 写 RTC 强制下载标志并重启（裸板调试入口，组装后难按仅兜底）。
 constexpr uint8_t PIN_BOOT_KEY = 0;
 constexpr uint32_t BOOT_KEY_REFLASH_MS = 3000;
-// 组装后 BOOT 键难以触及：侧键（SW11, R1C1，全局保留键）同样支持进下载模式——
-// ① 插电/复位时按住侧键；② 运行中长按侧键 3 秒。
+// 组装后主入口 = 侧键（SW11, R1C1，全局保留键）分级长按：
+// 单击=切预设（即时）；长按 5s=蓝牙配对（Phase 1b）；长按 10s=固件烧写；
+// 插电/复位时按住侧键同样进烧写。按住期间 LED1 实时渐变反馈进度。
 constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static void dispatchEncoder(Enc id, int8_t dir);
 
@@ -92,7 +93,7 @@ void loop() {
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();
-  checkBootKeyForReflash();
+  checkLongPressActions();
 
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
 }
@@ -104,11 +105,34 @@ static void enterDownloadMode() {
   esp_restart();
 }
 
-static void checkBootKeyForReflash() {
-  static uint32_t bootHeldSince = 0, sideHeldSince = 0;
-  static bool bootArmed = false, sideArmed = false;
+// 侧键长按进度 → LED1 颜色：0-5s 蓝色渐亮（配对档），5-10s 蓝→紫渐变（烧写档）
+static void showSideHoldProgress(uint32_t heldMs) {
+  if (heldMs < SIDE_HOLD_PAIRING_MS) {
+    uint8_t b = 20 + (uint8_t)(100 * heldMs / SIDE_HOLD_PAIRING_MS);
+    leds.setModeColor(0, 0, b);
+  } else {
+    uint32_t t = heldMs - SIDE_HOLD_PAIRING_MS;
+    uint32_t span = SIDE_HOLD_REFLASH_MS - SIDE_HOLD_PAIRING_MS;
+    uint8_t r = (uint8_t)(100 * t / span);
+    leds.setModeColor(r, 0, 100);
+  }
+}
 
-  // 裸机调试入口：模块 BOOT 键（组装后难按，兜底用）
+static void enterPairingMode() {
+  // TODO(ble): Phase 1b 接入 NimBLE 配对广播。现占位：LED1 蓝快闪 2s 提示已触发。
+  for (int i = 0; i < 8; ++i) {
+    leds.setModeColor(0, 0, 120);
+    delay(125);
+    leds.setModeColor(0, 0, 0);
+    delay(125);
+  }
+  leds.setModeColor(0, 60, 0);  // 恢复 USB 模式指示
+}
+
+static void checkLongPressActions() {
+  // 裸机调试入口：模块 BOOT 键长按 3s（组装后难按，仅兜底）
+  static uint32_t bootHeldSince = 0;
+  static bool bootArmed = false;
   if (digitalRead(PIN_BOOT_KEY) == LOW) {
     if (!bootArmed) {
       bootArmed = true;
@@ -120,16 +144,30 @@ static void checkBootKeyForReflash() {
     bootArmed = false;
   }
 
-  // 组装后主入口：侧键长按（不经消抖层，直接读矩阵位）
+  // 组装后主入口：侧键分级长按（直接读矩阵位，不经消抖层）
+  static uint32_t sideHeldSince = 0;
+  static bool sideArmed = false, pairingFired = false;
   if (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL)) {
     if (!sideArmed) {
       sideArmed = true;
       sideHeldSince = millis();
-    } else if (millis() - sideHeldSince >= BOOT_KEY_REFLASH_MS) {
-      enterDownloadMode();
+      pairingFired = false;
     }
-  } else {
+    uint32_t held = millis() - sideHeldSince;
+    if (held >= SIDE_HOLD_REFLASH_MS) {
+      enterDownloadMode();
+    } else if (held >= SIDE_HOLD_PAIRING_MS) {
+      showSideHoldProgress(held);
+      if (!pairingFired) {
+        pairingFired = true;
+        enterPairingMode();
+      }
+    } else {
+      showSideHoldProgress(held);
+    }
+  } else if (sideArmed) {
     sideArmed = false;
+    leds.setModeColor(0, 60, 0);  // 松手恢复 USB 模式指示
   }
 }
 

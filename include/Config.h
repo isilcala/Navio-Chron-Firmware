@@ -27,4 +27,8 @@ constexpr uint32_t LED_TICK_INTERVAL_MS = 20;
 constexpr const char* PREFS_NAMESPACE = "navio";
 constexpr const char* PREFS_KEY_PRESET = "preset";
 
+// —— 侧键长按分级（单击=切预设，无冲突的分级长按）——
+constexpr uint32_t SIDE_HOLD_PAIRING_MS = 5000;   // 5s：蓝牙配对模式（Phase 1b）
+constexpr uint32_t SIDE_HOLD_REFLASH_MS = 10000;  // 10s：固件烧写模式
+
 }  // namespace navio
