@@ -39,4 +39,12 @@ struct EncoderEvent {
   int8_t dir;  // +1 / -1，每个触发事件一次
 };
 
+// 调试/日志用名称表，顺序与 Btn 枚举严格一致
+constexpr const char* BTN_NAMES[BTN_COUNT] = {
+    "K1",  "K2",  "K3",  "K4",  "K5",  "K6",
+    "K7",  "K8",  "K9",  "K10", "K11", "K12",
+    "EncCenterPress", "EncLargePress", "WheelPress", "SideKey",
+};
+constexpr const char* ENC_NAMES[ENC_COUNT] = {"Center", "Large", "Wheel"};
+
 }  // namespace navio

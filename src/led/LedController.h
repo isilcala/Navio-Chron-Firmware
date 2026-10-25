@@ -1,8 +1,7 @@
 #pragma once
 // WS2812 链：LED0 预设色 / LED1 连接模式(预留) / LED2 电量 / LED3-14 按键底色
-#include <Adafruit_NeoPixel.h>
-
 #include "Pins.h"
+#include "led/Ws2812.h"
 
 namespace navio {
 
@@ -16,7 +15,7 @@ class LedController {
   void tick();                                         // 周期调用（闪烁都在这里）
 
  private:
-  Adafruit_NeoPixel pixels_{LED_COUNT, PIN_LED_DATA, NEO_GRB + NEO_KHZ800};
+  Ws2812 chain_{PIN_LED_DATA, LED_COUNT};
   bool lowBattery_ = false;
   bool blinkOn_ = false;
   uint32_t lastTickMs_ = 0;

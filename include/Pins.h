@@ -29,6 +29,7 @@ constexpr uint8_t PIN_BATTERY_SENSE = 3;
 constexpr uint8_t PIN_RESERVED_SDA = 41;
 constexpr uint8_t PIN_RESERVED_SCL = 16;
 
-// 板载模块 RGB 在 GPIO48，本项目不使用
+// 板载模块 RGB 在 GPIO48（未焊接阶段用作启动信标，正式固件不使用）
+constexpr uint8_t PIN_BOARD_RGB = 48;
 
 }  // namespace navio

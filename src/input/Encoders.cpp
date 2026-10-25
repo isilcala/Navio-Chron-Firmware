@@ -22,8 +22,10 @@ static const int8_t kQuadTable[4][4] = {
 
 void Encoders::begin() {
   for (auto& ch : kChannels) {
-    pinMode(ch.pinA, INPUT);  // 板上有 10k 上拉
-    pinMode(ch.pinB, INPUT);
+    // 板上有外部 10k 上拉；内部上拉在未焊接阶段防止悬空脚产生幽灵事件，
+    // 焊接后与外部上拉并联（约 8k）无副作用
+    pinMode(ch.pinA, INPUT_PULLUP);
+    pinMode(ch.pinB, INPUT_PULLUP);
     ch.last = (digitalRead(ch.pinA) << 1) | digitalRead(ch.pinB);
   }
 }

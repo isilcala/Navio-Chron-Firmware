@@ -47,3 +47,16 @@ USB 与 BLE 实现同一接口，主循环与映射层不感知传输方式。
 1ms 全量轮询三通道（矩阵+编码器整轮 <100µs，无丢步风险）；格雷码表解码，
 无效双跳变计 0 视为抖动；`ENC_DETENT_DIVISOR=2` 沿用上游手感（每棘齿 2 次触发），
 上机实测后可调。放弃：中断方案（编码器抖动易淹没有限中断，上游即轮询且可用）。
+
+## D8. WS2812 驱动自研，不用 Adafruit_NeoPixel（2026-10-25）
+
+- 现象：Adafruit_NeoPixel 1.15.5（当时最新）在 S3 + Arduino core 2.0.17（IDF 4.4）
+  上 `begin()/show()` 死锁——该组合走库内 IDF4 旧版 RMT 驱动路径
+  （`rmt_driver_install`/`rmt_write_sample` 等待永不触发的 TX 完成中断），
+  LED 信标固件实测卡死在首个 show()，且无看门狗复位（loopTask 默认无 WDT）。
+- 修复：src/led/Ws2812.h，~70 行，基于核心 `rmtInit/rmtWriteBlocking` 新 HAL API
+  （与板载 RGB `neopixelWrite` 同路径，本组合实测可用）。需求仅为 15 像素静态色。
+- 放弃的替代方案：升 Arduino core 3.x/IDF5（NeoPixel 走新 API 且已知问题集中在大灯数场景）——
+  需换 pioarduino 平台分叉并重验 USB 栈，为静态灯冒进不值；等有 core 3.x 的独立理由再整体迁移。
+- 版本策略（由此确立）：**库版本锁定已验证组合，升级需理由**，不自动追新。
+  当前外部库依赖为零；下一决策点是 BLE 阶段的 NimBLE 库选型。

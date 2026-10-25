@@ -40,6 +40,13 @@ void setup() {
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
   leds.showPreset(presets.active().accent, presets.active().name);
   leds.setModeColor(0, 60, 0);  // LED1 绿 = USB 模式
+  // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
+  for (int i = 0; i < 3; ++i) {
+    neopixelWrite(PIN_BOARD_RGB, 0, 60, 60);
+    delay(120);
+    neopixelWrite(PIN_BOARD_RGB, 0, 0, 0);
+    delay(120);
+  }
   Serial.printf("[Navio] v" NAVIO_CHRON_FW_VERSION " ready, preset: %s\n",
                 presets.active().name);
 }
