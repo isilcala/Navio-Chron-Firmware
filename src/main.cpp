@@ -27,11 +27,15 @@ static ITransport* transport = &usbTransport;
 
 static void dispatchButton(Btn id, bool pressed);
 static void checkBootKeyForReflash();
+static void enterDownloadMode();  // 紫灯提示后重启进 ROM 下载模式
 
 // 主控板上 BOOT 键 = GPIO0（矩阵/编码器均未占用）。
 // 长按 3 秒 = 写 RTC 强制下载标志并重启，免插拔即可重新烧录。
 constexpr uint8_t PIN_BOOT_KEY = 0;
 constexpr uint32_t BOOT_KEY_REFLASH_MS = 3000;
+// 组装后 BOOT 键难以触及：侧键（SW11, R1C1，全局保留键）同样支持进下载模式——
+// ① 插电/复位时按住侧键；② 运行中长按侧键 3 秒。
+constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static void dispatchEncoder(Enc id, int8_t dir);
 
 void setup() {
@@ -40,12 +44,19 @@ void setup() {
   neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
   delay(300);
 
+  // 启动早期检查：插电/复位时按住侧键 → 直接进下载模式（组装后 BOOT 键难按的替代入口）
+  matrix.begin();
+  if (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL)) {
+    enterDownloadMode();
+    return;  // 不会到达，保险
+  }
+
   battery.begin();
   leds.begin();
-  matrix.begin();
   encoders.begin();
   presets.begin();
   pinMode(PIN_BOOT_KEY, INPUT_PULLUP);
+  // matrix.begin() 已在启动早期完成（侧键下载模式检查），此处不重复
 
   neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
   delay(300);
@@ -86,21 +97,39 @@ void loop() {
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
 }
 
+static void enterDownloadMode() {
+  neopixelWrite(PIN_BOARD_RGB, 80, 0, 80);  // 紫：进入下载模式
+  delay(1500);                              // 常亮足够久，肉眼明确可见
+  SET_PERI_REG_MASK(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
+  esp_restart();
+}
+
 static void checkBootKeyForReflash() {
-  static uint32_t heldSince = 0;
-  static bool armed = false;
+  static uint32_t bootHeldSince = 0, sideHeldSince = 0;
+  static bool bootArmed = false, sideArmed = false;
+
+  // 裸机调试入口：模块 BOOT 键（组装后难按，兜底用）
   if (digitalRead(PIN_BOOT_KEY) == LOW) {
-    if (!armed) {
-      armed = true;
-      heldSince = millis();
-    } else if (millis() - heldSince >= BOOT_KEY_REFLASH_MS) {
-      neopixelWrite(PIN_BOARD_RGB, 80, 0, 80);  // 紫：进入下载模式
-      delay(1500);                              // 常亮足够久，肉眼明确可见
-      SET_PERI_REG_MASK(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
-      esp_restart();
+    if (!bootArmed) {
+      bootArmed = true;
+      bootHeldSince = millis();
+    } else if (millis() - bootHeldSince >= BOOT_KEY_REFLASH_MS) {
+      enterDownloadMode();
     }
   } else {
-    armed = false;
+    bootArmed = false;
+  }
+
+  // 组装后主入口：侧键长按（不经消抖层，直接读矩阵位）
+  if (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL)) {
+    if (!sideArmed) {
+      sideArmed = true;
+      sideHeldSince = millis();
+    } else if (millis() - sideHeldSince >= BOOT_KEY_REFLASH_MS) {
+      enterDownloadMode();
+    }
+  } else {
+    sideArmed = false;
   }
 }
 

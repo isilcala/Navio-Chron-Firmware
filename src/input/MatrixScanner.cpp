@@ -53,6 +53,15 @@ bool MatrixScanner::next(BtnEvent& out) {
   return true;
 }
 
+bool MatrixScanner::rawKeyDown(uint8_t row, uint8_t col) {
+  if (row > 3 || col > 4) return false;
+  digitalWrite(PIN_ROW[row], LOW);
+  delayMicroseconds(ROW_SETTLE_US);
+  bool down = digitalRead(PIN_COL[col]) == LOW;
+  digitalWrite(PIN_ROW[row], HIGH);
+  return down;
+}
+
 void MatrixScanner::push_(const BtnEvent& e) {
   uint8_t nextTail = (tail_ + 1) % 16;
   if (nextTail == head_) return;  // 队满丢弃（正常输入速率不可能发生）

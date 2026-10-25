@@ -10,6 +10,8 @@ class MatrixScanner {
   // 每个轮询周期调用；事件进入内部环形队列，用 next() 取出
   void poll();
   bool next(BtnEvent& out);
+  // 直接读取某个矩阵位的当前电平（不经消抖），用于启动早期/长按检测等特殊场景
+  bool rawKeyDown(uint8_t row, uint8_t col);
 
  private:
   struct Placement {
