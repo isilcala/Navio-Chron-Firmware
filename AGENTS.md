@@ -6,44 +6,59 @@
 ## 这是什么
 
 Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板硬件，16 路输入，
-3 编码器，15 颗 WS2812）。全新实现，不依赖上游代码。
+3 编码器，15 颗 WS2812）。全新实现，不依赖上游代码。**USB/BLE 双模 HID 已全链路实测**。
+
+## 构建环境（platformio.ini，5 个）
+
+| 环境 | 平台 | 用途 |
+|---|---|---|
+| `navio_chron`（默认） | core 3.12 + NimBLE 2.5.1 + Adafruit_NeoPixel | 正式固件：USB 优先自动选 BLE |
+| `ble_test` | 同上 + FORCE_BLE + IGNORE_MATRIX | BLE 强制路径测试（未焊接阶段） |
+| `ble_diag` | 同上 + USB 外设让给 JTAG 串口 | BLE 实时日志诊断（串口监视器） |
+| `debug_boot` / `led_beacon` | core 2.x 基座（`_core2_tools_base`） | 启动分步日志 / 板载 RGB 颜色信标 |
 
 ## 构建与烧录
 
 ```bash
-# PlatformIO（VS Code 扩展或 CLI），环境名 navio_chron
-pio run                 # 编译
-pio run -t upload       # 烧录：板上固件长按侧键 10 秒（LED1 渐变至紫）或 BOOT 键 3 秒进下载模式后
-                        # 直接 upload；插电时按住侧键同样进入
-pio device monitor      # 调试串口 115200（主固件 CDC 关闭，日志用 debug_boot 环境或 RGB 信标）
-# 兜底（固件挂死/首次）：拔线 → 按住 BOOT → 插线 → 1 秒后松开 → upload
+pio run                 # 编译（默认环境 navio_chron）
+pio run -t upload       # 烧录：板上固件长按侧键 10 秒或 BOOT 键 3 秒（RGB 变紫）进下载模式后直接 upload；
+                        # 插电时按住侧键同样进入
+pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
+# 兜底（固件挂死/首次）：拔线 → 按住 BOOT → 插线 → 松开 → upload
 # 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST 即可
 ```
-
-- 目标：`board = esp32-s3-devkitc-1` + 覆盖（4MB QIO flash + 2MB PSRAM，qio_qspi）。
-- `build_unflags = -std=gnu++11` 不能删（见 DECISIONS.md D1）。
-- 改引脚/参数 → `include/Pins.h`、`include/Config.h`；改预设 → `src/mapping/Presets.cpp`。
 
 ## 代码地图与核心约定
 
 ```
-include/        引脚表(Pins.h)、可调参数(Config.h) —— 与硬件笔记一一对应
-src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent（逻辑输入枚举 Btn/Enc）
+include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
+src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
 src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）
-src/mapping/    Preset 数据结构 + 预设内容（第一期编译期固化）
-src/hid/        ITransport 接口 + USB 实现；BLE 实现同一接口即可接入
-src/led/        WS2812：LED0 预设色 / LED1 模式 / LED2 电量 / LED3-14 按键
+src/mapping/    Preset 数据 + 预设内容（Phase 1 编译期固化）
+src/hid/        ITransport 接口 + USB 实现 + BLE 实现
+                （BleTransport 按 ESP_ARDUINO_VERSION_MAJOR 条件编译适配
+                 NimBLE 2.5.x / 1.4.x 两代 API——改 BLE 代码时两分支都要顾）
+src/led/        WS2812：LedController（后端同样条件编译：Adafruit / 自研 Ws2812.h）
 src/power/      电池电压估算（GPIO3 ÷2 分压）
+tools/          add_fs_include.py：core 3.x USB 库需要 FS 头路径，必须 pre: 阶段挂载
 ```
 
 - **键码一律用 HID Usage ID**（`src/hid/HidUsage.h`），全链路不做 ASCII 转换。
-- **Btn 枚举即物理位**：注释里的 R2C3 等对应矩阵 ROW/COL，与硬件笔记矩阵表一致；
-  勿按枚举顺序臆测物理布局。
-- **SideKey（SW11）固定为预设切换**，不走预设映射；其余 15 路输入全部可映射。
+- **BLE 报告细节（D12）**：报告不带 Report ID 前缀；连接后首帧需 prime 空报告；
+  pressChord 必须把键码写入 `kbKeys_[slot]`（缺此行 = 发送全零报告，历史最贵 bug）。
+- **Btn 枚举即物理位**：注释里的 R2C3 对应硬件笔记矩阵表，勿按枚举顺序臆测布局。
+- **SideKey（SW11）全局保留**：单击=切预设 / 长按 5s=BLE 配对（清绑定）/ 长按 10s=烧写。
+- **未焊接阶段**：矩阵/编码器悬空有噪声事件，测试用 IGNORE_MATRIX 构建；
+  板载 RGB(GPIO48) 是唯一可视调试手段（信标+测试键反馈）。
 - 语言约定：交流与文档中文；标识符、代码、commit message 英文。
 
-## 当前状态与下一步
+## 当前状态与遗留
 
-Phase 1（USB 全输入 + 编译期预设）代码就绪待上机验证；下一步 Phase 1b：BLE。
-具体见 docs/PROJECT.md 分期表。上游参考在 `reference/`（gitignore，只读，无 LICENSE，
-只可参考不可复制）。
+Phase 1 + 1b 完成（USB/BLE 双模实测通过）。遗留（按优先级）：
+1. 焊接后：Test 预设回填物理位表（HARDWARE_NOTES 待填表）、编码器手感调校
+2. 鼠标报告(3)加回 BLE 描述符（USB 侧已有）
+3. 真实预设：剪映 / Premiere / Resolve，Win/Mac 分版本
+4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
+5. Phase 2：电脑端配置工具 + NVS 动态预设
+
+上游参考在 `reference/`（gitignore，只读，无 LICENSE，只可参考不可复制）。
