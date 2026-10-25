@@ -52,6 +52,21 @@ tools/          add_fs_include.py：core 3.x USB 库需要 FS 头路径，必须
   板载 RGB(GPIO48) 是唯一可视调试手段（信标+测试键反馈）。
 - 语言约定：交流与文档中文；标识符、代码、commit message 英文。
 
+## 文档同步约定（每次 git commit 前自查）
+
+改了下表左列的内容，必须同步检查右列文档（同一个 commit 内或紧随其后）：
+
+| 你改了什么 | 必查文档 |
+|---|---|
+| 硬件引脚 / 新外设 / 新硬件事实 | `docs/hardware/HARDWARE_NOTES.md`（含 Pins.h 与它的一致性） |
+| 技术选型、推翻或修订已有决策、新踩平台/库的坑 | `docs/DECISIONS.md`（新增 D 条目 / 修订 / 显式撤销——撤销要留痕，如 D11） |
+| 阶段目标完成、范围变化、手势/交互语义变更 | `docs/PROJECT.md` 分期表 + `README.md` Status + 本文件"当前状态" |
+| 构建环境（platformio.ini）、烧录流程、目录结构 | 本文件"构建环境/构建与烧录/代码地图" + `README.md` Build/Layout |
+| 升级/降级依赖版本 | `docs/DECISIONS.md`（版本策略 D8：锁定已验证组合） |
+
+原则：**文档陈述的状态永远不得超前于代码**（写"已完成"必须先实测）；
+小 bug fix 不在表内、无需动文档。
+
 ## 当前状态与遗留
 
 Phase 1 + 1b 完成（USB/BLE 双模实测通过）。遗留（按优先级）：
