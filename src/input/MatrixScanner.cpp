@@ -12,8 +12,8 @@ const MatrixScanner::Placement MatrixScanner::kPlacements[BTN_COUNT] = {
     {3, 1, Btn::K10},  {3, 2, Btn::K11},  {3, 3, Btn::K12},
     {1, 2, Btn::EncCenterPress},
     {3, 0, Btn::EncLargePress},
+    {1, 0, Btn::WheelPress},
     {0, 0, Btn::SideKey},
-    {1, 0, Btn::Tact},
 };
 
 void MatrixScanner::begin() {

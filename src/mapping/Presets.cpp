@@ -27,8 +27,8 @@ static const Preset kPresetTest = {
         /* K12 */ actKey(MOD_NONE, HID_EQUAL),
         /* EncCenterPress */ actConsumer(CONSUMER_MUTE),
         /* EncLargePress  */ actKey(MOD_NONE, HID_ENTER),
+        /* WheelPress     */ actKey(MOD_NONE, HID_ESC),
         /* SideKey        */ actNone(),  // 固定用作预设切换（main 处理）
-        /* Tact           */ actKey(MOD_NONE, HID_ESC),
     },
     {
         /* Center 中央旋钮 */ {actConsumer(CONSUMER_VOL_UP), actConsumer(CONSUMER_VOL_DOWN)},
@@ -58,8 +58,8 @@ static const Preset kPresetF13 = {
         /* K12 */ actKey(MOD_NONE, HID_F24),
         /* EncCenterPress */ actConsumer(CONSUMER_PLAY_PAUSE),
         /* EncLargePress  */ actKey(MOD_NONE, HID_SPACE),
+        /* WheelPress     */ actKey(MOD_CTRL, HID_Z),  // 撤销（Win）
         /* SideKey        */ actNone(),
-        /* Tact           */ actKey(MOD_CTRL, HID_Z),  // 撤销（Win）
     },
     {
         /* Center */ {actConsumer(CONSUMER_VOL_UP), actConsumer(CONSUMER_VOL_DOWN)},

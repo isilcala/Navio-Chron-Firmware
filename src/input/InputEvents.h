@@ -20,8 +20,8 @@ enum class Btn : uint8_t {
   K12, // R4C4 UA44  LED14
   EncCenterPress,  // R2C3 SW23 中央旋钮按压
   EncLargePress,   // R4C1 SW41 大旋钮按压
-  SideKey,         // R1C1 SW11 微动（滚轮按压兼侧键；固件固定用作预设切换）
-  Tact,            // R2C1 SW21 独立轻触（用途待硬件确认，先按普通键）
+  WheelPress,      // R2C1 SW21 滚轮下压微动（PCB 丝印确认 2026-10-25）
+  SideKey,         // R1C1 SW11 侧面微动（固件固定用作预设切换）
   Count
 };
 constexpr size_t BTN_COUNT = static_cast<size_t>(Btn::Count);
