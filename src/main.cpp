@@ -7,6 +7,8 @@
 #include "Config.h"
 #include "Pins.h"
 #include "PresetManager.h"
+#include "hid/BleTransport.h"
+#include "hid/HidUsage.h"
 #include "hid/ITransport.h"
 #include "hid/UsbTransport.h"
 #include "input/Encoders.h"
@@ -22,8 +24,80 @@ static Encoders encoders;
 static LedController leds;
 static Battery battery;
 static PresetManager presets;
-static UsbTransport usbTransport;  // TODO(ble): BleTransport + 按连接状态自动选择
+static UsbTransport usbTransport;
+static BleTransport bleTransport;
 static ITransport* transport = &usbTransport;
+
+// 连接模式选择（D3）：USB 挂载优先；否则 BLE（已连=蓝 / 配对中蓝快闪 / 等待=橙闪）
+static bool s_pairingMode = false;
+static bool s_sideHoldActive = false;  // 侧键长按中：抑制状态灯刷新，让位于进度渐变
+#if NAVIO_FORCE_BLE  // 未焊接阶段：连接状态镜像到单片机板载 RGB（键盘状态灯未焊接）
+static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) {
+  leds.setModeColor(r, g, b);
+  neopixelWrite(PIN_BOARD_RGB, r, g, b);
+}
+#else
+static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) { leds.setModeColor(r, g, b); }
+#endif
+static void updateLinkMode() {
+  static uint32_t lastCheck = 0;
+  uint32_t now = millis();
+  if (now - lastCheck < 200) return;
+  lastCheck = now;
+
+  ITransport* desired;
+#if NAVIO_FORCE_BLE  // bring-up 试验构建：无视 USB，强制 BLE（未焊接无电池时验证蓝牙用）
+  desired = &bleTransport;
+#else
+  if (usbTransport.isConnected()) {
+    desired = &usbTransport;
+    if (!s_pairingMode) bleTransport.pauseAdvertising();  // 配对模式例外：USB 插着也保持可发现
+    if (!s_sideHoldActive) mirrorModeLed(0, 60, 0);  // 绿：USB
+  } else {
+    bleTransport.resumeAdvertising();
+    desired = &bleTransport;  // 未连接时发送自然丢弃
+    if (bleTransport.isConnected()) {
+      s_pairingMode = false;
+      if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);  // 蓝：BLE 已连接
+    } else if (!s_sideHoldActive) {
+      static bool blink = false;
+      blink = !blink;
+      if (s_pairingMode) {
+        mirrorModeLed(0, 0, blink ? 100 : 0);  // 蓝快闪：配对中
+      } else {
+        mirrorModeLed(blink ? 50 : 0, blink ? 25 : 0, 0);  // 橙慢闪：等待连接
+      }
+    }
+  }
+#endif
+  // force-BLE 分支的 LED 状态（与非 force 的 BLE 侧一致）
+#if NAVIO_FORCE_BLE
+  if (bleTransport.isConnected()) {
+    s_pairingMode = false;
+    if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);
+  } else if (!s_sideHoldActive) {
+    static bool blink = false;
+    blink = !blink;
+    if (s_pairingMode) {
+      mirrorModeLed(0, 0, blink ? 100 : 0);
+    } else {
+      mirrorModeLed(blink ? 50 : 0, blink ? 25 : 0, 0);
+    }
+  }
+#endif
+  if (desired != transport) {
+    transport->releaseAll();
+    transport = desired;
+  }
+}
+
+// 蓝牙电量服务周期上报
+static void updateBleBattery() {
+  static uint32_t last = 0;
+  if (millis() - last < 60 * 1000) return;
+  last = millis();
+  bleTransport.updateBattery(battery.percent());
+}
 
 static void dispatchButton(Btn id, bool pressed);
 static void checkLongPressActions();
@@ -40,6 +114,10 @@ constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static void dispatchEncoder(Enc id, int8_t dir);
 
 void setup() {
+  // USB_MODE=0 构建下 Serial 走硬件 JTAG 串口（ble_diag 诊断用）；
+  // USB_MODE=1 主固件下 Serial=UART0 无接收者，begin 无副作用
+  Serial.begin(115200);
+
   // 板载 RGB 启动信标（未焊接阶段唯一的可视化调试手段）
   // 绿=进入setup 蓝=即将启动USB 青×3=全部完成
   neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
@@ -47,10 +125,12 @@ void setup() {
 
   // 启动早期检查：插电/复位时按住侧键 → 直接进下载模式（组装后 BOOT 键难按的替代入口）
   matrix.begin();
+#if !NAVIO_IGNORE_MATRIX  // 未焊接阶段侧键悬空，跳过（悬空误判会直接进下载模式）
   if (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL)) {
     enterDownloadMode();
     return;  // 不会到达，保险
   }
+#endif
 
   battery.begin();
   leds.begin();
@@ -61,9 +141,11 @@ void setup() {
 
   neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
   delay(300);
+#if !NAVIO_FORCE_BLE
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
+#endif
+  bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
   leds.showPreset(presets.active().accent, presets.active().name);
-  leds.setModeColor(0, 60, 0);  // LED1 绿 = USB 模式
   // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
   for (int i = 0; i < 3; ++i) {
     neopixelWrite(PIN_BOARD_RGB, 0, 60, 60);
@@ -93,6 +175,8 @@ void loop() {
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();
+  updateLinkMode();
+  updateBleBattery();
   checkLongPressActions();
 
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
@@ -105,32 +189,28 @@ static void enterDownloadMode() {
   esp_restart();
 }
 
-// 侧键长按进度 → LED1 颜色：0-5s 蓝色渐亮（配对档），5-10s 蓝→紫渐变（烧写档）
+// 侧键长按进度 → 模式灯颜色：0-5s 蓝色渐亮（配对档），5-10s 蓝→紫渐变（烧写档）
 static void showSideHoldProgress(uint32_t heldMs) {
   if (heldMs < SIDE_HOLD_PAIRING_MS) {
     uint8_t b = 20 + (uint8_t)(100 * heldMs / SIDE_HOLD_PAIRING_MS);
-    leds.setModeColor(0, 0, b);
+    mirrorModeLed(0, 0, b);
   } else {
     uint32_t t = heldMs - SIDE_HOLD_PAIRING_MS;
     uint32_t span = SIDE_HOLD_REFLASH_MS - SIDE_HOLD_PAIRING_MS;
     uint8_t r = (uint8_t)(100 * t / span);
-    leds.setModeColor(r, 0, 100);
+    mirrorModeLed(r, 0, 100);
   }
 }
 
 static void enterPairingMode() {
-  // TODO(ble): Phase 1b 接入 NimBLE 配对广播。现占位：LED1 蓝快闪 2s 提示已触发。
-  for (int i = 0; i < 8; ++i) {
-    leds.setModeColor(0, 0, 120);
-    delay(125);
-    leds.setModeColor(0, 0, 0);
-    delay(125);
-  }
-  leds.setModeColor(0, 60, 0);  // 恢复 USB 模式指示
+  // 清除全部绑定并进入可发现广播；LED1 蓝快闪直到建立连接（updateLinkMode 呈现）
+  bleTransport.enterPairing();
+  s_pairingMode = true;
 }
 
 static void checkLongPressActions() {
-  // 裸机调试入口：模块 BOOT 键长按 3s（组装后难按，仅兜底）
+  // 裸机调试入口：模块 BOOT 键长按 3s=烧写（组装后难按，仅兜底）；
+  // 短按=当前传输发测试键 'a'（未焊接阶段的 BLE 链路验证手段）
   static uint32_t bootHeldSince = 0;
   static bool bootArmed = false;
   if (digitalRead(PIN_BOOT_KEY) == LOW) {
@@ -140,21 +220,35 @@ static void checkLongPressActions() {
     } else if (millis() - bootHeldSince >= BOOT_KEY_REFLASH_MS) {
       enterDownloadMode();
     }
-  } else {
+  } else if (bootArmed) {
     bootArmed = false;
+    if (millis() - bootHeldSince < BOOT_KEY_REFLASH_MS) {
+      // BLE 测试键：短按 = 发送 'a'（发送结果灯反馈：绿=notify成功 红=失败）
+      // 清绑定入口 = 侧键长按 5s（配对模式，组装后）；裸板期间换主机可重新烧 ble_test 或 RST 循环
+      transport->pressChord(MOD_NONE, HID_A);
+      bool ok = bleTransport.lastSendOk();
+      neopixelWrite(PIN_BOARD_RGB, ok ? 0 : 60, ok ? 60 : 0, 0);
+      delay(300);
+      transport->releaseChord(MOD_NONE, HID_A);
+    }
   }
 
   // 组装后主入口：侧键分级长按（直接读矩阵位，不经消抖层）
   static uint32_t sideHeldSince = 0;
   static bool sideArmed = false, pairingFired = false;
+#if NAVIO_IGNORE_MATRIX  // 未焊接阶段：侧键悬空，跳过长按检测（BOOT 键仍可用）
+  if (false) {
+#endif
   if (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL)) {
     if (!sideArmed) {
       sideArmed = true;
       sideHeldSince = millis();
       pairingFired = false;
     }
+    s_sideHoldActive = true;
     uint32_t held = millis() - sideHeldSince;
     if (held >= SIDE_HOLD_REFLASH_MS) {
+      s_sideHoldActive = false;
       enterDownloadMode();
     } else if (held >= SIDE_HOLD_PAIRING_MS) {
       showSideHoldProgress(held);
@@ -167,8 +261,11 @@ static void checkLongPressActions() {
     }
   } else if (sideArmed) {
     sideArmed = false;
-    leds.setModeColor(0, 60, 0);  // 松手恢复 USB 模式指示
+    s_sideHoldActive = false;  // 松手后状态灯由 updateLinkMode 在 200ms 内自动恢复
   }
+#if NAVIO_IGNORE_MATRIX
+  }
+#endif
 }
 
 static void switchPreset() {
@@ -180,6 +277,11 @@ static void switchPreset() {
 }
 
 static void dispatchButton(Btn id, bool pressed) {
+#if NAVIO_IGNORE_MATRIX  // 未焊接阶段：矩阵悬空引脚噪声事件全部丢弃
+  (void)id;
+  (void)pressed;
+  return;
+#endif
   if (id == Btn::SideKey) {  // 微动侧键固定作为预设切换
     if (pressed) switchPreset();
     return;
@@ -205,6 +307,11 @@ static void dispatchButton(Btn id, bool pressed) {
 }
 
 static void dispatchEncoder(Enc id, int8_t dir) {
+#if NAVIO_IGNORE_MATRIX  // 未焊接阶段：编码器悬空噪声同样丢弃
+  (void)id;
+  (void)dir;
+  return;
+#endif
   const Action& a = presets.active().enc[static_cast<size_t>(id)][dir > 0 ? 0 : 1];
   if (!a) return;
   switch (a.kind) {
