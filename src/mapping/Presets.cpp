@@ -40,6 +40,10 @@ static const Preset kPresetTest = {
 // 预设 1：通用 F13-F24 宏——按键映射到 F13..F24，在剪辑软件里自定义快捷键即可用。
 // TODO(Elvin): 按 Premiere / 剪映 / Resolve / Procreate 的实际习惯细分，
 //              并拆分 Win(Ctrl) / Mac(Cmd) 版本；编码器先沿用测试配置。
+// 剪映预设参考（上游 layer0 原始映射，物理位见 docs/hardware/HARDWARE_NOTES.md）：
+//   K1=q K2=Ctrl+B K3=w K4=Ctrl+Z K5=Ctrl+Y K6=Space K7=Backspace
+//   K8=↑ K9=Alt K10=← K11=↓ K12=→ 大旋钮按压=Space 中央旋钮按压=v
+//   中央旋钮=←/→ 大旋钮=Alt+滚轮(时间轴) 滚轮=Ctrl+滚轮(缩放)
 static const Preset kPresetF13 = {
     "F13 Macro",
     {160, 0, 200},  // 紫
