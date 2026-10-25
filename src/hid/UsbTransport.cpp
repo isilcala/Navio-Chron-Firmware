@@ -1,5 +1,9 @@
 #include "hid/UsbTransport.h"
 
+// 让 PlatformIO LDF 发现 FS 库：USB 库整体编译时（MSC 子模块）需要 FS.h，
+// 而其依赖声明是 core 3.x 的 idf_component.yml 格式，PIO 读不到（core 2.x 无此问题）
+#include <FS.h>
+
 #include "USB.h"
 #include "USBHIDConsumerControl.h"
 #include "USBHIDKeyboard.h"

@@ -13,8 +13,9 @@ Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板�
 ```bash
 # PlatformIO（VS Code 扩展或 CLI），环境名 navio_chron
 pio run                 # 编译
-pio run -t upload       # 烧录（板子不自动进下载模式时：按住 BOOT → 点按 RST → 松开 BOOT）
-pio device monitor      # USB CDC 调试串口 115200
+pio run -t upload       # 烧录：板上固件长按 BOOT 键 3 秒（RGB 变紫）即进下载模式，然后直接 upload
+pio device monitor      # 调试串口 115200（主固件 CDC 关闭，日志用 debug_boot 环境或 RGB 信标）
+# 兜底（固件挂死/首次）：拔线 → 按住 BOOT → 插线 → 1 秒后松开 → upload
 ```
 
 - 目标：`board = esp32-s3-devkitc-1` + 覆盖（4MB QIO flash + 2MB PSRAM，qio_qspi）。

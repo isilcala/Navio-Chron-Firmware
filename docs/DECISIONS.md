@@ -69,3 +69,18 @@ USB 与 BLE 实现同一接口，主循环与映射层不感知传输方式。
   debug_boot 环境（硬件 USB-Serial/JTAG）或板载 RGB 信标；将来有需要再做
   "开 CDC + 已修 LED bug" 的对照实验。
 - 主固件现含三段式启动信标（绿=setup / 蓝=USB前 / 青×3=完成），未焊接阶段保留。
+
+## D10. 迁移官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25）
+
+- 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5（其 1.x 停在 core 2.x）；
+  官方注册表 2026-10-19 发布 espressif32 8.0.0 原生携带 core 3.12，无需 pioarduino 分叉，
+  公开仓库克隆即编译；core 3.x 上 Adafruit_NeoPixel 走新 RMT 路径，满足社区扩展 RGB 的生态需求。
+- 迁移方式：LedController 按 `ESP_ARDUINO_VERSION_MAJOR` 编译期选择后端
+  （3.x=Adafruit_NeoPixel 1.15.5，2.x=自研 Ws2812），保留 `navio_chron_core2` 回退环境。
+- 迁移踩坑：core 3.x 库依赖改用 idf_component.yml 声明，PIO 依赖发现器不读，
+  USB 库整体编译时 MSC 模块找不到 FS.h —— `extra_scripts = pre:tools/add_fs_include.py`
+  在库环境克隆前注入 FS 头路径解决（post 阶段注入无效、build_flags 的
+  `{platformio.packages_dir}` 不展开）。
+- 上机验证（未焊接主板）：三段信标全过 + Windows 枚举 HID keyboard device ✓。
+- 附带改进：BOOT 键长按 3 秒进 ROM 下载模式（写 RTC_CNTL_FORCE_DOWNLOAD_BOOT + 重启），
+  之后烧录免插拔免按键舞步。CDC 维持关闭（D9 待验证），`neopixelWrite` 弃用警告待换 `rgbLedWrite`。

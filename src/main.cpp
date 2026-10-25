@@ -2,6 +2,7 @@
 // 分层：输入扫描(input/) → 预设映射(mapping/) → 动作(action/) → HID 传输(hid/)
 // 第一期：USB 传输；BLE 传输实现 ITransport 后在此切换/自动选择
 #include <Arduino.h>
+#include "soc/rtc_cntl_reg.h"  // BOOT 长按强制进入 ROM 下载模式用
 
 #include "Config.h"
 #include "Pins.h"
@@ -25,6 +26,12 @@ static UsbTransport usbTransport;  // TODO(ble): BleTransport + 按连接状态�
 static ITransport* transport = &usbTransport;
 
 static void dispatchButton(Btn id, bool pressed);
+static void checkBootKeyForReflash();
+
+// 主控板上 BOOT 键 = GPIO0（矩阵/编码器均未占用）。
+// 长按 3 秒 = 写 RTC 强制下载标志并重启，免插拔即可重新烧录。
+constexpr uint8_t PIN_BOOT_KEY = 0;
+constexpr uint32_t BOOT_KEY_REFLASH_MS = 3000;
 static void dispatchEncoder(Enc id, int8_t dir);
 
 void setup() {
@@ -38,6 +45,7 @@ void setup() {
   matrix.begin();
   encoders.begin();
   presets.begin();
+  pinMode(PIN_BOOT_KEY, INPUT_PULLUP);
 
   neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
   delay(300);
@@ -73,8 +81,27 @@ void loop() {
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();
+  checkBootKeyForReflash();
 
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
+}
+
+static void checkBootKeyForReflash() {
+  static uint32_t heldSince = 0;
+  static bool armed = false;
+  if (digitalRead(PIN_BOOT_KEY) == LOW) {
+    if (!armed) {
+      armed = true;
+      heldSince = millis();
+    } else if (millis() - heldSince >= BOOT_KEY_REFLASH_MS) {
+      neopixelWrite(PIN_BOARD_RGB, 80, 0, 80);  // 紫：进入下载模式
+      delay(1500);                              // 常亮足够久，肉眼明确可见
+      SET_PERI_REG_MASK(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
+      esp_restart();
+    }
+  } else {
+    armed = false;
+  }
 }
 
 static void switchPreset() {
