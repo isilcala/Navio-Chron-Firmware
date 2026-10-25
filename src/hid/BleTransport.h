@@ -1,6 +1,7 @@
 #pragma once
-// BLE HID 传输（NimBLE-Arduino 2.5.x）：键盘(报告1) + 消费控制(报告2) + 鼠标(报告3)
-// USB 挂载检测由 UsbTransport 负责，main 据此切换 transport（D3 自动选模式）
+// BLE HID 传输（NimBLE-Arduino，条件编译适配 2.5.x/core3 与 1.4.x/core2）：
+// 键盘(报告1) + 消费控制(报告2)。USB 挂载检测由 UsbTransport 负责，
+// main 据此切换 transport（D3 自动选模式）
 #include "hid/ITransport.h"
 
 namespace navio {
@@ -28,7 +29,7 @@ class BleTransport : public ITransport {
   // HID 电池服务上报（main 周期调用）
   void updateBattery(uint8_t pct);
 
-  // 最近一次键盘报告 notify 是否成功（诊断用：CCCD 未订阅/未连接时为 false）
+  // 最近一次键盘报告 notify 是否成功（NimBLE 1.4 下恒 true：notify 无返回值）
   bool lastSendOk() const { return lastNotifyOk_; }
 
   // server 回调转发（内部使用）
@@ -36,7 +37,7 @@ class BleTransport : public ITransport {
   void onDisconnect_();
 
  private:
-  void sendKeyboardReport_(const char* diagCaller = "");
+  void sendKeyboardReport_();
   bool lastNotifyOk_ = false;
   bool primed_ = false;  // 连接后首帧报告需预热（主机握手期会丢弃）
 

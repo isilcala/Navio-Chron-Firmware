@@ -70,17 +70,37 @@ USB 与 BLE 实现同一接口，主循环与映射层不感知传输方式。
   "开 CDC + 已修 LED bug" 的对照实验。
 - 主固件现含三段式启动信标（绿=setup / 蓝=USB前 / 青×3=完成），未焊接阶段保留。
 
-## D10. 迁移官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25）
+## D11. （撤销，并入 D10 修订）
 
-- 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5（其 1.x 停在 core 2.x）；
-  官方注册表 2026-10-19 发布 espressif32 8.0.0 原生携带 core 3.12，无需 pioarduino 分叉，
-  公开仓库克隆即编译；core 3.x 上 Adafruit_NeoPixel 走新 RMT 路径，满足社区扩展 RGB 的生态需求。
-- 迁移方式：LedController 按 `ESP_ARDUINO_VERSION_MAJOR` 编译期选择后端
-  （3.x=Adafruit_NeoPixel 1.15.5，2.x=自研 Ws2812），保留 `navio_chron_core2` 回退环境。
-- 迁移踩坑：core 3.x 库依赖改用 idf_component.yml 声明，PIO 依赖发现器不读，
-  USB 库整体编译时 MSC 模块找不到 FS.h —— `extra_scripts = pre:tools/add_fs_include.py`
-  在库环境克隆前注入 FS 头路径解决（post 阶段注入无效、build_flags 的
-  `{platformio.packages_dir}` 不展开）。
-- 上机验证（未焊接主板）：三段信标全过 + Windows 枚举 HID keyboard device ✓。
-- 附带改进：BOOT 键长按 3 秒进 ROM 下载模式（写 RTC_CNTL_FORCE_DOWNLOAD_BOOT + 重启），
-  之后烧录免插拔免按键舞步。CDC 维持关闭（D9 待验证），`neopixelWrite` 弃用警告待换 `rgbLedWrite`。
+原记录"core 3.12 NimBLE 适配不可用、BLE 转战 core 2.x"的结论系误判，2026-10-26 撤销。
+证据：根因是 pressChord 键码未写入（D12）；core 3.12 + NimBLE 2.5.1 修复后实测
+USB/BLE 双模全部正常。期间因降级 NimBLE 1.4.3 引入的真实差异仍保留在
+BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API 同名重载）。
+
+## D12. BLE HID 实现要点与"空报告"教训（2026-10-26）
+
+- **pressChord 键码写入槽位是史上最贵的一行**：`kbKeys_[slot] = usage` 缺失导致所有
+  版本/平台发送全零报告；notify() 成功（绿灯）≠ 内容正确。调试手段升级：
+  报告内容打日志（ble_diag 环境）才现形。原则：**诊断信号必须来自被测路径本身**。
+- Report Map 采用 HijelHID 逐字节验证版；手写描述符的细微偏差会被主机静默丢弃。
+- 报告值不带 Report ID 前缀（Report Reference descriptor 已标明归属）。
+- 连接后首帧 notify 被主机握手期丢弃 → 发送前 prime 一帧空报告。
+- 设备名必须放 scan response（Android 可见性）；NimBLE 1.4 需 advertiseOnDisconnect(false)。
+- 跨 NimBLE 版本残留 bond 不兼容 → 升级后需设备端 deleteAllBonds + 主机端删绑定重配
+  （或全片擦除）；多主机的旧绑定会自动直连，挤碎广播窗口导致"搜不到"。
+- 未焊接矩阵悬空噪声会风暴式触发事件（SideKey→releaseAll 空报告风暴）→
+  测试构建用 NAVIO_IGNORE_MATRIX 屏蔽；正式固件不受影响（焊接后无此现象）。
+
+## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
+
+- 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带
+  core 3.12 无需 pioarduino 分叉；core 3.x 上 Adafruit_NeoPixel 走新 RMT 路径可用。
+- **2026-10-26 修订**：BLE 调试期间曾误判"core 3.12 + NimBLE 适配层不可用"并临时回退
+  core 2.x + NimBLE 1.4.3；根因实为自身 pressChord 未写入键码（见 D12），core 3.12 +
+  NimBLE 2.5.1 实测完全可用，主环境回归。误判教训：多版本组合排查时未先验证最小发送链路。
+- 迁移要点：LedController 按 `ESP_ARDUINO_VERSION_MAJOR` 编译期选择 LED 后端
+  （3.x=Adafruit_NeoPixel 1.15.5，2.x=自研 Ws2812）；BleTransport 同样条件编译适配
+  NimBLE 2.5/1.4 两代 API；core 2.x 环境保留为诊断工具基座（`_core2_tools_base`）。
+- PIO 踩坑（core 3.x 特有）：库依赖声明改用 idf_component.yml，PIO LDF 读不到，
+  USB 库编译 MSC 模块缺 FS.h —— `pre:tools/add_fs_include.py` 在库环境克隆前注入路径
+  （post 阶段注入无效；build_flags 里 `{platformio.packages_dir}` 不展开）。

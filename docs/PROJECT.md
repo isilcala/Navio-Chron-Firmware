@@ -31,8 +31,9 @@
 
 | 阶段 | 范围 | 状态 |
 |---|---|---|
-| Phase 1 | USB HID 全输入；编译期预设；侧键切换预设 + NVS 记忆 | 代码就绪，待上机验证 |
-| Phase 1b | BLE 传输（NimBLE 实现 ITransport）；USB 挂载检测自动选模式；睡眠唤醒 | 未开始 |
+| Phase 1 | USB HID 全输入；编译期预设；侧键切换预设 + NVS 记忆 | 代码就绪（未焊接部分待实测） |
+| Phase 1b | BLE 传输（NimBLE）；USB 挂载检测自动选模式 | **已达成**：Windows/Android 配对、双模自动选择、无线供电下 BLE 键入均实测通过（2026-10-26）；睡眠唤醒待电池接入 |
+| Phase 1b+ | 鼠标报告(3)；真实预设（剪映/Premiere/Resolve，Win/Mac） | 待焊接后 |
 | Phase 2 | 电脑端配置工具 + 预设写入 NVS 动态加载 | 未开始 |
 
 ## 明确的约束 / 非目标

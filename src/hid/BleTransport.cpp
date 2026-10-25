@@ -1,7 +1,12 @@
 #include "hid/BleTransport.h"
 
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
 #include <NimBLEDevice.h>
 #include <NimBLEHIDDevice.h>
+#else
+#include <NimBLEDevice.h>
+#include <NimBLEHIDDevice.h>
+#endif
 
 #include "hid/HidUsage.h"
 
@@ -9,9 +14,9 @@ namespace navio {
 
 // ---------------------------------------------------------------------------
 // HID Report Map：键盘(报告1) + 消费控制(报告2)。
-// 逐字节采用 HijelHID（NimBLE 2.3.8+）已验证可用的描述符——自写版本在
-// Windows/Android 均不出字，教训：HID 描述符的细微偏差主机栈不会报错，只会静默丢弃。
-// 鼠标(报告3)暂缓，出字后按同风格增量加回。
+// 逐字节采用 HijelHID（NimBLE 2.3.8+）已验证可用的描述符——HID 描述符的细微
+// 偏差主机栈不会报错，只会静默丢弃报告（D12 教训）。
+// 鼠标(报告3)暂缓：键盘/消费验证稳定后按同风格加回。
 // ---------------------------------------------------------------------------
 static const uint8_t kReportMap[] = {
     // ── Keyboard (Report ID 0x01) ──────────────────────────────────────
@@ -70,7 +75,22 @@ static NimBLECharacteristic* chrConsumer = nullptr;  // 报告 2
 
 static BleTransport* s_self = nullptr;
 
-// NimBLE 1.4.x 回调签名（带 ble_gap_conn_desc）；core 3.x 回归时需按 2.x 签名适配
+// NimBLE 回调签名随版本不同：2.x 用 NimBLEConnInfo&，1.4.x 用 ble_gap_conn_desc*
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+class ServerCallbacks : public NimBLEServerCallbacks {
+ public:
+  void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override {
+    (void)pServer;
+    if (s_self) s_self->onConnect_(connInfo.getConnHandle());
+  }
+  void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
+    (void)pServer;
+    (void)connInfo;
+    (void)reason;
+    if (s_self) s_self->onDisconnect_();
+  }
+};
+#else
 class ServerCallbacks : public NimBLEServerCallbacks {
  public:
   void onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) override {
@@ -83,6 +103,7 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     if (s_self) s_self->onDisconnect_();
   }
 };
+#endif
 
 void BleTransport::begin() {
   s_self = this;
@@ -91,29 +112,48 @@ void BleTransport::begin() {
 
   server = NimBLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks(), false);
-  // 断开后不自动重启定向广播（默认 directed 只对旧绑定主机可见，通用扫描搜不到）；
-  // 广播恢复由 onDisconnect_ 里的普通广播接管
+#if ESP_ARDUINO_VERSION_MAJOR < 3
+  // 1.4.x：断开后默认自动定向广播（只有旧绑定主机可见），改为普通广播由 onDisconnect_ 接管
   server->advertiseOnDisconnect(false);
+#endif
 
   hid = new NimBLEHIDDevice(server);
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  hid->setManufacturer("Navio");
+  hid->setPnp(0x01, 0x02E5, 0xBEEF, 0x0100);  // SIG source + Espressif VID
+  hid->setHidInfo(0x00, 0x01);
+  hid->setReportMap(const_cast<uint8_t*>(kReportMap), sizeof(kReportMap));
+#else
   hid->manufacturer("Navio");
-  hid->pnp(0x01, 0x02E5, 0xBEEF, 0x0100);  // SIG source + Espressif VID
+  hid->pnp(0x01, 0x02E5, 0xBEEF, 0x0100);
   hid->hidInfo(0x00, 0x01);
   hid->reportMap(const_cast<uint8_t*>(kReportMap), sizeof(kReportMap));
+#endif
   hid->setBatteryLevel(100);
 
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  chrKeyboard = hid->getInputReport(1);
+  chrConsumer = hid->getInputReport(2);
+#else
   chrKeyboard = hid->inputReport(1);
   chrConsumer = hid->inputReport(2);
-  // 鼠标(报告3)：描述符待验证出字后加回，暂不创建特征
-
-  hid->startServices();  // NimBLE 1.4 必须显式启动服务（2.x 已由 server.start() 接管）
+  hid->startServices();  // 1.4.x 必须显式启动服务（2.x 由 server.start() 接管）
+#endif
+  // 鼠标(报告3)：描述符稳定后按同风格加回
 
   NimBLEAdvertising* adv = server->getAdvertising();
   adv->setAppearance(0x03C1);  // HID Keyboard
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  adv->addServiceUUID(hid->getHidService()->getUUID());
+  adv->addServiceUUID(hid->getBatteryService()->getUUID());
+  adv->setPreferredParams(0x10, 0x20);  // 连接参数 20-40ms（Android 11 兼容）
+  adv->enableScanResponse(true);
+#else
   adv->addServiceUUID(hid->hidService()->getUUID());
   adv->addServiceUUID(hid->batteryService()->getUUID());
-  adv->setMinPreferred(0x10);  // 连接参数下限 20ms（Android 11 兼容）
-  // 设备名放 scan response：主机蓝牙设置才能正确显示 "Navio Chron"
+  adv->setMinPreferred(0x10);
+#endif
+  // 设备名放 scan response：主机蓝牙设置才能正确显示 "Navio Chron"（Android 必需）
   NimBLEAdvertisementData scanResp;
   scanResp.setName("Navio Chron");
   adv->setScanResponseData(scanResp);
@@ -126,13 +166,11 @@ void BleTransport::onConnect_(uint16_t connHandle) {
   connHandle_ = connHandle;  // 供配对模式主动断开当前连接
   advertising_ = false;
   primed_ = false;  // 新连接需要重新预热（首帧 notify 会被主机握手期丢弃）
-  Serial.printf("[BLE] connected handle=%u\r\n", connHandle);
 }
 
 void BleTransport::onDisconnect_() {
   connected_ = false;
-  Serial.printf("[BLE] disconnected\r\n");
-  // 自动恢复广播等待重连（USB 优先时段由 main 调 pause 压制）
+  // 自动恢复普通广播等待重连（USB 优先时段由 main 调 pause 压制）
   if (server && !advertising_) {
     server->getAdvertising()->start();
     advertising_ = true;
@@ -142,7 +180,11 @@ void BleTransport::onDisconnect_() {
 void BleTransport::enterPairing() {
   // 清除全部绑定并重新进入可发现/可配对状态（换主机/跨库版本升级后残留 bond 不兼容时用）
   if (connected_ && server) {
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
     server->disconnect(connHandle_);
+#else
+    server->disconnect(connHandle_);
+#endif
   }
   NimBLEDevice::deleteAllBonds();
   if (server) {
@@ -176,13 +218,12 @@ int BleTransport::kbSlotFor_(uint16_t usage, bool allocate) {
     if (kbKeys_[i] == usage) return i;
     if (allocate && kbKeys_[i] == 0) return i;
   }
-  return -1;  // 6 键全满（NKRO 之外的标准键盘限制）
+  return -1;  // 6 键全满（标准键盘限制）
 }
 
 // 键盘报告为纯 8 字节（mods+reserved+6键），不带 Report ID 前缀
-// （对照 HijelHID 成熟实现；Report Reference descriptor 已标明报告归属）
-// diagCaller: 诊断标记（""=正常, "prime"/"press"/"release"/"relAll"）
-void BleTransport::sendKeyboardReport_(const char* diagCaller) {
+// （Report Reference descriptor 已标明报告归属；对照 HijelHID 验证实现）
+void BleTransport::sendKeyboardReport_() {
   if (!chrKeyboard || !connected_) {
     lastNotifyOk_ = false;
     return;
@@ -204,10 +245,6 @@ void BleTransport::sendKeyboardReport_(const char* diagCaller) {
   chrKeyboard->notify();  // NimBLE 1.4 notify 无返回值
   lastNotifyOk_ = true;
 #endif
-  // 诊断：CCCD 订阅数（0 = 主机未订阅，notify 白发）
-  Serial.printf("[BLE] kb report (%s): %02X %02X %02X ... subs=%u\r\n",
-                diagCaller ? diagCaller : "?", report[0], report[2], report[3],
-                chrKeyboard->getSubscribedCount());
 }
 
 void BleTransport::pressChord(uint8_t modMask, uint16_t usage) {
@@ -215,9 +252,9 @@ void BleTransport::pressChord(uint8_t modMask, uint16_t usage) {
   if (usage) {
     int slot = kbSlotFor_(static_cast<uint8_t>(usage), true);
     if (slot < 0) return;  // 6 键全满
-    kbKeys_[slot] = static_cast<uint8_t>(usage);  // ★ 曾缺失：键码必须写入槽位
+    kbKeys_[slot] = static_cast<uint8_t>(usage);  // 键码写入槽位（缺此行=发送全零报告）
   }
-  sendKeyboardReport_("press");
+  sendKeyboardReport_();
 }
 
 void BleTransport::releaseChord(uint8_t modMask, uint16_t usage) {
@@ -226,13 +263,13 @@ void BleTransport::releaseChord(uint8_t modMask, uint16_t usage) {
     int slot = kbSlotFor_(static_cast<uint8_t>(usage), false);
     if (slot >= 0) kbKeys_[slot] = 0;
   }
-  sendKeyboardReport_("release");
+  sendKeyboardReport_();
 }
 
 void BleTransport::releaseAll() {
   kbMods_ = 0;
   memset(kbKeys_, 0, sizeof(kbKeys_));
-  sendKeyboardReport_("relAll");
+  sendKeyboardReport_();
   consumerRelease();
 }
 
@@ -253,7 +290,7 @@ void BleTransport::consumerRelease() {
 
 void BleTransport::mouseWheel(int8_t dy) {
   (void)dy;
-  // TODO(ble): 鼠标报告(3)待描述符出字验证后按同风格加回
+  // TODO(ble): 鼠标报告(3)待描述符加入后实现
 }
 
 }  // namespace navio

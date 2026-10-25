@@ -15,6 +15,12 @@ static USBHIDKeyboard keyboard;
 static USBHIDMouse mouse;
 static USBHIDConsumerControl consumer;
 
+// USB 挂载检测：ARDUINO_USB_STARTED/STOPPED 事件（主机完成枚举 = STARTED）
+static volatile bool s_usbMounted = false;
+static void usbEventHandler(void* arg, esp_event_base_t base, int32_t id, void* data) {
+  s_usbMounted = (id == ARDUINO_USB_STARTED_EVENT);
+}
+
 void UsbTransport::begin() {
   // 与上游一致的 VID/PID（DIY 设备惯例；HID 类驱动，Win/macOS 免驱）
   USB.VID(0xCAFE);
@@ -22,13 +28,12 @@ void UsbTransport::begin() {
   keyboard.begin();
   mouse.begin();
   consumer.begin();
+  USB.onEvent(usbEventHandler);
   USB.begin();
 }
 
 bool UsbTransport::isConnected() {
-  // TODO(ble): 接入 BLE 时用 TinyUSB 挂载状态（tud_ready）做 USB/BLE 自动选择；
-  // Phase 1 只有 USB 一种传输，视为常开
-  return true;
+  return s_usbMounted;
 }
 
 // USBHIDKeyboard 的 pressRaw 直接接受 HID Usage ID；修饰键为 0xE0-0xE7

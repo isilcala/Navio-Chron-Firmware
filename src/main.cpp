@@ -223,10 +223,11 @@ static void checkLongPressActions() {
   } else if (bootArmed) {
     bootArmed = false;
     if (millis() - bootHeldSince < BOOT_KEY_REFLASH_MS) {
-      // BLE 测试键：短按 = 发送 'a'（发送结果灯反馈：绿=notify成功 红=失败）
-      // 清绑定入口 = 侧键长按 5s（配对模式，组装后）；裸板期间换主机可重新烧 ble_test 或 RST 循环
+      // 测试键：短按 = 发送 'a'（未焊接阶段的输入链路验证）。
+      // 灯反馈：当前传输为 BLE 时按 notify 结果绿/红；USB 无返回值恒绿。
+      // 清绑定入口 = 侧键长按 5s（配对模式，组装后）
       transport->pressChord(MOD_NONE, HID_A);
-      bool ok = bleTransport.lastSendOk();
+      bool ok = (transport == &bleTransport) ? bleTransport.lastSendOk() : true;
       neopixelWrite(PIN_BOARD_RGB, ok ? 0 : 60, ok ? 60 : 0, 0);
       delay(300);
       transport->releaseChord(MOD_NONE, HID_A);
