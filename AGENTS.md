@@ -73,10 +73,11 @@ tools/          add_fs_include.py：core 3.x USB 库需要 FS 头路径，必须
 
 ## 当前状态与遗留
 
-Phase 1 + 1b 完成（USB/BLE 双模实测通过）。遗留（按优先级）：
-1. 焊接后：Test 预设回填物理位表（HARDWARE_NOTES 待填表）、编码器手感调校
-2. 鼠标报告(3)加回 BLE 描述符（USB 侧已有）
-3. 真实预设：剪映 / Premiere / Resolve，Win/Mac 分版本
+Phase 1 + 1b + 首个生产预设完成：**剪映（Win）USB/BLE 双模实战通过**（2026-10-26/27 装机实测：
+物理位表已回填、编码器方向已修正、键灯亮度已修复、手势与免插拔烧录全验证）。遗留（按优先级）：
+1. 硬件：大旋钮 B 相（IO40/R2R 线路）断线补焊——已诊断（A 相正常、B 相恒高），补焊后免费复验
+2. 预设扩展：Premiere / Resolve，macOS 版本（Cmd=GUI 修饰）
+3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
 5. Phase 2：电脑端配置工具 + NVS 动态预设
 
