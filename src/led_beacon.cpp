@@ -4,6 +4,7 @@
 
 #include "Pins.h"
 #include "PresetManager.h"
+#include "input/DownloadMode.h"
 #include "input/Encoders.h"
 #include "input/MatrixScanner.h"
 #include "led/LedController.h"
@@ -49,9 +50,11 @@ void loop() {
   for (int i = 0; i <= 40; i += 4) {
     neopixelWrite(PIN_BOARD_RGB, 0, i, i);
     delay(30);
+    checkBootKeyForDownload();  // 自救出口：BOOT 长按 3s 进下载模式
   }
   for (int i = 40; i >= 0; i -= 4) {
     neopixelWrite(PIN_BOARD_RGB, 0, i, i);
     delay(30);
+    checkBootKeyForDownload();
   }
 }

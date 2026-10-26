@@ -24,9 +24,13 @@ pio run                 # 编译（默认环境 navio_chron）
 pio run -t upload       # 烧录：板上固件长按侧键 10 秒或 BOOT 键 3 秒（RGB 变紫）进下载模式后直接 upload；
                         # 插电时按住侧键同样进入
 pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
-# 兜底（固件挂死/首次）：拔线 → 按住 BOOT → 插线 → 松开 → upload
-# 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST 即可
+# 兜底（固件挂死/首次/诊断固件）：拔线 → 按住 BOOT → 插线 → 松开 → upload
+# 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST；装配后 RST 摸不到则重新插拔
 ```
+
+**烧录纪律（教训固化）**：烧任何非 navio_chron 环境（debug_boot/ble_diag/ble_test）后，
+必须明确告知用户"当前板上固件 = X，不具备正式固件的 HID/手势功能"；诊断结束的默认动作
+= 立即烧回 navio_chron。诊断固件没有侧键手势入口（只有 BOOT 插拔兜底）。
 
 ## 代码地图与核心约定
 

@@ -2,7 +2,6 @@
 // 分层：输入扫描(input/) → 预设映射(mapping/) → 动作(action/) → HID 传输(hid/)
 // 第一期：USB 传输；BLE 传输实现 ITransport 后在此切换/自动选择
 #include <Arduino.h>
-#include "soc/rtc_cntl_reg.h"  // BOOT 长按强制进入 ROM 下载模式用
 
 #include "Config.h"
 #include "Pins.h"
@@ -11,6 +10,7 @@
 #include "hid/HidUsage.h"
 #include "hid/ITransport.h"
 #include "hid/UsbTransport.h"
+#include "input/DownloadMode.h"
 #include "input/Encoders.h"
 #include "input/InputEvents.h"
 #include "input/MatrixScanner.h"
@@ -101,14 +101,10 @@ static void updateBleBattery() {
 
 static void dispatchButton(Btn id, bool pressed);
 static void checkLongPressActions();
-static void enterDownloadMode();  // 紫灯提示后重启进 ROM 下载模式
 
-// 主控板上 BOOT 键 = GPIO0（矩阵/编码器均未占用）。
-// 长按 3 秒 = 写 RTC 强制下载标志并重启（裸板调试入口，组装后难按仅兜底）。
-constexpr uint8_t PIN_BOOT_KEY = 0;
-constexpr uint32_t BOOT_KEY_REFLASH_MS = 3000;
+// 下载模式入口见 input/DownloadMode.h（BOOT 长按 3s，各固件共用）。
 // 组装后主入口 = 侧键（SW11, R1C1，全局保留键）分级长按：
-// 单击=切预设（即时）；长按 5s=蓝牙配对（Phase 1b）；长按 10s=固件烧写；
+// 单击=切预设（即时）；长按 5s=蓝牙配对；长按 10s=固件烧写；
 // 插电/复位时按住侧键同样进烧写。按住期间 LED1 实时渐变反馈进度。
 constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static void dispatchEncoder(Enc id, int8_t dir);
@@ -180,13 +176,6 @@ void loop() {
   checkLongPressActions();
 
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
-}
-
-static void enterDownloadMode() {
-  neopixelWrite(PIN_BOARD_RGB, 80, 0, 80);  // 紫：进入下载模式
-  delay(1500);                              // 常亮足够久，肉眼明确可见
-  SET_PERI_REG_MASK(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
-  esp_restart();
 }
 
 // 侧键长按进度 → 模式灯颜色：0-5s 蓝色渐亮（配对档），5-10s 蓝→紫渐变（烧写档）

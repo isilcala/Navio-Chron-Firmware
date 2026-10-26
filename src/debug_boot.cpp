@@ -5,6 +5,7 @@
 
 #include "Pins.h"
 #include "PresetManager.h"
+#include "input/DownloadMode.h"
 #include "input/Encoders.h"
 #include "input/InputEvents.h"
 #include "input/MatrixScanner.h"
@@ -77,4 +78,7 @@ void loop() {
   EncoderEvent ee;
   while (encoders.next(ee))
     Serial.printf("[enc ] %s %+d\n", ENC_NAMES[(int)ee.id], ee.dir);
+
+  // 诊断固件的自救出口：BOOT 长按 3 秒进下载模式（无侧键手势体系）
+  checkBootKeyForDownload();
 }
