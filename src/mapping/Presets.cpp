@@ -68,8 +68,8 @@ static const Preset kPresetTest = {
 };
 
 // 预设 2：DaVinci Resolve（Windows）——快捷键经官方文档核实（davinciresolveclub 等）
-// 与剪映预设同位同类：顶中=切分、旋钮右=撤销/重做、右下=删除/播放、中央旋钮=逐帧、
-// 大旋钮=时间线缩放。Resolve 特有：滚轮=JKL 刮擦播放（每格 L/J 加减速，按压=K 停止）
+// 物理语义映射（用户实测后修正）：滚轮=缩放步进（棘轮手感），大旋钮=JKL 刮擦
+// （大直径 jog/shuttle 语义，按压=K 停止单手可控）；其余与剪映预设同位同类
 static const Preset kPresetResolve = {
     "Resolve",
     {200, 90, 0},  // Resolve 橙
@@ -87,14 +87,14 @@ static const Preset kPresetResolve = {
         /* K11 箭头下   */ actKey(MOD_NONE, HID_DOWN),
         /* K12 箭头右   */ actKey(MOD_NONE, HID_RIGHT),         // 逐帧前进
         /* EncCenterPress */ actKey(MOD_NONE, HID_F9),          // 插入编辑
-        /* EncLargePress  */ actKey(MOD_NONE, HID_SPACE),       // 播放/暂停
-        /* WheelPress     */ actKey(MOD_NONE, HID_K),           // JKL 停止
+        /* EncLargePress  */ actKey(MOD_NONE, HID_K),           // JKL 停止（配刮擦）
+        /* WheelPress     */ actKey(MOD_NONE, HID_SPACE),       // 播放/暂停
         /* SideKey        */ actNone(),
     },
     {
         /* Center 中央旋钮 */ {actKey(MOD_NONE, HID_RIGHT), actKey(MOD_NONE, HID_LEFT)},  // 逐帧
-        /* Large 大旋钮    */ {actKey(MOD_CTRL, HID_EQUAL), actKey(MOD_CTRL, HID_MINUS)}, // 时间线缩放
-        /* Wheel 滚轮      */ {actKey(MOD_NONE, HID_L), actKey(MOD_NONE, HID_J)},         // JKL 刮擦
+        /* Large 大旋钮    */ {actKey(MOD_NONE, HID_L), actKey(MOD_NONE, HID_J)},         // JKL 刮擦
+        /* Wheel 滚轮      */ {actKey(MOD_CTRL, HID_EQUAL), actKey(MOD_CTRL, HID_MINUS)}, // 时间线缩放
     },
 };
 
