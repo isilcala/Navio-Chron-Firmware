@@ -34,7 +34,7 @@ static const Preset kPresetJianYing = {
     {
         /* Center 中央旋钮 */ {actKey(MOD_NONE, HID_RIGHT), actKey(MOD_NONE, HID_LEFT)},  // 帧进退
         /* Large 大旋钮    */ {actWheel(1, MOD_ALT), actWheel(-1, MOD_ALT)},   // 时间轴缩放
-        /* Wheel 滚轮      */ {actWheel(1, MOD_CTRL), actWheel(-1, MOD_CTRL)}, // 画面缩放
+        /* Wheel 滚轮      */ {actWheel(1, MOD_CTRL), actWheel(-1, MOD_CTRL)}, // 时间线缩放（剪映时间线区 Ctrl+滚轮）
     },
 };
 
