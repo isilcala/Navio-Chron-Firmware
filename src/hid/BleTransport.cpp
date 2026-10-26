@@ -66,12 +66,42 @@ static const uint8_t kReportMap[] = {
     0x95, 0x01,        //   Report Count (1)
     0x81, 0x00,        //   Input (Data, Array, Absolute)
     0xC0,              // End Collection (Consumer Control)
+    // ── Mouse (Report ID 0x03)：3 键 + X/Y/滚轮（相对值） ──────────────
+    0x05, 0x01,        // Usage Page (Generic Desktop)
+    0x09, 0x02,        // Usage (Mouse)
+    0xA1, 0x01,        // Collection (Application)
+    0x09, 0x01,        //   Usage (Pointer)
+    0xA1, 0x00,        //   Collection (Physical)
+    0x85, 0x03,        //     Report ID (3)
+    0x05, 0x09,        //     Usage Page (Button)
+    0x19, 0x01,        //     Usage Minimum (1)
+    0x29, 0x03,        //     Usage Maximum (3)
+    0x15, 0x00,        //     Logical Minimum (0)
+    0x25, 0x01,        //     Logical Maximum (1)
+    0x95, 0x03,        //     Report Count (3)
+    0x75, 0x01,        //     Report Size (1 bit)
+    0x81, 0x02,        //     INPUT (Data, Variable, Absolute)
+    0x95, 0x01,        //     Report Count (1)
+    0x75, 0x05,        //     Report Size (5 bits)
+    0x81, 0x03,        //     INPUT (Constant) — padding
+    0x05, 0x01,        //     Usage Page (Generic Desktop)
+    0x09, 0x30,        //     Usage (X)
+    0x09, 0x31,        //     Usage (Y)
+    0x09, 0x38,        //     Usage (Wheel)
+    0x15, 0x81,        //     Logical Minimum (-127)
+    0x25, 0x7F,        //     Logical Maximum (127)
+    0x75, 0x08,        //     Report Size (8 bits)
+    0x95, 0x03,        //     Report Count (3)
+    0x81, 0x06,        //     INPUT (Data, Variable, Relative)
+    0xC0,              //   End Collection (Physical)
+    0xC0,              // End Collection (Mouse)
 };
 
 static NimBLEServer* server = nullptr;
 static NimBLEHIDDevice* hid = nullptr;
 static NimBLECharacteristic* chrKeyboard = nullptr;  // 报告 1
 static NimBLECharacteristic* chrConsumer = nullptr;  // 报告 2
+static NimBLECharacteristic* chrMouse = nullptr;     // 报告 3
 
 static BleTransport* s_self = nullptr;
 
@@ -134,12 +164,13 @@ void BleTransport::begin() {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
   chrKeyboard = hid->getInputReport(1);
   chrConsumer = hid->getInputReport(2);
+  chrMouse = hid->getInputReport(3);
 #else
   chrKeyboard = hid->inputReport(1);
   chrConsumer = hid->inputReport(2);
+  chrMouse = hid->inputReport(3);
   hid->startServices();  // 1.4.x 必须显式启动服务（2.x 由 server.start() 接管）
 #endif
-  // 鼠标(报告3)：描述符稳定后按同风格加回
 
   NimBLEAdvertising* adv = server->getAdvertising();
   adv->setAppearance(0x03C1);  // HID Keyboard
@@ -289,8 +320,10 @@ void BleTransport::consumerRelease() {
 }
 
 void BleTransport::mouseWheel(int8_t dy) {
-  (void)dy;
-  // TODO(ble): 鼠标报告(3)待描述符加入后实现
+  if (!chrMouse || !connected_) return;
+  uint8_t report[4] = {0, 0, 0, static_cast<uint8_t>(dy)};  // 按钮, X, Y, 滚轮
+  chrMouse->setValue(report, 4);
+  chrMouse->notify();
 }
 
 }  // namespace navio
