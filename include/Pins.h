@@ -8,13 +8,14 @@ namespace navio {
 constexpr uint8_t PIN_ROW[4] = {13, 12, 11, 10};  // ROW1..ROW4
 constexpr uint8_t PIN_COL[5] = {6, 5, 4, 2, 1};   // COL1..COL5
 
-// 编码器 A/B（均有外部 10k 上拉）
-constexpr uint8_t PIN_ENC_CENTER_A = 9;    // SW23 中央旋钮
-constexpr uint8_t PIN_ENC_CENTER_B = 8;
-constexpr uint8_t PIN_ENC_LARGE_A  = 39;   // SW41 大旋钮（子板）
-constexpr uint8_t PIN_ENC_LARGE_B  = 40;
-constexpr uint8_t PIN_ENC_WHEEL_A  = 15;   // ENC3 滚轮（子板，无自带按压）
-constexpr uint8_t PIN_ENC_WHEEL_B  = 14;
+// 编码器 A/B（均有外部 10k 上拉）。A/B 实测方向与使用习惯全反（2026-10-26 装机
+// 实测：滚轮/中央旋钮反、大旋钮预防性同调），已统一对调相位 = 全局反转方向
+constexpr uint8_t PIN_ENC_CENTER_A = 8;    // SW23 中央旋钮（原 9/8 对调）
+constexpr uint8_t PIN_ENC_CENTER_B = 9;
+constexpr uint8_t PIN_ENC_LARGE_A  = 40;   // SW41 大旋钮（子板，原 39/40 对调，待实测）
+constexpr uint8_t PIN_ENC_LARGE_B  = 39;
+constexpr uint8_t PIN_ENC_WHEEL_A  = 14;   // ENC3 滚轮（原 15/14 对调）
+constexpr uint8_t PIN_ENC_WHEEL_B  = 15;
 
 // WS2812 链：0-2 状态灯（U17-U19），3-14 按键灯（K1..K12），链尾 UA44
 constexpr uint8_t PIN_LED_DATA = 7;
