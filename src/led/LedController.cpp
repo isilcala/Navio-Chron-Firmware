@@ -17,9 +17,9 @@ void LedController::begin() {
 void LedController::showPreset(const uint8_t accent[3], const char* name) {
   (void)name;
   chain_.setPixelColor(0, scale(accent[0]), scale(accent[1]), scale(accent[2]));
-  // 按键底色：accent 的 1/4，通电即知道当前预设，又不刺眼耗电
+  // 按键底色 = accent × 全局亮度（scale 已含亮度控制；曾误加 /4 二次衰减到 4.7% 不可见）
   for (int i = LED_KEY_FIRST; i < LED_COUNT; ++i) {
-    chain_.setPixelColor(i, scale(accent[0]) / 4, scale(accent[1]) / 4, scale(accent[2]) / 4);
+    chain_.setPixelColor(i, scale(accent[0]), scale(accent[1]), scale(accent[2]));
   }
   chain_.show();
 }

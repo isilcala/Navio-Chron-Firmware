@@ -56,6 +56,18 @@ void loop() {
                   ESP.getFreeHeap());
   }
 
+  // 编码器原始电平监测：任一引脚电平变化即打印（定位 A/B 断线/固件解码问题）
+  static uint8_t lastLevels = 0xFF;
+  uint8_t levels = (digitalRead(PIN_ENC_CENTER_A) << 5) | (digitalRead(PIN_ENC_CENTER_B) << 4) |
+                   (digitalRead(PIN_ENC_LARGE_A) << 3) | (digitalRead(PIN_ENC_LARGE_B) << 2) |
+                   (digitalRead(PIN_ENC_WHEEL_A) << 1) | digitalRead(PIN_ENC_WHEEL_B);
+  if (levels != lastLevels) {
+    Serial.printf("[raw ] %lu C=%d%d L=%d%d W=%d%d\n", (unsigned long)millis(),
+                  (levels >> 5) & 1, (levels >> 4) & 1, (levels >> 3) & 1,
+                  (levels >> 2) & 1, (levels >> 1) & 1, levels & 1);
+    lastLevels = levels;
+  }
+
   matrix.poll();
   BtnEvent be;
   while (matrix.next(be))
