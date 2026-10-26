@@ -67,7 +67,38 @@ static const Preset kPresetTest = {
     },
 };
 
-// 预设 2：通用 F13-F24 宏——按键映射到 F13..F24，在剪辑软件里自定义快捷键即可用。
+// 预设 2：DaVinci Resolve（Windows）——快捷键经官方文档核实（davinciresolveclub 等）
+// 与剪映预设同位同类：顶中=切分、旋钮右=撤销/重做、右下=删除/播放、中央旋钮=逐帧、
+// 大旋钮=时间线缩放。Resolve 特有：滚轮=JKL 刮擦播放（每格 L/J 加减速，按压=K 停止）
+static const Preset kPresetResolve = {
+    "Resolve",
+    {200, 90, 0},  // Resolve 橙
+    {
+        /* K1  顶部左   */ actKey(MOD_NONE, HID_I),             // 设入点
+        /* K2  顶部中   */ actKey(MOD_CTRL, HID_BACKSLASH),     // 刀切 Blade
+        /* K3  顶部右   */ actKey(MOD_NONE, HID_O),             // 设出点
+        /* K4  旋钮右上 */ actKey(MOD_CTRL, HID_Z),             // 撤销
+        /* K5  旋钮右下 */ actKey(MOD_CTRL, HID_Y),             // 重做
+        /* K6  右下右   */ actKey(MOD_NONE, HID_SPACE),         // 播放/暂停
+        /* K7  右下左   */ actKey(MOD_SHIFT, HID_BACKSPACE),    // 波纹删除
+        /* K8  箭头上   */ actKey(MOD_NONE, HID_UP),
+        /* K9  滚轮左下 */ actKey(MOD_NONE, HID_M),             // 添加标记
+        /* K10 箭头左   */ actKey(MOD_NONE, HID_LEFT),          // 逐帧后退
+        /* K11 箭头下   */ actKey(MOD_NONE, HID_DOWN),
+        /* K12 箭头右   */ actKey(MOD_NONE, HID_RIGHT),         // 逐帧前进
+        /* EncCenterPress */ actKey(MOD_NONE, HID_F9),          // 插入编辑
+        /* EncLargePress  */ actKey(MOD_NONE, HID_SPACE),       // 播放/暂停
+        /* WheelPress     */ actKey(MOD_NONE, HID_K),           // JKL 停止
+        /* SideKey        */ actNone(),
+    },
+    {
+        /* Center 中央旋钮 */ {actKey(MOD_NONE, HID_RIGHT), actKey(MOD_NONE, HID_LEFT)},  // 逐帧
+        /* Large 大旋钮    */ {actKey(MOD_CTRL, HID_EQUAL), actKey(MOD_CTRL, HID_MINUS)}, // 时间线缩放
+        /* Wheel 滚轮      */ {actKey(MOD_NONE, HID_L), actKey(MOD_NONE, HID_J)},         // JKL 刮擦
+    },
+};
+
+// 预设 3：通用 F13-F24 宏——按键映射到 F13..F24，在剪辑软件里自定义快捷键即可用。
 // TODO(Elvin): 按 Premiere / 剪映 / Resolve / Procreate 的实际习惯细分，
 //              并拆分 Win(Ctrl) / Mac(Cmd) 版本；编码器先沿用测试配置。
 // 剪映预设参考（上游 layer0 原始映射，物理位见 docs/hardware/HARDWARE_NOTES.md）：
@@ -103,7 +134,7 @@ static const Preset kPresetF13 = {
 };
 
 // 命名空间作用域的 const 默认内部链接，定义处加 extern 才能被其他编译单元引用
-extern const Preset kPresets[] = {kPresetJianYing, kPresetTest, kPresetF13};
+extern const Preset kPresets[] = {kPresetJianYing, kPresetResolve, kPresetTest, kPresetF13};
 extern const size_t kPresetCount = sizeof(kPresets) / sizeof(kPresets[0]);
 
 }  // namespace navio
