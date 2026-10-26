@@ -13,8 +13,15 @@ constexpr uint8_t PIN_BOOT_KEY = 0;
 constexpr uint32_t BOOT_KEY_REFLASH_MS = 3000;
 
 inline void enterDownloadMode() {
-  neopixelWrite(PIN_BOARD_RGB, 80, 0, 80);  // 紫：模块板载 RGB
-  delay(1500);
+  // 到位确认：紫灯快闪 2 下（明确"已触发"）→ 常亮 0.8s → 重启进 ROM 下载模式
+  for (int i = 0; i < 2; ++i) {
+    neopixelWrite(PIN_BOARD_RGB, 120, 0, 120);
+    delay(120);
+    neopixelWrite(PIN_BOARD_RGB, 0, 0, 0);
+    delay(120);
+  }
+  neopixelWrite(PIN_BOARD_RGB, 80, 0, 80);
+  delay(800);
   SET_PERI_REG_MASK(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
   esp_restart();
 }

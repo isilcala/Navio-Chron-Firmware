@@ -239,6 +239,13 @@ static void checkLongPressActions() {
     uint32_t held = millis() - sideHeldSince;
     if (held >= SIDE_HOLD_REFLASH_MS) {
       s_sideHoldActive = false;
+      // 到位确认在用户注视的 LED1 上双闪紫，板载 RGB 由 enterDownloadMode 同步闪烁
+      for (int i = 0; i < 2; ++i) {
+        mirrorModeLed(120, 0, 120);
+        delay(120);
+        mirrorModeLed(0, 0, 0);
+        delay(120);
+      }
       enterDownloadMode();
     } else if (held >= SIDE_HOLD_PAIRING_MS) {
       showSideHoldProgress(held);
