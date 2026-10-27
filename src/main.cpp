@@ -34,6 +34,13 @@ static ITransport* transport = &usbTransport;
 static VendorHid vendorHid;
 static ConfigProto configProto;
 
+static Action s_buttonActions[BTN_COUNT];
+
+static void releaseAllActions() {
+  transport->releaseAll();
+  for (Action& action : s_buttonActions) action = Action{};
+}
+
 // 连接模式选择（D3）：USB 挂载优先；否则 BLE（已连=蓝 / 配对中蓝快闪 / 等待=橙闪）
 static bool s_pairingMode = false;
 static bool s_sideHoldActive = false;  // 侧键长按中：抑制状态灯刷新，让位于进度渐变
@@ -92,7 +99,7 @@ static void updateLinkMode() {
   }
 #endif
   if (desired != transport) {
-    transport->releaseAll();
+    releaseAllActions();
     transport = desired;
   }
 }
@@ -278,7 +285,7 @@ static void checkLongPressActions() {
 
 static void switchPreset() {
   // 切预设前清空按键状态，避免旧和弦残留
-  transport->releaseAll();
+  releaseAllActions();
   presets.cycle();
   leds.showPreset(presets.active().accent, presets.active().name);
   Serial.printf("[Navio] preset -> %s\n", presets.active().name);
@@ -294,7 +301,13 @@ static void dispatchButton(Btn id, bool pressed) {
     if (pressed) switchPreset();
     return;
   }
-  const Action& a = presets.active().btn[static_cast<size_t>(id)];
+  const size_t index = static_cast<size_t>(id);
+  if (pressed) {
+    if (s_buttonActions[index]) return;
+    s_buttonActions[index] = presets.active().btn[index];
+  }
+  const Action a = s_buttonActions[index];
+  if (!pressed) s_buttonActions[index] = Action{};
   if (!a) return;
   switch (a.kind) {
     case Action::KeyChord:
