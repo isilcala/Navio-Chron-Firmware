@@ -1,7 +1,7 @@
 #pragma once
 // Phase 2 配置协议骨架：63B 数据帧 + 命令分发。
-// 当前单帧：| magic 0x4E | cmd | seq | total | payload(≤59B) |。
-// 正式分片格式按 D15 加入 CRC8、整体显式长度与 CRC16 时收紧 payload 上限。
+// 当前 proto1 单帧：| magic 0x4E | cmd | seq | total | payload(≤59B) |。
+// 正式 v2 帧格式与分片规则见 docs/PROTOCOL.md（D19），本文件尚未实现 v2。
 // 当前实现：HELLO（设备信息）/ GET_INFO（协议能力）最小闭环，其余命令回 NOT_IMPLEMENTED。
 #include <Arduino.h>
 

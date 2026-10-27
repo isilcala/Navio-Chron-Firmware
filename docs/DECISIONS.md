@@ -109,6 +109,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 
 ## D14. Phase 2 方案定稿：Vendor HID 通信 + 分片 JSON 协议 + Web-first 桌面端（2026-10-27）
 
+> 2026-10-27 修订（D19）：帧格式以 `docs/PROTOCOL.md` v2 为准；桌面端保留
+> `.navio.json`，设备/NVS 改用二进制记录，不再采用 ArduinoJson。
+
 **通信通道：Vendor HID 接口**（否决 CDC 串口方案）
 - USB 复合设备加第四个接口（厂商自定义 HID，双向 64 字节报告）
 - 理由：QMK/VIA/ZMK 等社区键盘配置工具的行业惯例路径——免驱、无 COM 口心智负担、
@@ -198,6 +201,23 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 修订为：5–10s 内松手才进入配对（清绑定+广播）；达到 10s 只进入烧写，
   不再执行配对。灯光进度语义不变，烧写前的阻塞双闪通过 `LedController::flush()` 立即输出，
   普通状态灯仍走 dirty + tick 按需刷新。
+
+## D19. Config Protocol v2 与桌面 JSON / 设备二进制分工（2026-10-27）
+
+- 协议单一事实源为 `docs/PROTOCOL.md`：Vendor HID ID6 + 63B 数据，帧头
+  `magic/cmd/seq/total` + 58B payload + CRC8；普通消息另带显式 bodyLength/CRC16。
+  算法固定 CRC-8/SMBUS 与 CRC-16/CCITT-FALSE，空正文和补零规则均显式定义。
+- 正文上限从实现骨架的 1024B 缓冲区正式定为 2048B（最多 36 片），为单套
+  二进制预设与后续 RGB 配置保留余量，不使用动态分配。
+- 主机到设备逐片 ACK，重复片幂等；大响应不主动连发，最终 ACK(MORE) 带整体长度/
+  CRC16，主机用 `READ_CHUNK(0x09)` 逐片拉取（每片 55B）。`READ_PRESET=0x08`。
+  小响应直接附在最终 ACK 的数据上限为 51B，不是 54B（需扣 ACK 头 3B）。
+- 除 READ_CHUNK 外，合法 seq=0 总是隐式取消旧事务并开始新事务；设备 poll 中
+  3000ms 无合法片即清空收发状态。frame 0 立即校验 total/bodyLength/上限。
+- 修订 D14：`.navio.json` 只作桌面交换与社区分享格式，桌面负责校验、双向转换和
+  版本降级；固件/NVS 使用带版本、显式长度和稳定 ID 的二进制记录，不引入 ArduinoJson。
+- 当前仅冻结规范，不表示 v2 已实现。实施顺序：CRC/分片状态机与故障注入 →
+  原子 NVS 动态预设 → Web 端最小闭环。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
