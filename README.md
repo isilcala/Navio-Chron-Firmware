@@ -10,7 +10,7 @@ pin map and power architecture.
 - [x] Hardware bring-up layer: 4x5 matrix (16 switches), 3 encoders, WS2812 chain (15 px),
       battery sensing
 - [x] USB HID (independent keyboard + consumer control + mouse + vendor interfaces),
-      Adafruit_TinyUSB on core 3.12, driverless on Windows/macOS
+      Adafruit_TinyUSB on core 3.12, driverless on Windows; macOS validation pending
 - [x] **BLE HID** (NimBLE-Arduino): pairing on Windows/Android, auto-reconnect,
       USB/BLE auto-selection (USB host wins when enumerated)
 - [x] Compile-time presets, cycled with the side micro-switch, persisted across reboots
