@@ -24,6 +24,10 @@ Adafruit_USBD_HID mouse;
 Adafruit_USBD_HID consumer;
 bool usbReady = false;
 
+bool reportsReady() {
+  return usbReady && TinyUSBDevice.mounted() && !TinyUSBDevice.suspended();
+}
+
 bool beginHid(Adafruit_USBD_HID& hid, const uint8_t* descriptor, size_t len,
               hid_interface_protocol_enum_t protocol) {
   hid.setReportDescriptor(descriptor, len);
@@ -56,17 +60,18 @@ void UsbTransport::begin() {
 }
 
 bool UsbTransport::isConnected() {
-  return usbReady && TinyUSBDevice.mounted() && !TinyUSBDevice.suspended();
+  return usbReady && TinyUSBDevice.mounted();
 }
 
 void UsbTransport::sendKeyboardReport_() {
-  if (!usbReady) return;
+  if (!reportsReady()) return;
   uint8_t keys[6];
   memcpy(keys, state_.keys(), sizeof(keys));
   keyboard.keyboardReport(REPORT_ID_KEYBOARD, state_.mods(), keys);
 }
 
 void UsbTransport::pressChord(uint8_t modMask, uint16_t usage) {
+  if (!reportsReady()) return;
   state_.pressChord(modMask, usage);
   sendKeyboardReport_();
 }
@@ -83,6 +88,7 @@ void UsbTransport::releaseAll() {
 }
 
 void UsbTransport::consumerPress(uint16_t usage) {
+  if (!reportsReady()) return;
   state_.pressConsumer(usage);
   sendConsumerReport_();
 }
@@ -93,11 +99,11 @@ void UsbTransport::consumerRelease(uint16_t usage) {
 }
 
 void UsbTransport::sendConsumerReport_() {
-  if (usbReady) consumer.sendReport16(REPORT_ID_CONSUMER, state_.consumerUsage());
+  if (reportsReady()) consumer.sendReport16(REPORT_ID_CONSUMER, state_.consumerUsage());
 }
 
 void UsbTransport::mouseWheel(int8_t dy) {
-  if (usbReady) mouse.mouseReport(REPORT_ID_MOUSE, 0, 0, 0, dy, 0);
+  if (reportsReady()) mouse.mouseReport(REPORT_ID_MOUSE, 0, 0, 0, dy, 0);
 }
 
 }  // namespace navio

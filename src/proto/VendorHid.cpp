@@ -1,5 +1,7 @@
 #include "proto/VendorHid.h"
 
+#include <Arduino.h>
+
 #if CONFIG_TINYUSB_HID_ENABLED
 
 namespace navio {
@@ -70,14 +72,20 @@ void VendorHid::onHostOutput(const uint8_t* data, size_t len) {
   Frame frame;
   memcpy(frame.data, data, len);
   frame.len = len;
-  if (xQueueSend(rxQueue_, &frame, 0) != pdTRUE) droppedFrames_ = droppedFrames_ + 1;
+  if (xQueueSend(rxQueue_, &frame, 0) != pdTRUE) {
+    droppedFrames_.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 
 void VendorHid::poll() {
   if (!begun_) return;
+  if (uint32_t dropped = droppedFrames_.exchange(0, std::memory_order_relaxed)) {
+    Serial.printf("[Navio] Vendor HID queue overflow: %lu dropped\n",
+                  static_cast<unsigned long>(dropped));
+  }
   Frame frame;
-  if (xQueueReceive(rxQueue_, &frame, 0) == pdTRUE && onFrame) {
-    onFrame(frame.data, frame.len);
+  while (xQueueReceive(rxQueue_, &frame, 0) == pdTRUE) {
+    if (onFrame) onFrame(frame.data, frame.len);
   }
 }
 

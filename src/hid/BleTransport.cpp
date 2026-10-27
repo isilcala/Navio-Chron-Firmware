@@ -281,10 +281,13 @@ void BleTransport::sendKeyboardReport_() {
   }
   // 预热：连接后首帧 notify 会被主机握手期丢弃，先发空报告垫场
   if (!primed_) {
-    primed_ = true;
     uint8_t empty[8] = {};
     chrKeyboard->setValue(empty, 8);
-    chrKeyboard->notify();
+    if (!chrKeyboard->notify()) {
+      lastNotifyOk_ = false;
+      return;
+    }
+    primed_ = true;
     delay(50);
   }
   uint8_t report[8] = {state_.mods(), 0, 0, 0, 0, 0, 0, 0};

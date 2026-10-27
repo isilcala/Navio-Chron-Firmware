@@ -1,5 +1,6 @@
 #pragma once
 // 独立 Vendor HID 接口：usage page 0xFF00，Report ID 6，双向 63 字节数据
+#include <atomic>
 #include <functional>
 
 #include <arduino/hid/Adafruit_USBD_HID.h>
@@ -32,7 +33,7 @@ class VendorHid {
   Adafruit_USBD_HID hid_;
   QueueHandle_t rxQueue_ = nullptr;
   bool begun_ = false;
-  volatile uint32_t droppedFrames_ = 0;
+  std::atomic<uint32_t> droppedFrames_{0};
 };
 
 }  // namespace navio
