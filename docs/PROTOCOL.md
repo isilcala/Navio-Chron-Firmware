@@ -64,6 +64,8 @@ bodyLength <= 2048
 - CRC16：CRC-16/CCITT-FALSE，poly `0x1021`，init `0xFFFF`，无反射，xorout `0x0000`。
 - ASCII `"123456789"` 的校验值分别为 `0xF4`、`0x29B1`。
 - 空正文的 CRC16 为 `0xFFFF`。
+- CRC8 失败的帧直接丢弃且不回复，因为 cmd/seq 等内容已不可信；主机按超时重发恢复。
+- `ERR_BAD_MAGIC` 只用于 CRC8 已通过但 magic 错误的帧。
 
 CRC 只用于错误检测，不提供加密或身份认证。
 
@@ -87,6 +89,21 @@ CRC 只用于错误检测，不提供加密或身份认证。
 
 HELLO/GET_INFO 的 JSON 数据格式独立于预设二进制 schema。预设相关命令的正文布局由
 后续 `PRESET_SCHEMA` 文档定义；未实现命令必须返回 `ERR_NOT_IMPLEMENTED`。
+
+### 5.1 HELLO / GET_INFO 响应
+
+JSON 键名与类型固定如下；对象键顺序不作为契约，新增字段只能追加：
+
+```json
+HELLO:
+{"proto":2,"fw":"<semver>","name":"Navio Chron"}
+
+GET_INFO:
+{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9]}
+```
+
+`proto` 必须为 2，不得沿用骨架的 1；`record` 是设备二进制预设记录版本。
+固件只需生成这些 JSON 字符串，不需要 JSON 解析器。响应超过 51B 时使用 MORE/READ_CHUNK。
 
 ## 6. ACK / ERR 布局
 
@@ -114,7 +131,8 @@ ERR 正文为：
 ## 7. 主机到设备：逐片确认
 
 1. 主机发送第 `n` 片并等待响应，收到有效 ACK 后再发下一片。
-2. 中间片成功时，设备回复 `ACK[echoCmd][n][CHUNK]`。
+2. 中间片成功时，设备回复 `ACK[echoCmd][n][CHUNK]`；`total=1` 的请求没有中间片 ACK，
+   直接进入最终校验与响应。
 3. 最后一片收齐后，设备依次验证：
    - frame 0 声明的 `total`、正文长度和实际接收长度；
    - 整体 CRC16；
@@ -146,7 +164,8 @@ ERR 正文为：
 [echoCmd][seq][MORE][dataLength:u16][dataCrc16:u16]
 ```
 
-随后主机通过 `READ_CHUNK` 逐片拉取。`dataLength` 上限仍为 2048B。
+随后主机通过 `READ_CHUNK` 逐片拉取。`dataLength` 上限仍为 2048B；`dataCrc16`
+对完整的 dataLength 字节计算，算法同第 4 节 CRC16，不含末片补零。
 
 `READ_CHUNK` 请求是普通单片消息，正文为：
 
