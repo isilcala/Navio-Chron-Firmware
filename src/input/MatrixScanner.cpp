@@ -49,8 +49,15 @@ void MatrixScanner::poll() {
 bool MatrixScanner::next(BtnEvent& out) {
   if (head_ == tail_) return false;
   out = queue_[head_];
-  head_ = (head_ + 1) % 16;
+  head_ = (head_ + 1) % QUEUE_SIZE;
   return true;
+}
+
+uint16_t MatrixScanner::takeDroppedEvents() {
+  uint16_t dropped = droppedEvents_;
+  if (dropped) head_ = tail_;
+  droppedEvents_ = 0;
+  return dropped;
 }
 
 bool MatrixScanner::rawKeyDown(uint8_t row, uint8_t col) {
@@ -63,8 +70,11 @@ bool MatrixScanner::rawKeyDown(uint8_t row, uint8_t col) {
 }
 
 void MatrixScanner::push_(const BtnEvent& e) {
-  uint8_t nextTail = (tail_ + 1) % 16;
-  if (nextTail == head_) return;  // 队满丢弃（正常输入速率不可能发生）
+  uint8_t nextTail = (tail_ + 1) % QUEUE_SIZE;
+  if (nextTail == head_) {
+    if (droppedEvents_ < UINT16_MAX) ++droppedEvents_;
+    return;
+  }
   queue_[tail_] = e;
   tail_ = nextTail;
 }

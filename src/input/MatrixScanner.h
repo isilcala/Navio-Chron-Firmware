@@ -10,6 +10,7 @@ class MatrixScanner {
   // 每个轮询周期调用；事件进入内部环形队列，用 next() 取出
   void poll();
   bool next(BtnEvent& out);
+  uint16_t takeDroppedEvents();
   // 直接读取某个矩阵位的当前电平（不经消抖），用于启动早期/长按检测等特殊场景
   bool rawKeyDown(uint8_t row, uint8_t col);
 
@@ -25,8 +26,10 @@ class MatrixScanner {
   uint8_t debounce_[BTN_COUNT] = {};  // 采样不一致计数
   bool lastSample_[BTN_COUNT] = {};
 
-  BtnEvent queue_[16];
+  static constexpr uint8_t QUEUE_SIZE = BTN_COUNT + 1;
+  BtnEvent queue_[QUEUE_SIZE];
   uint8_t head_ = 0, tail_ = 0;
+  uint16_t droppedEvents_ = 0;
   void push_(const BtnEvent& e);
 };
 

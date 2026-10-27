@@ -178,6 +178,10 @@ void loop() {
     lastPollUs = nowUs;
 
     matrix.poll();
+    if (uint16_t dropped = matrix.takeDroppedEvents()) {
+      releaseAllActions();
+      Serial.printf("[Navio] matrix event queue overflow: %u dropped\n", dropped);
+    }
     BtnEvent be;
     while (matrix.next(be)) dispatchButton(be.id, be.pressed);
 
