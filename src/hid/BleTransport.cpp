@@ -1,22 +1,16 @@
 #include "hid/BleTransport.h"
 
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
 #include <NimBLEDevice.h>
 #include <NimBLEHIDDevice.h>
-#else
-#include <NimBLEDevice.h>
-#include <NimBLEHIDDevice.h>
-#endif
 
 #include "hid/HidUsage.h"
 
 namespace navio {
 
 // ---------------------------------------------------------------------------
-// HID Report Map：键盘(报告1) + 消费控制(报告2)。
+// HID Report Map：键盘(报告1) + 消费控制(报告2) + 鼠标(报告3)。
 // 逐字节采用 HijelHID（NimBLE 2.3.8+）已验证可用的描述符——HID 描述符的细微
 // 偏差主机栈不会报错，只会静默丢弃报告（D12 教训）。
-// 鼠标(报告3)暂缓：键盘/消费验证稳定后按同风格加回。
 // ---------------------------------------------------------------------------
 static const uint8_t kReportMap[] = {
     // ── Keyboard (Report ID 0x01) ──────────────────────────────────────
@@ -105,8 +99,6 @@ static NimBLECharacteristic* chrMouse = nullptr;     // 报告 3
 
 static BleTransport* s_self = nullptr;
 
-// NimBLE 回调签名随版本不同：2.x 用 NimBLEConnInfo&，1.4.x 用 ble_gap_conn_desc*
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
 class ServerCallbacks : public NimBLEServerCallbacks {
  public:
   void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override {
@@ -120,20 +112,6 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     if (s_self) s_self->onDisconnect_();
   }
 };
-#else
-class ServerCallbacks : public NimBLEServerCallbacks {
- public:
-  void onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) override {
-    (void)pServer;
-    if (s_self) s_self->onConnect_(desc ? desc->conn_handle : 0);
-  }
-  void onDisconnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) override {
-    (void)pServer;
-    (void)desc;
-    if (s_self) s_self->onDisconnect_();
-  }
-};
-#endif
 
 void BleTransport::begin() {
   s_self = this;
@@ -142,48 +120,24 @@ void BleTransport::begin() {
 
   server = NimBLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks(), false);
-#if ESP_ARDUINO_VERSION_MAJOR < 3
-  // 1.4.x：断开后默认自动定向广播（只有旧绑定主机可见），改为普通广播由 onDisconnect_ 接管
-  server->advertiseOnDisconnect(false);
-#endif
 
   hid = new NimBLEHIDDevice(server);
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
   hid->setManufacturer("Navio");
   hid->setPnp(0x01, 0x02E5, 0xBEEF, 0x0100);  // SIG source + Espressif VID
   hid->setHidInfo(0x00, 0x01);
   hid->setReportMap(const_cast<uint8_t*>(kReportMap), sizeof(kReportMap));
-#else
-  hid->manufacturer("Navio");
-  hid->pnp(0x01, 0x02E5, 0xBEEF, 0x0100);
-  hid->hidInfo(0x00, 0x01);
-  hid->reportMap(const_cast<uint8_t*>(kReportMap), sizeof(kReportMap));
-#endif
   hid->setBatteryLevel(100);
 
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
   chrKeyboard = hid->getInputReport(1);
   chrConsumer = hid->getInputReport(2);
   chrMouse = hid->getInputReport(3);
-#else
-  chrKeyboard = hid->inputReport(1);
-  chrConsumer = hid->inputReport(2);
-  chrMouse = hid->inputReport(3);
-  hid->startServices();  // 1.4.x 必须显式启动服务（2.x 由 server.start() 接管）
-#endif
 
   NimBLEAdvertising* adv = server->getAdvertising();
   adv->setAppearance(0x03C1);  // HID Keyboard
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
   adv->addServiceUUID(hid->getHidService()->getUUID());
   adv->addServiceUUID(hid->getBatteryService()->getUUID());
   adv->setPreferredParams(0x10, 0x20);  // 连接参数 20-40ms（Android 11 兼容）
   adv->enableScanResponse(true);
-#else
-  adv->addServiceUUID(hid->hidService()->getUUID());
-  adv->addServiceUUID(hid->batteryService()->getUUID());
-  adv->setMinPreferred(0x10);
-#endif
   // 设备名放 scan response：主机蓝牙设置才能正确显示 "Navio Chron"（Android 必需）
   NimBLEAdvertisementData scanResp;
   scanResp.setName("Navio Chron");
@@ -211,11 +165,7 @@ void BleTransport::onDisconnect_() {
 void BleTransport::enterPairing() {
   // 清除全部绑定并重新进入可发现/可配对状态（换主机/跨库版本升级后残留 bond 不兼容时用）
   if (connected_ && server) {
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
     server->disconnect(connHandle_);
-#else
-    server->disconnect(connHandle_);
-#endif
   }
   NimBLEDevice::deleteAllBonds();
   if (server) {
@@ -270,12 +220,7 @@ void BleTransport::sendKeyboardReport_() {
   uint8_t report[8] = {kbMods_, 0, 0, 0, 0, 0, 0, 0};
   memcpy(report + 2, kbKeys_, 6);
   chrKeyboard->setValue(report, sizeof(report));
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
   lastNotifyOk_ = chrKeyboard->notify();
-#else
-  chrKeyboard->notify();  // NimBLE 1.4 notify 无返回值
-  lastNotifyOk_ = true;
-#endif
 }
 
 void BleTransport::pressChord(uint8_t modMask, uint16_t usage) {

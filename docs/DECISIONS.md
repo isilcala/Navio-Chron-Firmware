@@ -137,6 +137,46 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 **实施顺序**：固件侧三件套（vendor HID 接口 → JSON/NVS 动态加载 → 帧协议）
 → Web 端最小闭环（连接→读预设→改一键→下发→验证）→ 铺开界面与预设库。
 
+## D15. Phase 2 通道复核：保留内置 TinyUSB + Vendor HID，报告数据改为 63B（2026-10-27）
+
+- 撤销 `17cb9ac` 的探索性判断：带 Report ID 的 Vendor page **可以**被
+  `esp_hid_parse_report_map` 注册并路由，不需要迁移 Adafruit_TinyUSB 全栈。
+  实机以 ID 6 + `_onOutput`/`_onSetFeature` 双回调完成 hidapi HELLO 双向闭环，
+  收到 `{"proto":1,"fw":"0.3.0-dev","name":"Navio Chron"}`，键盘/鼠标/Consumer 同时正常枚举。
+- Arduino `USBHID` 把各描述符拼成**同一 HID 接口的多个 Application Collection**，
+  不是独立 HID 接口；因此有/无 Report ID 不能在该拼接描述符内混用，#9288 的去 ID
+  建议不适用于本设备。D14 的“第四个接口”修订为“第四个 Application Collection”。
+- 全速端点包上限 64B，Report ID 也占 1B：**线上报告 = ID(1B) + 数据(63B)**。
+  原“ID + 64B 数据”需要 65B，设备→主机发送失败。帧格式相应修订为
+  `magic/cmd/seq/total(4B) + payload(≤58B) + CRC8(1B) = 63B`；整体 JSON 的长度和 CRC16
+  字段在实现分片协议时显式定义，不能依赖固定报告的尾部零填充判断 JSON 长度。
+- TinyUSB 接收回调只负责拷贝/入队，协议处理和阻塞式 `SendReport()` 在主循环 `poll()` 执行。
+- CDC 对照实验也已通过：`USB_MODE=0 + CDC_ON_BOOT=1` 可复合枚举并完成串口回环。
+  `CDC_ON_BOOT` 会在 `setup()` 前自动 `USB.begin()`，所以运行时再设 VID/PID 无效；
+  先前“无 VID_CAFE COM 口”是检测条件与初始化时序问题，不是 CDC 不可用。CDC 仍只作调试备选。
+- 当前合入状态：实验工作区验证通过；主分支的 VendorHid 仍暂停，待移除诊断上报、
+  完善有界接收队列和帧协议后再启用，不视为 Phase 2 功能已完成。
+
+## D16. Core 3.x 单轨 + Adafruit_TinyUSB 独立 HID 接口（2026-10-27）
+
+- 撤销 core 2.x 回退路径：所有正式/诊断环境统一 core 3.12 + NimBLE 2.5.1；
+  删除 `_core2_tools_base`、NimBLE 1.4 分支和自研 `Ws2812.h`，后续问题在当前平台向前修复。
+- USB 设备层迁移到 `Adafruit TinyUSB Library@3.7.7`：Keyboard(1)、Mouse(2)、
+  Consumer(4)、Vendor(6) 各自独立 HID 接口，描述符与回调按 instance 归属，
+  不再经过内置 `USBHID` 的全局拼接和 report-map 路由。`ITransport`、BLE、预设及
+  Vendor 的 **Report ID 6 + 63B 数据**线上格式不变。
+- 实例数由 `include/navio_tusb_config.h` 统一设为 4；`tools/add_fs_include.py`
+  同时向库环境提供项目 include 与 Adafruit src 路径，不修改第三方库副本。
+- 正式固件保持 `USB_MODE=1 + CDC_ON_BOOT=0`，在全部接口注册后手动 `USB.begin()`。
+  实测原生 CDC 固定端点与第三个独立 HID 同时存在会枚举失败；移除 CDC 后四个接口正常。
+  串口日志只走 `ble_diag` / `debug_boot` 等专用环境，不在正式复合设备中常驻。
+- Vendor 回调只将完整帧写入 4 项 FreeRTOS 队列，`poll()` 在主循环执行协议与发送；
+  `ConfigProto` 只接受固定 63B 帧，HELLO/GET_INFO 不再静默截断。
+- 实机验收：四个独立 HID 接口正常枚举；hidapi 与 Windows WebHID 的 HELLO 均返回
+  原 JSON，GET_INFO 返回完整能力 JSON；现有 USB/BLE 输入、预设切换与 BLE 重连通过；
+  全部五个构建环境通过。D15 的 63B 与回调入队
+  原则保留，其“无需迁移 Adafruit”判断被本决策修订。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带
@@ -144,9 +184,8 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - **2026-10-26 修订**：BLE 调试期间曾误判"core 3.12 + NimBLE 适配层不可用"并临时回退
   core 2.x + NimBLE 1.4.3；根因实为自身 pressChord 未写入键码（见 D12），core 3.12 +
   NimBLE 2.5.1 实测完全可用，主环境回归。误判教训：多版本组合排查时未先验证最小发送链路。
-- 迁移要点：LedController 按 `ESP_ARDUINO_VERSION_MAJOR` 编译期选择 LED 后端
-  （3.x=Adafruit_NeoPixel 1.15.5，2.x=自研 Ws2812）；BleTransport 同样条件编译适配
-  NimBLE 2.5/1.4 两代 API；core 2.x 环境保留为诊断工具基座（`_core2_tools_base`）。
+- **2026-10-27 修订（D16）**：core 2.x 回退路径已撤销；LED 统一 Adafruit_NeoPixel，
+  BLE 统一 NimBLE 2.5.1，USB 迁移 Adafruit_TinyUSB 独立接口。历史兼容分支不再维护。
 - PIO 踩坑（core 3.x 特有）：库依赖声明改用 idf_component.yml，PIO LDF 读不到，
   USB 库编译 MSC 模块缺 FS.h —— `pre:tools/add_fs_include.py` 在库环境克隆前注入路径
   （post 阶段注入无效；build_flags 里 `{platformio.packages_dir}` 不展开）。

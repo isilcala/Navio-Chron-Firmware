@@ -1,7 +1,7 @@
 #pragma once
-// Phase 2 配置协议（D14）：分片帧 + 命令分发。
-// 帧格式（64B 报告内）：| magic 0x4E | cmd | seq | total | payload(≤59B) |
-// 每帧 CRC8（帧尾）+ 整包 CRC16（提交命令时校验，Phase 2 后续接 JSON 用）。
+// Phase 2 配置协议骨架：63B 数据帧 + 命令分发。
+// 当前单帧：| magic 0x4E | cmd | seq | total | payload(≤59B) |。
+// 正式分片格式按 D15 加入 CRC8、整体显式长度与 CRC16 时收紧 payload 上限。
 // 当前实现：HELLO（设备信息）/ GET_INFO（协议能力）最小闭环，其余命令回 NOT_IMPLEMENTED。
 #include <Arduino.h>
 
@@ -39,7 +39,7 @@ class ConfigProto {
   void handleFrame(const uint8_t* data, size_t len);
 
  private:
-  void sendSingle_(uint8_t cmd, const uint8_t* payload, size_t len);
+  bool sendSingle_(uint8_t cmd, const uint8_t* payload, size_t len);
   void sendErr_(uint8_t errCode, uint8_t aboutCmd);
   VendorHid* port_ = nullptr;
 

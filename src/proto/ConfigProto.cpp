@@ -12,15 +12,15 @@ void ConfigProto::begin(VendorHid* port) {
   port->onFrame = [this](const uint8_t* d, size_t l) { handleFrame(d, l); };
 }
 
-void ConfigProto::sendSingle_(uint8_t cmd, const uint8_t* payload, size_t len) {
+bool ConfigProto::sendSingle_(uint8_t cmd, const uint8_t* payload, size_t len) {
+  if (len > VENDOR_REPORT_SIZE - 4) return false;
   uint8_t frame[VENDOR_REPORT_SIZE] = {0};
   frame[0] = kMagic;
   frame[1] = cmd;
   frame[2] = 0;  // seq
   frame[3] = 1;  // total
-  if (len > 59) len = 59;
   if (payload && len) memcpy(frame + 4, payload, len);
-  port_->sendReport(frame, VENDOR_REPORT_SIZE);
+  return port_->sendReport(frame, VENDOR_REPORT_SIZE);
 }
 
 void ConfigProto::sendErr_(uint8_t errCode, uint8_t aboutCmd) {
@@ -29,13 +29,8 @@ void ConfigProto::sendErr_(uint8_t errCode, uint8_t aboutCmd) {
 }
 
 void ConfigProto::handleFrame(const uint8_t* data, size_t len) {
-  if (len < 4) return;
-  // TinyUSB 有时会带 report-id 前缀（len=65）；容错跳过
+  if (len != VENDOR_REPORT_SIZE) return;
   const uint8_t* f = data;
-  if (f[0] != kMagic && len >= 5 && f[1] == kMagic) {
-    f = data + 1;
-    len -= 1;
-  }
   if (f[0] != kMagic) {
     sendErr_(ERR_BAD_MAGIC, 0);
     return;
@@ -53,8 +48,7 @@ void ConfigProto::handleFrame(const uint8_t* data, size_t len) {
       break;
     }
     case CMD_GET_INFO: {
-      static char caps[] =
-          "{\"cmds\":[\"hello\",\"info\"],\"maxPresets\":6,\"vendorPage\":\"0xFF00\"}";
+      static char caps[] = "{\"cmds\":[\"hello\",\"info\"],\"maxPresets\":6}";
       sendSingle_(CMD_ACK, (const uint8_t*)caps, strlen(caps));
       break;
     }

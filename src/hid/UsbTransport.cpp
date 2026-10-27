@@ -1,79 +1,114 @@
 #include "hid/UsbTransport.h"
 
-// 让 PlatformIO LDF 发现 FS 库：USB 库整体编译时（MSC 子模块）需要 FS.h，
-// 而其依赖声明是 core 3.x 的 idf_component.yml 格式，PIO 读不到（core 2.x 无此问题）
 #include <FS.h>
-
-#include "USB.h"
-#include "USBHIDConsumerControl.h"
-#include "USBHIDKeyboard.h"
-#include "USBHIDMouse.h"
+#include <USB.h>
+#include <arduino/hid/Adafruit_USBD_HID.h>
 
 namespace navio {
 
-static USBHIDKeyboard keyboard;
-static USBHIDMouse mouse;
-static USBHIDConsumerControl consumer;
+namespace {
 
-// USB 挂载检测：ARDUINO_USB_STARTED/STOPPED 事件（主机完成枚举 = STARTED）
-static volatile bool s_usbMounted = false;
-static void usbEventHandler(void* arg, esp_event_base_t base, int32_t id, void* data) {
-  s_usbMounted = (id == ARDUINO_USB_STARTED_EVENT);
+constexpr uint8_t REPORT_ID_KEYBOARD = 1;
+constexpr uint8_t REPORT_ID_MOUSE = 2;
+constexpr uint8_t REPORT_ID_CONSUMER = 4;
+
+const uint8_t kKeyboardDescriptor[] = {
+    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD))};
+const uint8_t kMouseDescriptor[] = {
+    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(REPORT_ID_MOUSE))};
+const uint8_t kConsumerDescriptor[] = {
+    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(REPORT_ID_CONSUMER))};
+
+Adafruit_USBD_HID keyboard;
+Adafruit_USBD_HID mouse;
+Adafruit_USBD_HID consumer;
+bool usbReady = false;
+uint8_t kbMods = 0;
+uint8_t kbKeys[6] = {};
+
+bool beginHid(Adafruit_USBD_HID& hid, const uint8_t* descriptor, size_t len,
+              hid_interface_protocol_enum_t protocol) {
+  hid.setReportDescriptor(descriptor, len);
+  hid.setBootProtocol(protocol);
+  hid.setPollInterval(1);
+  return hid.begin();
 }
+
+int kbSlotFor(uint8_t usage, bool allocate) {
+  for (int i = 0; i < 6; ++i) {
+    if (kbKeys[i] == usage) return i;
+    if (allocate && kbKeys[i] == 0) return i;
+  }
+  return -1;
+}
+
+void sendKeyboardReport() {
+  if (usbReady) keyboard.keyboardReport(REPORT_ID_KEYBOARD, kbMods, kbKeys);
+}
+
+}  // namespace
 
 void UsbTransport::begin() {
-  // 与上游一致的 VID/PID（DIY 设备惯例；HID 类驱动，Win/macOS 免驱）
-  USB.VID(0xCAFE);
-  USB.PID(0xBEEF);
-  keyboard.begin();
-  mouse.begin();
-  consumer.begin();
-  USB.onEvent(usbEventHandler);
-  USB.begin();
-}
+  TinyUSBDevice.setID(0xCAFE, 0xBEEF);
+  TinyUSBDevice.setManufacturerDescriptor("Navio");
+  TinyUSBDevice.setProductDescriptor("Navio Chron");
+  usbReady = beginHid(keyboard, kKeyboardDescriptor, sizeof(kKeyboardDescriptor),
+                      HID_ITF_PROTOCOL_KEYBOARD) &&
+             beginHid(mouse, kMouseDescriptor, sizeof(kMouseDescriptor),
+                      HID_ITF_PROTOCOL_MOUSE) &&
+             beginHid(consumer, kConsumerDescriptor, sizeof(kConsumerDescriptor),
+                      HID_ITF_PROTOCOL_NONE);
+  if (!usbReady) {
+    Serial.println("[Navio] USB HID interface registration failed");
+    return;
+  }
 
-bool UsbTransport::isConnected() {
-  return s_usbMounted;
-}
-
-// USBHIDKeyboard 的 pressRaw 直接接受 HID Usage ID；修饰键为 0xE0-0xE7
-static void applyMods(uint8_t modMask, bool press) {
-  for (uint8_t i = 0; i < 8; ++i) {
-    if (modMask & (1u << i)) {
-      uint8_t code = 0xE0 + i;
-      if (press)
-        keyboard.pressRaw(code);
-      else
-        keyboard.releaseRaw(code);
-    }
+  if (!USB.begin()) {
+    usbReady = false;
+    Serial.println("[Navio] USB initialization failed");
   }
 }
 
+bool UsbTransport::isConnected() {
+  return usbReady && TinyUSBDevice.mounted() && !TinyUSBDevice.suspended();
+}
+
 void UsbTransport::pressChord(uint8_t modMask, uint16_t usage) {
-  applyMods(modMask, true);
-  if (usage) keyboard.pressRaw(static_cast<uint8_t>(usage));
+  kbMods |= modMask;
+  if (usage) {
+    int slot = kbSlotFor(static_cast<uint8_t>(usage), true);
+    if (slot < 0) return;
+    kbKeys[slot] = static_cast<uint8_t>(usage);
+  }
+  sendKeyboardReport();
 }
 
 void UsbTransport::releaseChord(uint8_t modMask, uint16_t usage) {
-  if (usage) keyboard.releaseRaw(static_cast<uint8_t>(usage));
-  applyMods(modMask, false);
+  kbMods &= ~modMask;
+  if (usage) {
+    int slot = kbSlotFor(static_cast<uint8_t>(usage), false);
+    if (slot >= 0) kbKeys[slot] = 0;
+  }
+  sendKeyboardReport();
 }
 
 void UsbTransport::releaseAll() {
-  keyboard.releaseAll();
+  kbMods = 0;
+  memset(kbKeys, 0, sizeof(kbKeys));
+  sendKeyboardReport();
   consumerRelease();
 }
 
 void UsbTransport::consumerPress(uint16_t usage) {
-  consumer.press(usage);
+  if (usbReady) consumer.sendReport16(REPORT_ID_CONSUMER, usage);
 }
 
 void UsbTransport::consumerRelease() {
-  consumer.release();
+  if (usbReady) consumer.sendReport16(REPORT_ID_CONSUMER, 0);
 }
 
 void UsbTransport::mouseWheel(int8_t dy) {
-  mouse.move(0, 0, dy, 0);
+  if (usbReady) mouse.mouseReport(REPORT_ID_MOUSE, 0, 0, 0, dy, 0);
 }
 
 }  // namespace navio

@@ -9,7 +9,8 @@ pin map and power architecture.
 
 - [x] Hardware bring-up layer: 4x5 matrix (16 switches), 3 encoders, WS2812 chain (15 px),
       battery sensing
-- [x] USB HID (keyboard + consumer control + mouse wheel), driverless on Windows/macOS
+- [x] USB HID (independent keyboard + consumer control + mouse + vendor interfaces),
+      Adafruit_TinyUSB on core 3.12, driverless on Windows/macOS
 - [x] **BLE HID** (NimBLE-Arduino): pairing on Windows/Android, auto-reconnect,
       USB/BLE auto-selection (USB host wins when enumerated)
 - [x] Compile-time presets, cycled with the side micro-switch, persisted across reboots
@@ -30,8 +31,8 @@ pin map and power architecture.
    after flashing, tap RST once
 
 Preset mappings live in `src/mapping/Presets.cpp` (Phase 1: edit + reflash).
-Diagnostic builds: `ble_diag` (live BLE logging over USB-JTAG serial),
-`debug_boot` / `led_beacon` (core 2.x tools).
+Diagnostic builds on core 3.12: `ble_diag` (live BLE logging over USB-JTAG serial),
+`debug_boot` / `led_beacon`.
 
 ## Layout
 
@@ -40,12 +41,11 @@ include/          pin map & tunables (cross-checked against schematics)
 src/input/        matrix scanner, encoder decoder → logical events
 src/action/       action model (key chord / consumer / wheel)
 src/mapping/      preset data
-src/hid/          ITransport + USB & BLE implementations (NimBLE dual-version via
-                  ESP_ARDUINO_VERSION_MAJOR conditional compilation)
-src/led/          WS2812 status & key lighting (Adafruit_NeoPixel on core 3.x,
-                  custom Ws2812.h on core 2.x)
+src/hid/          ITransport + Adafruit_TinyUSB independent HID + NimBLE 2.5 BLE
+src/proto/        independent vendor HID + configuration frame protocol
+src/led/          WS2812 status & key lighting (Adafruit_NeoPixel on core 3.x)
 src/power/        battery estimation
-tools/            PlatformIO build scripts (core 3.x FS include fix)
+tools/            PlatformIO build scripts (USB include paths)
 docs/hardware/    schematics + hardware notes + photos
 reference/        upstream firmware (read-only, not part of the build; gitignored)
 ```

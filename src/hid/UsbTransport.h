@@ -1,5 +1,5 @@
 #pragma once
-// S3 原生 USB (TinyUSB)：键盘 + 消费控制 + 鼠标 复合设备
+// S3 原生 USB (Adafruit_TinyUSB)：键盘、消费控制、鼠标各自独立 HID 接口
 #include "hid/ITransport.h"
 
 namespace navio {

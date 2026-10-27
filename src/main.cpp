@@ -116,8 +116,7 @@ constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static void dispatchEncoder(Enc id, int8_t dir);
 
 void setup() {
-  // USB_MODE=0 构建下 Serial 走硬件 JTAG 串口（ble_diag 诊断用）；
-  // USB_MODE=1 主固件下 Serial=UART0 无接收者，begin 无副作用
+  // 主固件 CDC_ON_BOOT=0，Serial=UART0 无接收者；诊断构建走 USB-Serial/JTAG。
   Serial.begin(115200);
 
   // 板载 RGB 启动信标（未焊接阶段唯一的可视化调试手段）
@@ -143,13 +142,12 @@ void setup() {
 
   neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
   delay(300);
-#if !NAVIO_FORCE_BLE && 0  // VendorHid 暂停：无-ID 描述符非法（Windows 拒绝整个复合设备），
-                            // 带-ID 又被框架路由丢弃（esp_hid_parse_report_map 不认 vendor page）。
-                            // Phase 2 通道改走 CDC（D14 修订中）
-  vendorHid.begin();
-  configProto.begin(&vendorHid);
-#endif
 #if !NAVIO_FORCE_BLE
+  if (vendorHid.begin()) {
+    configProto.begin(&vendorHid);
+  } else {
+    Serial.println("[Navio] Vendor HID interface registration failed");
+  }
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
 #endif
   bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
@@ -180,6 +178,7 @@ void loop() {
   }
 
   // 低频任务
+  vendorHid.poll();
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();
