@@ -10,6 +10,8 @@
 #include "hid/HidUsage.h"
 #include "hid/ITransport.h"
 #include "hid/UsbTransport.h"
+#include "proto/ConfigProto.h"
+#include "proto/VendorHid.h"
 #include "input/DownloadMode.h"
 #include "input/Encoders.h"
 #include "input/InputEvents.h"
@@ -27,6 +29,10 @@ static PresetManager presets;
 static UsbTransport usbTransport;
 static BleTransport bleTransport;
 static ITransport* transport = &usbTransport;
+
+// Phase 2 配置通道（Vendor HID，桌面端/WebHID 下发预设用）
+static VendorHid vendorHid;
+static ConfigProto configProto;
 
 // 连接模式选择（D3）：USB 挂载优先；否则 BLE（已连=蓝 / 配对中蓝快闪 / 等待=橙闪）
 static bool s_pairingMode = false;
@@ -139,6 +145,8 @@ void setup() {
   delay(300);
 #if !NAVIO_FORCE_BLE
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
+  vendorHid.begin();
+  configProto.begin(&vendorHid);
 #endif
   bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
   leds.showPreset(presets.active().accent, presets.active().name);
