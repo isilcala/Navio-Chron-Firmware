@@ -144,9 +144,11 @@ void setup() {
   neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
   delay(300);
 #if !NAVIO_FORCE_BLE
-  usbTransport.begin();  // HID 就绪后才开始产生输入事件
+  // vendor 接口必须在 USB.begin()（usbTransport 内部最后一步）之前注册，
+  // 否则复合描述符已定型不会包含它
   vendorHid.begin();
   configProto.begin(&vendorHid);
+  usbTransport.begin();  // HID 就绪后才开始产生输入事件
 #endif
   bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
   leds.showPreset(presets.active().accent, presets.active().name);
