@@ -22,30 +22,40 @@ void LedController::showPreset(const uint8_t accent[3], const char* name) {
     chain_.setPixelColor(i, scale(accent[0]), scale(accent[1]), scale(accent[2]));
   }
   chain_.show();
+  dirty_ = false;
+  lastShowMs_ = millis();
 }
 
 void LedController::setModeColor(uint8_t r, uint8_t g, uint8_t b) {
-  chain_.setPixelColor(1, scale(r), scale(g), scale(b));
-  chain_.show();
+  uint32_t color = chain_.Color(scale(r), scale(g), scale(b));
+  if (chain_.getPixelColor(1) == color) return;
+  chain_.setPixelColor(1, color);
+  dirty_ = true;
 }
 
 void LedController::setBatteryLow(bool low) {
-  if (low == lowBattery_) return;  // 状态无变化不重刷（rmtWriteBlocking 忙等，禁止高频调用）
+  if (low == lowBattery_) return;
   lowBattery_ = low;
   if (!low) {
     chain_.setPixelColor(2, 0, 0, 0);
-    chain_.show();
+    dirty_ = true;
   }
 }
 
 void LedController::tick() {
   uint32_t now = millis();
-  if (now - lastTickMs_ < 1000) return;  // 低电闪烁周期 1s
-  lastTickMs_ = now;
-  if (!lowBattery_) return;
-  blinkOn_ = !blinkOn_;
-  chain_.setPixelColor(2, blinkOn_ ? scale(255) : 0, 0, 0);
+  if (now - lastBlinkMs_ >= 1000) {
+    lastBlinkMs_ = now;
+    if (lowBattery_) {
+      blinkOn_ = !blinkOn_;
+      chain_.setPixelColor(2, blinkOn_ ? scale(255) : 0, 0, 0);
+      dirty_ = true;
+    }
+  }
+  if (!dirty_ || now - lastShowMs_ < LED_TICK_INTERVAL_MS) return;
   chain_.show();
+  dirty_ = false;
+  lastShowMs_ = now;
 }
 
 }  // namespace navio

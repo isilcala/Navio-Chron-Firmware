@@ -76,7 +76,7 @@ Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实
 2026-10-27 完成 core 3.x 单轨与 Adafruit_TinyUSB 四独立 HID 迁移（D16）：
 hidapi / WebHID HELLO、GET_INFO、现有双模输入与五环境构建均通过。遗留（按优先级）：
 1. 硬件：大旋钮 B 相（IO40/R2R 线路）断线补焊——已诊断（A 相正常、B 相恒高），补焊后免费复验
-2. Phase 2 前置修复：输入动作快照、修饰键/Consumer 持有计数、BLE 断线键态、矩阵队列容量
+2. Phase 2 前置修复代码已落地（动作快照、持有计数、BLE 生命周期、矩阵溢出、非阻塞点触、LED dirty）；五环境构建通过，待集中实机回归
 3. Phase 2：完整分片协议、NVS 动态预设、电脑端配置工具
 4. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 5. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
