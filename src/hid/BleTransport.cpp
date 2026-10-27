@@ -107,14 +107,33 @@ class ServerCallbacks : public NimBLEServerCallbacks {
   }
   void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
     (void)pServer;
-    (void)connInfo;
     (void)reason;
-    if (s_self) s_self->onDisconnect_();
+    if (s_self) s_self->onDisconnect_(connInfo.getConnHandle());
   }
+};
+
+class ReportCallbacks : public NimBLECharacteristicCallbacks {
+ public:
+  explicit ReportCallbacks(uint8_t reportId) : reportId_(reportId) {}
+
+  void onSubscribe(NimBLECharacteristic* characteristic, NimBLEConnInfo& connInfo,
+                   uint16_t subValue) override {
+    (void)characteristic;
+    if (s_self) s_self->onSubscribe_(connInfo.getConnHandle(), reportId_, subValue);
+  }
+
+ private:
+  uint8_t reportId_;
 };
 
 void BleTransport::begin() {
   s_self = this;
+  eventQueue_ = xQueueCreate(16, sizeof(Event));
+  if (!eventQueue_) {
+    Serial.println("[Navio] BLE event queue allocation failed");
+    return;
+  }
+
   NimBLEDevice::init("Navio Chron");
   NimBLEDevice::setSecurityAuth(/*bond*/ true, /*mitm*/ false, /*secure conn*/ true);
 
@@ -128,9 +147,15 @@ void BleTransport::begin() {
   hid->setReportMap(const_cast<uint8_t*>(kReportMap), sizeof(kReportMap));
   hid->setBatteryLevel(100);
 
+  static ReportCallbacks keyboardCallbacks(1);
+  static ReportCallbacks consumerCallbacks(2);
+  static ReportCallbacks mouseCallbacks(3);
   chrKeyboard = hid->getInputReport(1);
   chrConsumer = hid->getInputReport(2);
   chrMouse = hid->getInputReport(3);
+  chrKeyboard->setCallbacks(&keyboardCallbacks);
+  chrConsumer->setCallbacks(&consumerCallbacks);
+  chrMouse->setCallbacks(&mouseCallbacks);
 
   NimBLEAdvertising* adv = server->getAdvertising();
   adv->setAppearance(0x03C1);  // HID Keyboard
@@ -142,50 +167,102 @@ void BleTransport::begin() {
   NimBLEAdvertisementData scanResp;
   scanResp.setName("Navio Chron");
   adv->setScanResponseData(scanResp);
-  adv->start();
-  advertising_ = true;
+  updateAdvertising_();
+}
+
+void BleTransport::postEvent_(const Event& event) {
+  if (!eventQueue_ || xQueueSend(eventQueue_, &event, 0) != pdTRUE) {
+    droppedEvents_.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 
 void BleTransport::onConnect_(uint16_t connHandle) {
-  connected_ = true;
-  connHandle_ = connHandle;  // 供配对模式主动断开当前连接
-  advertising_ = false;
-  primed_ = false;  // 新连接需要重新预热（首帧 notify 会被主机握手期丢弃）
+  postEvent_(Event{EventType::Connect, connHandle, 0, 0});
 }
 
-void BleTransport::onDisconnect_() {
-  connected_ = false;
-  // 自动恢复普通广播等待重连（USB 优先时段由 main 调 pause 压制）
-  if (server && !advertising_) {
-    server->getAdvertising()->start();
-    advertising_ = true;
+void BleTransport::onDisconnect_(uint16_t connHandle) {
+  postEvent_(Event{EventType::Disconnect, connHandle, 0, 0});
+}
+
+void BleTransport::onSubscribe_(uint16_t connHandle, uint8_t reportId, uint16_t subValue) {
+  postEvent_(Event{EventType::Subscribe, connHandle, reportId, subValue});
+}
+
+void BleTransport::poll() {
+  if (uint32_t dropped = droppedEvents_.exchange(0, std::memory_order_relaxed)) {
+    Serial.printf("[Navio] BLE event queue overflow: %lu dropped\n",
+                  static_cast<unsigned long>(dropped));
+  }
+
+  Event event;
+  while (eventQueue_ && xQueueReceive(eventQueue_, &event, 0) == pdTRUE) {
+    switch (event.type) {
+      case EventType::Connect:
+        state_.releaseAll();
+        subscriptions_ = 0;
+        primed_ = false;
+        connected_ = true;
+        connHandle_ = event.connHandle;
+        advertising_ = false;
+        break;
+      case EventType::Disconnect:
+        if (!connected_ || event.connHandle != connHandle_) break;
+        connected_ = false;
+        subscriptions_ = 0;
+        state_.releaseAll();
+        updateAdvertising_();
+        break;
+      case EventType::Subscribe:
+        if (!connected_ || event.connHandle != connHandle_ ||
+            event.reportId < 1 || event.reportId > 3) {
+          break;
+        }
+        if (event.subValue & 1) {
+          subscriptions_ |= 1U << (event.reportId - 1);
+        } else {
+          subscriptions_ &= ~(1U << (event.reportId - 1));
+        }
+        break;
+    }
   }
 }
 
-void BleTransport::enterPairing() {
-  // 清除全部绑定并重新进入可发现/可配对状态（换主机/跨库版本升级后残留 bond 不兼容时用）
-  if (connected_ && server) {
-    server->disconnect(connHandle_);
-  }
-  NimBLEDevice::deleteAllBonds();
-  if (server) {
-    server->getAdvertising()->start();
-    advertising_ = true;
-  }
-}
-
-void BleTransport::pauseAdvertising() {
-  if (advertising_ && server) {
+void BleTransport::updateAdvertising_() {
+  if (!server) return;
+  bool shouldAdvertise = advertisingWanted_ && !connected_;
+  if (shouldAdvertise == advertising_) return;
+  if (shouldAdvertise) {
+    advertising_ = server->getAdvertising()->start();
+  } else {
     server->getAdvertising()->stop();
     advertising_ = false;
   }
 }
 
-void BleTransport::resumeAdvertising() {
-  if (!advertising_ && !connected_ && server) {
-    server->getAdvertising()->start();
-    advertising_ = true;
+void BleTransport::enterPairing() {
+  // 清除全部绑定并重新进入可发现/可配对状态（换主机/跨库版本升级后残留 bond 不兼容时用）
+  advertisingWanted_ = true;
+  if (connected_ && server) {
+    releaseAll();
+    server->disconnect(connHandle_);
   }
+  NimBLEDevice::deleteAllBonds();
+  updateAdvertising_();
+}
+
+void BleTransport::pauseAdvertising() {
+  advertisingWanted_ = false;
+  updateAdvertising_();
+}
+
+void BleTransport::resumeAdvertising() {
+  advertisingWanted_ = true;
+  updateAdvertising_();
+}
+
+bool BleTransport::reportReady_(uint8_t reportId) const {
+  return connected_ && reportId >= 1 && reportId <= 3 &&
+         (subscriptions_ & (1U << (reportId - 1)));
 }
 
 void BleTransport::updateBattery(uint8_t pct) {
@@ -197,7 +274,7 @@ void BleTransport::updateBattery(uint8_t pct) {
 // 键盘报告为纯 8 字节（mods+reserved+6键），不带 Report ID 前缀
 // （Report Reference descriptor 已标明报告归属；对照 HijelHID 验证实现）
 void BleTransport::sendKeyboardReport_() {
-  if (!chrKeyboard || !connected_) {
+  if (!chrKeyboard || !reportReady_(1)) {
     lastNotifyOk_ = false;
     return;
   }
@@ -216,6 +293,10 @@ void BleTransport::sendKeyboardReport_() {
 }
 
 void BleTransport::pressChord(uint8_t modMask, uint16_t usage) {
+  if (!reportReady_(1)) {
+    lastNotifyOk_ = false;
+    return;
+  }
   state_.pressChord(modMask, usage);
   sendKeyboardReport_();
 }
@@ -232,6 +313,7 @@ void BleTransport::releaseAll() {
 }
 
 void BleTransport::consumerPress(uint16_t usage) {
+  if (!reportReady_(2)) return;
   state_.pressConsumer(usage);
   sendConsumerReport_();
 }
@@ -242,7 +324,7 @@ void BleTransport::consumerRelease(uint16_t usage) {
 }
 
 void BleTransport::sendConsumerReport_() {
-  if (!chrConsumer || !connected_) return;
+  if (!chrConsumer || !reportReady_(2)) return;
   uint16_t usage = state_.consumerUsage();
   uint8_t report[2] = {static_cast<uint8_t>(usage & 0xFF),
                        static_cast<uint8_t>(usage >> 8)};
@@ -251,7 +333,7 @@ void BleTransport::sendConsumerReport_() {
 }
 
 void BleTransport::mouseWheel(int8_t dy) {
-  if (!chrMouse || !connected_) return;
+  if (!chrMouse || !reportReady_(3)) return;
   uint8_t report[4] = {0, 0, 0, static_cast<uint8_t>(dy)};  // 按钮, X, Y, 滚轮
   chrMouse->setValue(report, 4);
   chrMouse->notify();

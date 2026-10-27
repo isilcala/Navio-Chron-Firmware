@@ -169,6 +169,8 @@ void setup() {
 }
 
 void loop() {
+  bleTransport.poll();
+
   // 1ms 输入轮询（矩阵整轮 + 编码器全量 <100µs）
   static uint32_t lastPollUs = 0;
   uint32_t nowUs = micros();

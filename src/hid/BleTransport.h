@@ -2,6 +2,10 @@
 // BLE HID 传输（NimBLE-Arduino 2.5.x / core 3.x）：
 // 键盘(报告1) + 消费控制(报告2) + 鼠标(报告3)。USB 挂载检测由 UsbTransport 负责，
 // main 据此切换 transport（D3 自动选模式）
+#include <atomic>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+
 #include "hid/HidInputState.h"
 #include "hid/ITransport.h"
 
@@ -10,6 +14,7 @@ namespace navio {
 class BleTransport : public ITransport {
  public:
   void begin() override;
+  void poll();
   bool isConnected() override { return connected_; }
   const char* name() override { return "BLE"; }
 
@@ -33,18 +38,34 @@ class BleTransport : public ITransport {
   // 最近一次键盘报告 notify 是否成功
   bool lastSendOk() const { return lastNotifyOk_; }
 
-  // server 回调转发（内部使用）
+  // NimBLE 回调只投递事件，由主循环 poll() 更新状态
   void onConnect_(uint16_t connHandle);
-  void onDisconnect_();
+  void onDisconnect_(uint16_t connHandle);
+  void onSubscribe_(uint16_t connHandle, uint8_t reportId, uint16_t subValue);
 
  private:
+  enum class EventType : uint8_t { Connect, Disconnect, Subscribe };
+  struct Event {
+    EventType type;
+    uint16_t connHandle;
+    uint8_t reportId;
+    uint16_t subValue;
+  };
+
   HidInputState state_;
+  QueueHandle_t eventQueue_ = nullptr;
+  std::atomic<uint32_t> droppedEvents_{0};
+  void postEvent_(const Event& event);
+  void updateAdvertising_();
+  bool reportReady_(uint8_t reportId) const;
   void sendKeyboardReport_();
   void sendConsumerReport_();
   bool lastNotifyOk_ = false;
   bool primed_ = false;  // 连接后首帧报告需预热（主机握手期会丢弃）
 
-  volatile bool connected_ = false;
+  bool connected_ = false;
+  uint8_t subscriptions_ = 0;
+  bool advertisingWanted_ = true;
   bool advertising_ = false;
   uint16_t connHandle_ = 0;
 };
