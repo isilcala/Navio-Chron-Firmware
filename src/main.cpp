@@ -36,9 +36,18 @@ static ConfigProto configProto;
 
 static Action s_buttonActions[BTN_COUNT];
 
+struct EncoderPulse {
+  Action action;
+  ITransport* transport;
+  uint32_t releaseAtUs;
+  bool active;
+};
+static EncoderPulse s_encoderPulses[8];
+
 static void releaseAllActions() {
   transport->releaseAll();
   for (Action& action : s_buttonActions) action = Action{};
+  for (EncoderPulse& pulse : s_encoderPulses) pulse.active = false;
 }
 
 // 连接模式选择（D3）：USB 挂载优先；否则 BLE（已连=蓝 / 配对中蓝快闪 / 等待=橙闪）
@@ -113,6 +122,7 @@ static void updateBleBattery() {
 }
 
 static void dispatchButton(Btn id, bool pressed);
+static void tickEncoderPulses();
 static void checkLongPressActions();
 
 // 下载模式入口见 input/DownloadMode.h（BOOT 长按 3s，各固件共用）。
@@ -170,6 +180,7 @@ void setup() {
 
 void loop() {
   bleTransport.poll();
+  tickEncoderPulses();
 
   // 1ms 输入轮询（矩阵整轮 + 编码器全量 <100µs）
   static uint32_t lastPollUs = 0;
@@ -333,6 +344,46 @@ static void dispatchButton(Btn id, bool pressed) {
   }
 }
 
+static void startEncoderPulse(const Action& action) {
+  EncoderPulse* slot = nullptr;
+  for (EncoderPulse& pulse : s_encoderPulses) {
+    if (!pulse.active) {
+      slot = &pulse;
+      break;
+    }
+  }
+  if (!slot) {
+    releaseAllActions();
+    Serial.println("[Navio] encoder pulse queue overflow");
+    return;
+  }
+
+  slot->action = action;
+  slot->transport = transport;
+  slot->releaseAtUs = micros() + ENCODER_PULSE_US;
+  slot->active = true;
+  if (action.kind == Action::KeyChord) {
+    transport->pressChord(action.mods, action.code);
+  } else if (action.kind == Action::Consumer) {
+    transport->consumerPress(action.code);
+  }
+}
+
+static void tickEncoderPulses() {
+  uint32_t now = micros();
+  for (EncoderPulse& pulse : s_encoderPulses) {
+    if (!pulse.active || static_cast<int32_t>(now - pulse.releaseAtUs) < 0) continue;
+    Action action = pulse.action;
+    ITransport* pulseTransport = pulse.transport;
+    pulse.active = false;
+    if (action.kind == Action::KeyChord) {
+      pulseTransport->releaseChord(action.mods, action.code);
+    } else if (action.kind == Action::Consumer) {
+      pulseTransport->consumerRelease(action.code);
+    }
+  }
+}
+
 static void dispatchEncoder(Enc id, int8_t dir) {
 #if NAVIO_IGNORE_MATRIX  // 未焊接阶段：编码器悬空噪声同样丢弃
   (void)id;
@@ -342,25 +393,15 @@ static void dispatchEncoder(Enc id, int8_t dir) {
   const Action& a = presets.active().enc[static_cast<size_t>(id)][dir > 0 ? 0 : 1];
   if (!a) return;
   switch (a.kind) {
-    case Action::KeyChord:  // 点触：按下→短暂保持→抬起，保证主机识别组合键
-      transport->pressChord(a.mods, a.code);
-      delay(3);
-      transport->releaseChord(a.mods, a.code);
-      break;
+    case Action::KeyChord:
     case Action::Consumer:
-      transport->consumerPress(a.code);
-      delay(3);
-      transport->consumerRelease(a.code);
+      startEncoderPulse(a);
       break;
     case Action::Wheel:
       if (a.mods) {  // 带修饰键的滚轮（如 Ctrl+滚轮=缩放）
-        transport->pressChord(a.mods, 0);
-        transport->mouseWheel(a.wheelDy);
-        delay(3);
-        transport->releaseChord(a.mods, 0);
-      } else {
-        transport->mouseWheel(a.wheelDy);
+        startEncoderPulse(actKey(a.mods, 0));
       }
+      transport->mouseWheel(a.wheelDy);
       break;
     default:
       break;

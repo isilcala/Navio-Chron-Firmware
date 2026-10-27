@@ -8,6 +8,7 @@ namespace navio {
 constexpr uint32_t INPUT_POLL_INTERVAL_US = 1000;  // 矩阵+编码器轮询周期
 constexpr uint8_t  KEY_DEBOUNCE_TICKS = 3;         // 连续 N 次采样一致才认定状态变化
 constexpr uint16_t ROW_SETTLE_US = 5;              // 行驱动后的电平稳定时间
+constexpr uint32_t ENCODER_PULSE_US = 3000;        // 编码器点触动作的按下保持时间
 
 // 编码器分频：原始四倍频计数 / 除数 = 触发次数。
 // 上游固件全脉冲编码器用 2（每个棘齿触发 2 次），沿用其手感，硬件实测后可调。
