@@ -21,6 +21,12 @@ void LedController::showPreset(const uint8_t accent[3], const char* name) {
   for (int i = LED_KEY_FIRST; i < LED_COUNT; ++i) {
     chain_.setPixelColor(i, scale(accent[0]), scale(accent[1]), scale(accent[2]));
   }
+  dirty_ = true;
+  flush();
+}
+
+void LedController::flush() {
+  if (!dirty_) return;
   chain_.show();
   dirty_ = false;
   lastShowMs_ = millis();

@@ -138,6 +138,7 @@ void BleTransport::begin() {
   NimBLEDevice::setSecurityAuth(/*bond*/ true, /*mitm*/ false, /*secure conn*/ true);
 
   server = NimBLEDevice::createServer();
+  server->advertiseOnDisconnect(false);
   server->setCallbacks(new ServerCallbacks(), false);
 
   hid = new NimBLEHIDDevice(server);

@@ -12,6 +12,7 @@ class LedController {
   // 应用预设：LED0 = accent，按键灯 = accent×0.25 底色
   void showPreset(const uint8_t accent[3], const char* name);
   void setModeColor(uint8_t r, uint8_t g, uint8_t b);  // LED1
+  void flush();                                      // 阻塞过渡动画立即刷新
   void setBatteryLow(bool low);                        // LED2 红色慢闪
   void tick();                                         // 周期调用（闪烁与按需刷新）
 

@@ -40,6 +40,8 @@ struct EncoderPulse {
   Action action;
   ITransport* transport;
   uint32_t releaseAtUs;
+  int8_t wheelDy;
+  bool wheelPending;
   bool active;
 };
 static EncoderPulse s_encoderPulses[8];
@@ -260,7 +262,7 @@ static void checkLongPressActions() {
 
   // 组装后主入口：侧键分级长按（直接读矩阵位，不经消抖层）
   static uint32_t sideHeldSince = 0;
-  static bool sideArmed = false, pairingFired = false;
+  static bool sideArmed = false;
 #if NAVIO_IGNORE_MATRIX  // 未焊接阶段：侧键悬空，跳过长按检测（BOOT 键仍可用）
   if (false) {
 #endif
@@ -268,7 +270,6 @@ static void checkLongPressActions() {
     if (!sideArmed) {
       sideArmed = true;
       sideHeldSince = millis();
-      pairingFired = false;
     }
     s_sideHoldActive = true;
     uint32_t held = millis() - sideHeldSince;
@@ -277,23 +278,23 @@ static void checkLongPressActions() {
       // 到位确认在用户注视的 LED1 上双闪紫，板载 RGB 由 enterDownloadMode 同步闪烁
       for (int i = 0; i < 2; ++i) {
         mirrorModeLed(120, 0, 120);
+        leds.flush();
         delay(120);
         mirrorModeLed(0, 0, 0);
+        leds.flush();
         delay(120);
       }
       enterDownloadMode();
-    } else if (held >= SIDE_HOLD_PAIRING_MS) {
-      showSideHoldProgress(held);
-      if (!pairingFired) {
-        pairingFired = true;
-        enterPairingMode();
-      }
     } else {
       showSideHoldProgress(held);
     }
   } else if (sideArmed) {
+    uint32_t held = millis() - sideHeldSince;
     sideArmed = false;
     s_sideHoldActive = false;  // 松手后状态灯由 updateLinkMode 在 200ms 内自动恢复
+    if (held >= SIDE_HOLD_PAIRING_MS && held < SIDE_HOLD_REFLASH_MS) {
+      enterPairingMode();
+    }
   }
 #if NAVIO_IGNORE_MATRIX
   }
@@ -344,7 +345,7 @@ static void dispatchButton(Btn id, bool pressed) {
   }
 }
 
-static void startEncoderPulse(const Action& action) {
+static void startEncoderPulse(const Action& action, int8_t wheelDy = 0) {
   EncoderPulse* slot = nullptr;
   for (EncoderPulse& pulse : s_encoderPulses) {
     if (!pulse.active) {
@@ -361,6 +362,8 @@ static void startEncoderPulse(const Action& action) {
   slot->action = action;
   slot->transport = transport;
   slot->releaseAtUs = micros() + ENCODER_PULSE_US;
+  slot->wheelDy = wheelDy;
+  slot->wheelPending = wheelDy != 0;
   slot->active = true;
   if (action.kind == Action::KeyChord) {
     transport->pressChord(action.mods, action.code);
@@ -373,8 +376,15 @@ static void tickEncoderPulses() {
   uint32_t now = micros();
   for (EncoderPulse& pulse : s_encoderPulses) {
     if (!pulse.active || static_cast<int32_t>(now - pulse.releaseAtUs) < 0) continue;
-    Action action = pulse.action;
     ITransport* pulseTransport = pulse.transport;
+    if (pulse.wheelPending) {
+      pulse.wheelPending = false;
+      pulse.releaseAtUs = now + ENCODER_PULSE_US;
+      pulseTransport->mouseWheel(pulse.wheelDy);
+      continue;
+    }
+
+    Action action = pulse.action;
     pulse.active = false;
     if (action.kind == Action::KeyChord) {
       pulseTransport->releaseChord(action.mods, action.code);
@@ -398,10 +408,11 @@ static void dispatchEncoder(Enc id, int8_t dir) {
       startEncoderPulse(a);
       break;
     case Action::Wheel:
-      if (a.mods) {  // 带修饰键的滚轮（如 Ctrl+滚轮=缩放）
-        startEncoderPulse(actKey(a.mods, 0));
+      if (a.mods) {  // 先让主机处理修饰键，再发滚轮，避免独立 USB 接口乱序
+        startEncoderPulse(actKey(a.mods, 0), a.wheelDy);
+      } else {
+        transport->mouseWheel(a.wheelDy);
       }
-      transport->mouseWheel(a.wheelDy);
       break;
     default:
       break;

@@ -48,9 +48,10 @@ tools/          add_fs_include.py：pre: 阶段注入 FS / 项目 / Adafruit 头
 
 - **键码一律用 HID Usage ID**（`src/hid/HidUsage.h`），全链路不做 ASCII 转换。
 - **BLE 报告细节（D12）**：报告不带 Report ID 前缀；连接后首帧需 prime 空报告；
-  pressChord 必须把键码写入 `kbKeys_[slot]`（缺此行 = 发送全零报告，历史最贵 bug）。
+  pressChord 必须经 `HidInputState` 写入键槽（缺失 = 发送全零报告，历史最贵 bug）。
 - **Btn 枚举即物理位**：注释里的 R2C3 对应硬件笔记矩阵表，勿按枚举顺序臆测布局。
-- **SideKey（SW11）全局保留**：单击=切预设 / 长按 5s=BLE 配对（清绑定）/ 长按 10s=烧写。
+- **SideKey（SW11）全局保留**：单击=切预设 / 5-10s 内松手=BLE 配对（清绑定）/
+  长按 10s=烧写（不清绑定）。
 - **未焊接阶段**：矩阵/编码器悬空有噪声事件，测试用 IGNORE_MATRIX 构建；
   板载 RGB(GPIO48) 是唯一可视调试手段（信标+测试键反馈）。
 - 语言约定：交流与文档中文；标识符、代码、commit message 英文。
@@ -76,7 +77,8 @@ Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实
 2026-10-27 完成 core 3.x 单轨与 Adafruit_TinyUSB 四独立 HID 迁移（D16）：
 hidapi / WebHID HELLO、GET_INFO、现有双模输入与五环境构建均通过。遗留（按优先级）：
 1. 硬件：大旋钮 B 相（IO40/R2R 线路）断线补焊——已诊断（A 相正常、B 相恒高），补焊后免费复验
-2. Phase 2 前置修复代码已落地（动作快照、持有计数、BLE 生命周期、矩阵溢出、非阻塞点触、LED dirty）；五环境构建通过，待集中实机回归
+2. Phase 2 前置清理已完成：输入状态、BLE 生命周期、矩阵溢出、非阻塞组合动作、LED dirty；
+   组合滚轮、烧录不清绑定及双闪回归通过（D17/D18），五环境构建通过
 3. Phase 2：完整分片协议、NVS 动态预设、电脑端配置工具
 4. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 5. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略

@@ -14,11 +14,12 @@ pin map and power architecture.
 - [x] **BLE HID** (NimBLE-Arduino): pairing on Windows/Android, auto-reconnect,
       USB/BLE auto-selection (USB host wins when enumerated)
 - [x] Compile-time presets, cycled with the side micro-switch, persisted across reboots
-- [x] Side-key gestures: tap = cycle preset / 5s hold = BLE pairing / 10s hold = reflash
+- [x] Side-key gestures: tap = cycle preset / release after 5-10s = BLE pairing /
+      10s hold = reflash without clearing bonds
 - [x] No-unplug reflashing (side key or BOOT long-press → download mode, double-blink confirm)
 - [x] Mouse report over BLE (wheel + combos)
-- [x] **First production preset: JianYing (CapCut) on Windows — verified over USB & BLE on assembled hardware**
-- [ ] More presets: Premiere / DaVinci Resolve, macOS variants
+- [x] **Production presets: JianYing (CapCut) and DaVinci Resolve on Windows — verified over USB & BLE**
+- [ ] More presets: Premiere, macOS variants
 - [ ] Sleep/wake (after battery is connected); large-knob B-phase rework pending
 - [ ] Phase 2: PC-side configuration tool (NVS live presets)
 
