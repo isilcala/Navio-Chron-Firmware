@@ -320,7 +320,7 @@ static void dispatchButton(Btn id, bool pressed) {
       if (pressed)
         transport->consumerPress(a.code);
       else
-        transport->consumerRelease();
+        transport->consumerRelease(a.code);
       break;
     default:
       break;
@@ -344,7 +344,7 @@ static void dispatchEncoder(Enc id, int8_t dir) {
     case Action::Consumer:
       transport->consumerPress(a.code);
       delay(3);
-      transport->consumerRelease();
+      transport->consumerRelease(a.code);
       break;
     case Action::Wheel:
       if (a.mods) {  // 带修饰键的滚轮（如 Ctrl+滚轮=缩放）

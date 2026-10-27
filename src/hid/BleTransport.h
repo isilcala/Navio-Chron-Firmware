@@ -2,6 +2,7 @@
 // BLE HID 传输（NimBLE-Arduino 2.5.x / core 3.x）：
 // 键盘(报告1) + 消费控制(报告2) + 鼠标(报告3)。USB 挂载检测由 UsbTransport 负责，
 // main 据此切换 transport（D3 自动选模式）
+#include "hid/HidInputState.h"
 #include "hid/ITransport.h"
 
 namespace navio {
@@ -16,7 +17,7 @@ class BleTransport : public ITransport {
   void releaseChord(uint8_t modMask, uint16_t usage) override;
   void releaseAll() override;
   void consumerPress(uint16_t usage) override;
-  void consumerRelease() override;
+  void consumerRelease(uint16_t usage) override;
   void mouseWheel(int8_t dy) override;
 
   // 配对模式：清绑定 + 可发现广播（侧键长按 5s 触发）
@@ -37,18 +38,15 @@ class BleTransport : public ITransport {
   void onDisconnect_();
 
  private:
+  HidInputState state_;
   void sendKeyboardReport_();
+  void sendConsumerReport_();
   bool lastNotifyOk_ = false;
   bool primed_ = false;  // 连接后首帧报告需预热（主机握手期会丢弃）
 
   volatile bool connected_ = false;
   bool advertising_ = false;
   uint16_t connHandle_ = 0;
-
-  // 键盘报告状态：修饰键位图 + 6 键槽（与 USB HID 报告格式一致）
-  uint8_t kbMods_ = 0;
-  uint8_t kbKeys_[6] = {};
-  int kbSlotFor_(uint16_t usage, bool allocate);
 };
 
 }  // namespace navio

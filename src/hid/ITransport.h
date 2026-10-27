@@ -15,7 +15,7 @@ class ITransport {
   virtual void releaseChord(uint8_t modMask, uint16_t usage) = 0;
   virtual void releaseAll() = 0;
   virtual void consumerPress(uint16_t usage) = 0;
-  virtual void consumerRelease() = 0;
+  virtual void consumerRelease(uint16_t usage) = 0;
   virtual void mouseWheel(int8_t dy) = 0;
 };
 

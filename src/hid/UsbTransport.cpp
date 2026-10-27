@@ -23,8 +23,6 @@ Adafruit_USBD_HID keyboard;
 Adafruit_USBD_HID mouse;
 Adafruit_USBD_HID consumer;
 bool usbReady = false;
-uint8_t kbMods = 0;
-uint8_t kbKeys[6] = {};
 
 bool beginHid(Adafruit_USBD_HID& hid, const uint8_t* descriptor, size_t len,
               hid_interface_protocol_enum_t protocol) {
@@ -32,18 +30,6 @@ bool beginHid(Adafruit_USBD_HID& hid, const uint8_t* descriptor, size_t len,
   hid.setBootProtocol(protocol);
   hid.setPollInterval(1);
   return hid.begin();
-}
-
-int kbSlotFor(uint8_t usage, bool allocate) {
-  for (int i = 0; i < 6; ++i) {
-    if (kbKeys[i] == usage) return i;
-    if (allocate && kbKeys[i] == 0) return i;
-  }
-  return -1;
-}
-
-void sendKeyboardReport() {
-  if (usbReady) keyboard.keyboardReport(REPORT_ID_KEYBOARD, kbMods, kbKeys);
 }
 
 }  // namespace
@@ -73,38 +59,41 @@ bool UsbTransport::isConnected() {
   return usbReady && TinyUSBDevice.mounted() && !TinyUSBDevice.suspended();
 }
 
+void UsbTransport::sendKeyboardReport_() {
+  if (!usbReady) return;
+  uint8_t keys[6];
+  memcpy(keys, state_.keys(), sizeof(keys));
+  keyboard.keyboardReport(REPORT_ID_KEYBOARD, state_.mods(), keys);
+}
+
 void UsbTransport::pressChord(uint8_t modMask, uint16_t usage) {
-  kbMods |= modMask;
-  if (usage) {
-    int slot = kbSlotFor(static_cast<uint8_t>(usage), true);
-    if (slot < 0) return;
-    kbKeys[slot] = static_cast<uint8_t>(usage);
-  }
-  sendKeyboardReport();
+  state_.pressChord(modMask, usage);
+  sendKeyboardReport_();
 }
 
 void UsbTransport::releaseChord(uint8_t modMask, uint16_t usage) {
-  kbMods &= ~modMask;
-  if (usage) {
-    int slot = kbSlotFor(static_cast<uint8_t>(usage), false);
-    if (slot >= 0) kbKeys[slot] = 0;
-  }
-  sendKeyboardReport();
+  state_.releaseChord(modMask, usage);
+  sendKeyboardReport_();
 }
 
 void UsbTransport::releaseAll() {
-  kbMods = 0;
-  memset(kbKeys, 0, sizeof(kbKeys));
-  sendKeyboardReport();
-  consumerRelease();
+  state_.releaseAll();
+  sendKeyboardReport_();
+  sendConsumerReport_();
 }
 
 void UsbTransport::consumerPress(uint16_t usage) {
-  if (usbReady) consumer.sendReport16(REPORT_ID_CONSUMER, usage);
+  state_.pressConsumer(usage);
+  sendConsumerReport_();
 }
 
-void UsbTransport::consumerRelease() {
-  if (usbReady) consumer.sendReport16(REPORT_ID_CONSUMER, 0);
+void UsbTransport::consumerRelease(uint16_t usage) {
+  state_.releaseConsumer(usage);
+  sendConsumerReport_();
+}
+
+void UsbTransport::sendConsumerReport_() {
+  if (usbReady) consumer.sendReport16(REPORT_ID_CONSUMER, state_.consumerUsage());
 }
 
 void UsbTransport::mouseWheel(int8_t dy) {

@@ -194,14 +194,6 @@ void BleTransport::updateBattery(uint8_t pct) {
 
 // —— 报告发送 ——//
 
-int BleTransport::kbSlotFor_(uint16_t usage, bool allocate) {
-  for (int i = 0; i < 6; ++i) {
-    if (kbKeys_[i] == usage) return i;
-    if (allocate && kbKeys_[i] == 0) return i;
-  }
-  return -1;  // 6 键全满（标准键盘限制）
-}
-
 // 键盘报告为纯 8 字节（mods+reserved+6键），不带 Report ID 前缀
 // （Report Reference descriptor 已标明报告归属；对照 HijelHID 验证实现）
 void BleTransport::sendKeyboardReport_() {
@@ -217,49 +209,43 @@ void BleTransport::sendKeyboardReport_() {
     chrKeyboard->notify();
     delay(50);
   }
-  uint8_t report[8] = {kbMods_, 0, 0, 0, 0, 0, 0, 0};
-  memcpy(report + 2, kbKeys_, 6);
+  uint8_t report[8] = {state_.mods(), 0, 0, 0, 0, 0, 0, 0};
+  memcpy(report + 2, state_.keys(), 6);
   chrKeyboard->setValue(report, sizeof(report));
   lastNotifyOk_ = chrKeyboard->notify();
 }
 
 void BleTransport::pressChord(uint8_t modMask, uint16_t usage) {
-  kbMods_ |= modMask;
-  if (usage) {
-    int slot = kbSlotFor_(static_cast<uint8_t>(usage), true);
-    if (slot < 0) return;  // 6 键全满
-    kbKeys_[slot] = static_cast<uint8_t>(usage);  // 键码写入槽位（缺此行=发送全零报告）
-  }
+  state_.pressChord(modMask, usage);
   sendKeyboardReport_();
 }
 
 void BleTransport::releaseChord(uint8_t modMask, uint16_t usage) {
-  kbMods_ &= ~modMask;
-  if (usage) {
-    int slot = kbSlotFor_(static_cast<uint8_t>(usage), false);
-    if (slot >= 0) kbKeys_[slot] = 0;
-  }
+  state_.releaseChord(modMask, usage);
   sendKeyboardReport_();
 }
 
 void BleTransport::releaseAll() {
-  kbMods_ = 0;
-  memset(kbKeys_, 0, sizeof(kbKeys_));
+  state_.releaseAll();
   sendKeyboardReport_();
-  consumerRelease();
+  sendConsumerReport_();
 }
 
 void BleTransport::consumerPress(uint16_t usage) {
-  if (!chrConsumer || !connected_) return;
-  uint8_t report[2] = {static_cast<uint8_t>(usage & 0xFF),
-                       static_cast<uint8_t>(usage >> 8)};
-  chrConsumer->setValue(report, 2);
-  chrConsumer->notify();
+  state_.pressConsumer(usage);
+  sendConsumerReport_();
 }
 
-void BleTransport::consumerRelease() {
+void BleTransport::consumerRelease(uint16_t usage) {
+  state_.releaseConsumer(usage);
+  sendConsumerReport_();
+}
+
+void BleTransport::sendConsumerReport_() {
   if (!chrConsumer || !connected_) return;
-  uint8_t report[2] = {0, 0};
+  uint16_t usage = state_.consumerUsage();
+  uint8_t report[2] = {static_cast<uint8_t>(usage & 0xFF),
+                       static_cast<uint8_t>(usage >> 8)};
   chrConsumer->setValue(report, 2);
   chrConsumer->notify();
 }
