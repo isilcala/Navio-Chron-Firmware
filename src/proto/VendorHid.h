@@ -27,9 +27,15 @@ class VendorHid : public USBHIDDevice {
   // ConfigProto 注册的帧处理器（lambda 捕获 this，用 std::function）
   std::function<void(const uint8_t*, size_t)> onFrame = nullptr;
 
-  // USBHIDDevice 实现
+  // USBHIDDevice 实现。注意框架路由怪癖：带 report-id 的 OUTPUT SET_REPORT 会被
+  // 投到 _onSetFeature 分支（USBHID.cpp tud_hid_set_report_cb 仅 report_id=0 走
+  // _onOutput），因此两个回调都必须转发，否则主机输出被静默丢弃
   uint16_t _onGetDescriptor(uint8_t* buffer) override;
   void _onOutput(uint8_t report_id, const uint8_t* buffer, uint16_t len) override {
+    (void)report_id;
+    onHostOutput(buffer, len);
+  }
+  void _onSetFeature(uint8_t report_id, const uint8_t* buffer, uint16_t len) override {
     (void)report_id;
     onHostOutput(buffer, len);
   }
