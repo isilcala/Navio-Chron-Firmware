@@ -74,14 +74,12 @@ tools/          add_fs_include.py：pre: 阶段注入 FS / 项目 / Adafruit 头
 ## 当前状态与遗留
 
 Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实战通过**。
-2026-10-27 完成 core 3.x 单轨与 Adafruit_TinyUSB 四独立 HID 迁移（D16）：
-hidapi / WebHID HELLO、GET_INFO、现有双模输入与五环境构建均通过。遗留（按优先级）：
-1. 硬件：大旋钮 B 相（IO40/R2R 线路）断线补焊——已诊断（A 相正常、B 相恒高），补焊后免费复验
-2. Phase 2 前置清理已完成：输入状态、BLE 生命周期、矩阵溢出、非阻塞组合动作、LED dirty；
-   组合滚轮、烧录不清绑定及双闪回归通过（D17/D18），五环境构建通过
-3. Phase 2：完整分片协议、NVS 动态预设、电脑端配置工具
-4. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
-5. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
-6. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
+大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
+Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
+现有双模输入与五环境构建均通过。遗留（按优先级）：
+1. Phase 2：完整分片协议、NVS 动态预设、电脑端配置工具
+2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
+3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
+4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
 
 上游参考在 `reference/`（gitignore，只读，无 LICENSE，只可参考不可复制）。
