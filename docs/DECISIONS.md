@@ -105,6 +105,38 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 影响：Phase 2（桌面端工具+NVS 动态预设）从远期提前为下一主战场；
   Action 数据结构设计需保证可序列化（JSON）与版本化。
 
+## D14. Phase 2 方案定稿：Vendor HID 通信 + 分片 JSON 协议 + Web-first 桌面端（2026-10-27）
+
+**通信通道：Vendor HID 接口**（否决 CDC 串口方案）
+- USB 复合设备加第四个接口（厂商自定义 HID，双向 64 字节报告）
+- 理由：QMK/VIA/ZMK 等社区键盘配置工具的行业惯例路径——免驱、无 COM 口心智负担、
+  设备枚举稳定（VID/PID+usage 定位）；CDC 在 D9 的嫌疑已洗清但仅留作开发调试口
+- 帧协议（分片重组式，传输无关——BLE 下发将来直接复用同一帧格式）：
+  `| magic 0x4E | cmd 1B | seq 1B | total 1B | payload ≤59B |`，每帧 CRC8 + 整体 CRC16
+- 命令集：HELLO / GET_INFO / GET_PRESETS / WRITE_PRESET / DELETE / MOVE / LED_PREVIEW /
+  ACK / ERR(原因码)；大 JSON 按帧分片，固件重组→解析→校验→写 NVS→回执
+
+**预设数据**：
+- JSON、人读键名（如 "ctrl+b"，网友手改友好；桌面端负责双向转换），schema 带版本字段
+- NVS 布局：每预设一个 blob key（`preset_0..5`）+ 顺序/计数 key；**上限 6 个**
+- 坏数据防御：CRC 双层 + 解析失败自动回退编译期出厂预设（键盘永不砖）
+- 解析器：ArduinoJson；写入预设期间暂停 HID 输出
+- 交换格式：单文件 `.navio.json`（含 manifest：作者/版本/平台标签）——社区贡献载体
+- **RGB 灯效段**（用户提出）：preset.rgb = { mode, colors{} }；首版四模式：
+  static（各键固定色）/ follow（跟随 accent，现行为）/ breath（呼吸）/
+  reactive（暗底+按下亮起渐熄，输入层联动）；固件 LedController 加 20ms 帧驱动灯效引擎；
+  rainbow/涟漪等后续作为引擎上的新模式函数
+- 桌面端实时灯效预览走 LED_PREVIEW 命令（改灯不落盘）
+
+**桌面端：Web-first + Tauri 兜底**
+- 一套 TypeScript 前端（SVG 设备示意图、可视化预设编辑、预设库站点）+
+  Transport 抽象（WebHidTransport / TauriHidTransport(hidapi-rs) 两实现）
+- Web（WebHID）零安装为主路径；Tauri 桌面壳（~8MB）覆盖 Safari/Firefox 用户
+- 否决：Electron（150MB 过重）、Python GUI（分发差）、Flutter（hidapi 生态弱）
+
+**实施顺序**：固件侧三件套（vendor HID 接口 → JSON/NVS 动态加载 → 帧协议）
+→ Web 端最小闭环（连接→读预设→改一键→下发→验证）→ 铺开界面与预设库。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带
