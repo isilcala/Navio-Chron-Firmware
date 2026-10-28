@@ -205,6 +205,7 @@ void loop() {
 
   // 低频任务
   vendorHid.poll();
+  configProto.poll();
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();

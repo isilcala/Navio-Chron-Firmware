@@ -216,8 +216,10 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   3000ms 无合法片即清空收发状态。frame 0 立即校验 total/bodyLength/上限。
 - 修订 D14：`.navio.json` 只作桌面交换与社区分享格式，桌面负责校验、双向转换和
   版本降级；固件/NVS 使用带版本、显式长度和稳定 ID 的二进制记录，不引入 ArduinoJson。
-- 当前仅冻结规范，不表示 v2 已实现。实施顺序：CRC/分片状态机与故障注入 →
-  原子 NVS 动态预设 → Web 端最小闭环。
+- v2 首轮实现与验收已完成：HELLO 小响应、GET_INFO 大响应拉取、单片/多片请求、
+  重复/乱序/取消、CRC 错误、超长与 3 秒恢复均通过 hidapi 故障注入；HELLO/GET_INFO
+  同时通过 WebHID，主机参考实现 15 项检查通过，五环境构建通过。
+  下一步：原子 NVS 动态预设 → Web 端最小闭环。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navio Config Protocol v2 WebHID Probe</title>
+<style>
+  body{font:16px/1.5 sans-serif;max-width:60em;margin:2em}
+  button{font-size:1.1em;padding:.6em;margin-right:.5em}
+  pre{white-space:pre-wrap;background:#eee;padding:1em;min-height:12em}
+</style>
+<button id="connect">Connect</button>
+<button id="hello" disabled>HELLO</button>
+<button id="info" disabled>GET_INFO + READ_CHUNK</button>
+<pre id="out">Choose Navio Chron, then run both commands.</pre>
+<script src="navio_proto.js"></script>
+<script>
+// 协议逻辑全部来自 navio_proto.js（与 hid_probe.py 对照的参考实现）；
+// 本页只提供 WebHID 传输适配器与 UI。file:// 直接打开可用（classic script 无 CORS 限制）。
+const P = NavioProto;
+let device, session;
+const waiters = [];
+const out = document.getElementById('out');
+
+function log(value) { out.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); }
+
+const transport = {
+  send: frame => device.sendReport(6, frame),
+  receive: timeoutMs => new Promise((resolve, reject) => {
+    const waiter = { resolve, timer: setTimeout(() => {
+      waiters.splice(waiters.indexOf(waiter), 1);
+      reject(new P.TimeoutError());
+    }, timeoutMs) };
+    waiters.push(waiter);
+  }),
+};
+
+async function run(cmd) {
+  for (const id of ['hello', 'info']) document.getElementById(id).disabled = true;
+  try {
+    const data = await session.request(cmd);
+    log(JSON.parse(new TextDecoder().decode(data)));
+  } catch (error) {
+    log(error.stack || String(error));
+  } finally {
+    for (const id of ['hello', 'info']) document.getElementById(id).disabled = false;
+  }
+}
+
+document.getElementById('connect').onclick = async () => {
+  try {
+    if (!navigator.hid) throw new Error('WebHID is unavailable; use Chromium');
+    const devices = await navigator.hid.requestDevice({
+      filters: [{vendorId: 0xcafe, productId: 0xbeef, usagePage: 0xff00, usage: 1}]
+    });
+    if (!devices.length) throw new Error('No device selected');
+    device = devices[0];
+    await device.open();
+    device.addEventListener('inputreport', event => {
+      if (event.reportId !== 6 || !waiters.length) return;
+      const waiter = waiters.shift();
+      clearTimeout(waiter.timer);
+      waiter.resolve(new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength));
+    });
+    session = new P.Session(transport); // 默认 1000ms / 3 次重试（PROTOCOL.md §2）
+    for (const id of ['hello', 'info']) document.getElementById(id).disabled = false;
+    log(`Connected: ${device.productName}`);
+  } catch (error) {
+    log(error.stack || String(error));
+  }
+};
+document.getElementById('hello').onclick = () => run(P.CMD.HELLO);
+document.getElementById('info').onclick = () => run(P.CMD.GET_INFO);
+</script>

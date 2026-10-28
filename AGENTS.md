@@ -40,8 +40,8 @@ src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
 src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）
 src/mapping/    Preset 数据 + 预设内容（Phase 1 编译期固化）
 src/hid/        ITransport 接口 + Adafruit_TinyUSB 独立 HID + NimBLE 2.5 BLE
-src/proto/      独立 Vendor HID（ID6 + 63B）+ 配置帧骨架；回调入队，主循环处理
-                （线上协议单一事实源：docs/PROTOCOL.md v2，代码尚未完整实现）
+src/proto/      独立 Vendor HID（ID6 + 63B）+ ConfigProto v2；回调入队，主循环处理
+                （线上协议单一事实源：docs/PROTOCOL.md；预设命令尚待 NVS 实现）
 src/led/        WS2812：LedController（统一 Adafruit_NeoPixel 后端）
 src/power/      电池电压估算（GPIO3 ÷2 分压）
 tools/          add_fs_include.py：pre: 阶段注入 FS / 项目 / Adafruit 头路径
@@ -78,8 +78,8 @@ Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：
-1. Phase 2：协议 v2 规范已冻结（D19/`docs/PROTOCOL.md`）；待实现分片状态机、
-   二进制 NVS 动态预设与电脑端配置工具
+1. Phase 2：协议 v2 首轮实现与 hidapi/WebHID/故障注入验收完成（D19）；
+   下一步二进制 NVS 动态预设与电脑端配置工具
 2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
