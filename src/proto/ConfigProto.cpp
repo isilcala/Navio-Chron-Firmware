@@ -282,10 +282,11 @@ void ConfigProto::respondToCommand_() {
       break;
     }
     case CMD_GET_PRESETS: {
-      uint8_t manifest[1 + PRESET_MAX_INSTALLED * (2 + PRESET_NAME_MAX - 1)];
+      uint8_t manifest[2 + PRESET_MAX_INSTALLED * (2 + PRESET_NAME_MAX - 1)];
       size_t len = 0;
       uint8_t count = presets_->count();
       manifest[len++] = count;
+      manifest[len++] = presets_->activeId();
       for (uint8_t i = 0; i < count; ++i) {
         const InstalledPreset& preset = presets_->entryAt(i);
         manifest[len++] = preset.id;

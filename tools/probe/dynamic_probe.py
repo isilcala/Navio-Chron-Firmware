@@ -9,7 +9,7 @@ CMD_READ_PRESET = 0x08
 def manifest(navio):
     data = navio.request(GET_PRESETS)
     result = []
-    offset = 1
+    offset = 2
     for _ in range(data[0]):
         preset_id = data[offset]
         name_len = data[offset + 1]
@@ -19,6 +19,10 @@ def manifest(navio):
         offset = start + name_len
     assert offset == len(data)
     return result
+
+
+def active_id(navio):
+    return navio.request(GET_PRESETS)[1]
 
 
 def backup(navio, entries):
@@ -37,6 +41,7 @@ def main():
     temporary_ids = set()
     try:
         original = manifest(navio)
+        original_active = active_id(navio)
         backups = backup(navio, original)
         print("PASS initial manifest", original)
 
@@ -48,7 +53,8 @@ def main():
         temporary_ids.add(10)
         assert navio.request(CMD_READ_PRESET, bytes([10])) == bytes(record)
         assert manifest(navio) == original + [(10, "Host Test")]
-        print("PASS WRITE_PRESET + READ_PRESET byte identity")
+        assert active_id(navio) == original_active
+        print("PASS WRITE_PRESET + READ_PRESET byte identity and activeId response")
 
         first_id = original[0][0]
         navio.request(MOVE, bytes([10, first_id]))

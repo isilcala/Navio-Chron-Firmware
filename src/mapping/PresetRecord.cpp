@@ -61,7 +61,7 @@ bool decodeAction(const uint8_t* data, Action& action, bool button) {
   if (kind == Action::None) {
     valid = mods == 0 && code == 0 && wheelDy == 0;
   } else if (kind == Action::KeyChord) {
-    valid = code <= 0xE7 && wheelDy == 0;
+    valid = code <= 0xE7 && wheelDy == 0 && (code != 0 || mods != 0);
   } else if (kind == Action::Consumer) {
     valid = code >= 1 && code <= 0x03FF && mods == 0 && wheelDy == 0;
   } else if (kind == Action::Wheel) {

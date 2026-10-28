@@ -225,9 +225,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 
 - `docs/PRESET_SCHEMA.md` 冻结 150B 记录：显式长度/版本/稳定 ID、24B 名称缓冲、
   accent、22 个固定 5B 动作及记录 CRC16；禁止直接序列化 C++ 对象或依赖 padding。
-- 命令正文：GET_PRESETS 返回按顺序排列的 `[id][nameLength][name]` 清单；
-  READ_PRESET 返回完整记录；WRITE_PRESET 接收完整记录；DELETE `[id]`；
-  MOVE `[id][beforeId]`（0 表示末尾）。最多 6 套，禁止删除最后一套。
+- 命令正文：GET_PRESETS 以 `[count][activeId]` 开头，再返回按顺序排列的
+  `[id][nameLength][name]` 清单；READ_PRESET 返回完整记录；WRITE_PRESET 接收完整记录；
+  DELETE `[id]`；MOVE `[id][beforeId]`（0 表示末尾）。最多 6 套，禁止删除最后一套。
 - NVS 使用 `p_XX` 记录键和 `manifest_0/1` 双槽：记录先完整写入，manifest 再写另一槽，
   只有新 manifest 完整落盘才替换运行时安装列表。中断只留下未引用记录，不暴露半套状态。
 - 出厂 ID 缺省时使用编译期数据，同 ID 动态记录覆盖；自定义或引用记录损坏则整个
@@ -238,6 +238,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 实机验收完成：动态预设输出 K1=a、K2=Ctrl+B 且灯光正确；重启后清单与 activeId
   持久化；连续写入中断电后配置完整可读，已提交记录 CRC 正确，未提交记录不产生
   半套 manifest。测试数据已清理，固件动态预设阶段完成，下一步 Web 编辑器。
+- 后续修订：动作槽位锚定 Btn/Enc 枚举与方向顺序；GET_PRESETS 增加 activeId；
+  DELETE 明确为移除安装项而非复活出厂版；LED_PREVIEW 冻结为 accent+rgbMode 但暂不实现；
+  `code=0 && mods=0` 的 KeyChord 判非法，空动作只能使用 None。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
