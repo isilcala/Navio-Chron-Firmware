@@ -3,6 +3,8 @@
 #if CONFIG_TINYUSB_HID_ENABLED
 #include <string.h>
 
+#include "proto/Crc.h"
+
 namespace navio {
 
 namespace {
@@ -18,30 +20,6 @@ uint16_t readLe16(const uint8_t* data) {
 void writeLe16(uint8_t* out, uint16_t value) {
   out[0] = static_cast<uint8_t>(value);
   out[1] = static_cast<uint8_t>(value >> 8);
-}
-
-uint8_t crc8(const uint8_t* data, size_t len) {
-  uint8_t crc = 0;
-  while (len--) {
-    crc ^= *data++;
-    for (uint8_t bit = 0; bit < 8; ++bit) {
-      crc = (crc & 0x80) ? static_cast<uint8_t>((crc << 1) ^ 0x07)
-                         : static_cast<uint8_t>(crc << 1);
-    }
-  }
-  return crc;
-}
-
-uint16_t crc16(const uint8_t* data, size_t len) {
-  uint16_t crc = 0xFFFF;
-  while (len--) {
-    crc ^= static_cast<uint16_t>(*data++) << 8;
-    for (uint8_t bit = 0; bit < 8; ++bit) {
-      crc = (crc & 0x8000) ? static_cast<uint16_t>((crc << 1) ^ 0x1021)
-                           : static_cast<uint16_t>(crc << 1);
-    }
-  }
-  return crc;
 }
 
 uint8_t fragmentsFor(size_t bodyLength) {

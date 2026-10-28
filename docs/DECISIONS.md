@@ -221,6 +221,20 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   同时通过 WebHID，主机参考实现 15 项检查通过，五环境构建通过。
   下一步：原子 NVS 动态预设 → Web 端最小闭环。
 
+## D20. 二进制预设 Schema v1 与双 manifest 原子提交（2026-10-27）
+
+- `docs/PRESET_SCHEMA.md` 冻结 150B 记录：显式长度/版本/稳定 ID、24B 名称缓冲、
+  accent、22 个固定 5B 动作及记录 CRC16；禁止直接序列化 C++ 对象或依赖 padding。
+- 命令正文：GET_PRESETS 返回按顺序排列的 `[id][nameLength][name]` 清单；
+  READ_PRESET 返回完整记录；WRITE_PRESET 接收完整记录；DELETE `[id]`；
+  MOVE `[id][beforeId]`（0 表示末尾）。最多 6 套，禁止删除最后一套。
+- NVS 使用 `p_XX` 记录键和 `manifest_0/1` 双槽：记录先完整写入，manifest 再写另一槽，
+  只有新 manifest 完整落盘才替换运行时安装列表。中断只留下未引用记录，不暴露半套状态。
+- 出厂 ID 缺省时使用编译期数据，同 ID 动态记录覆盖；自定义或引用记录损坏则整个
+  manifest 回退出厂。活动预设保存 activeId，不再保存易漂移索引。
+- 协议执行与响应分离，重复末片只重发响应；变更期间暂停 HID 并清动作快照，
+  完成后刷新 LED。当前仅冻结规范，完成动态与断电实测前不标记实现完成。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带
