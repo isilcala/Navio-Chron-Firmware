@@ -78,8 +78,8 @@ Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：
-1. Phase 2：协议 v2 与动态命令 hidapi 验收完成（D19/D20）；
-   待重启/断电与真实输入验收、Web 配置工具
+1. Phase 2：协议与动态预设固件完成（D19/D20），真实输入、重启及写入中断恢复通过；
+   下一步 Web 配置工具
 2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）

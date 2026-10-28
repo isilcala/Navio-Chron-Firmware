@@ -21,7 +21,7 @@ pin map and power architecture.
 - [x] **Production presets: JianYing (CapCut) and DaVinci Resolve on Windows — verified over USB & BLE**
 - [ ] More presets: Premiere, macOS variants
 - [ ] Sleep/wake and battery validation (large-knob B-phase rework verified)
-- [ ] Phase 2: PC-side configuration tool (dynamic preset commands verified; editor pending)
+- [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor pending)
 
 ## Build & flash
 
