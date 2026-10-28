@@ -57,13 +57,22 @@ bool decodeAction(const uint8_t* data, Action& action, bool button) {
   uint8_t mods = data[1];
   uint16_t code = readLe16(data + 2);
   int8_t wheelDy = static_cast<int8_t>(data[4]);
-  if (kind == Action::None) return mods == 0 && code == 0 && wheelDy == 0;
-  if (kind == Action::KeyChord) return code <= 0xE7 && wheelDy == 0;
-  if (kind == Action::Consumer) {
-    return code >= 1 && code <= 0x03FF && mods == 0 && wheelDy == 0;
+  bool valid = false;
+  if (kind == Action::None) {
+    valid = mods == 0 && code == 0 && wheelDy == 0;
+  } else if (kind == Action::KeyChord) {
+    valid = code <= 0xE7 && wheelDy == 0;
+  } else if (kind == Action::Consumer) {
+    valid = code >= 1 && code <= 0x03FF && mods == 0 && wheelDy == 0;
+  } else if (kind == Action::Wheel) {
+    valid = !button && code == 0 && wheelDy != 0;
   }
-  if (kind == Action::Wheel) return !button && code == 0 && wheelDy != 0;
-  return false;
+  if (!valid) return false;
+  action.kind = static_cast<Action::Kind>(kind);
+  action.mods = mods;
+  action.code = code;
+  action.wheelDy = wheelDy;
+  return true;
 }
 
 void encodeAction(const Action& action, uint8_t* out) {

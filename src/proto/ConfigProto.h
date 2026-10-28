@@ -1,7 +1,9 @@
 #pragma once
 // Navio Config Protocol v2：线上格式与状态机语义见 docs/PROTOCOL.md。
 #include <Arduino.h>
+#include <functional>
 
+#include "PresetManager.h"
 #include "proto/VendorHid.h"
 
 #if CONFIG_TINYUSB_HID_ENABLED
@@ -43,7 +45,9 @@ enum ProtoStatus : uint8_t { STATUS_OK = 0, STATUS_CHUNK = 1, STATUS_MORE = 2 };
 
 class ConfigProto {
  public:
-  void begin(VendorHid* port);
+  void begin(VendorHid* port, PresetManager* presets,
+             std::function<void()> onBeforeMutation,
+             std::function<void()> onAfterMutation);
   void poll();
   void handleFrame(const uint8_t* data, size_t len);
 
@@ -62,6 +66,9 @@ class ConfigProto {
   void resetTx_();
 
   VendorHid* port_ = nullptr;
+  PresetManager* presets_ = nullptr;
+  std::function<void()> onBeforeMutation_;
+  std::function<void()> onAfterMutation_;
 
   uint8_t rxBuf_[PROTO_BODY_MAX];
   uint16_t rxBodyLength_ = 0;
@@ -84,6 +91,7 @@ class ConfigProto {
   uint8_t completedCmd_ = 0;
   uint8_t completedSeq_ = 0;
   uint8_t completedTotal_ = 0;
+  uint16_t completedBodyLength_ = 0;
   bool completedValid_ = false;
 };
 

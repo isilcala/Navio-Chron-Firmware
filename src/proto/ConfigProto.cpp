@@ -26,10 +26,33 @@ uint8_t fragmentsFor(size_t bodyLength) {
   return static_cast<uint8_t>((4 + bodyLength + 57) / 58);
 }
 
+uint8_t errorForResult(PresetChangeResult result) {
+  switch (result) {
+    case PresetChangeResult::NotFound:
+    case PresetChangeResult::Invalid:
+      return ERR_BAD_PAYLOAD;
+    case PresetChangeResult::Full:
+      return ERR_OVERFLOW;
+    case PresetChangeResult::UnsupportedVersion:
+      return ERR_UNSUPPORTED_VERSION;
+    case PresetChangeResult::NvsFailure:
+      return ERR_NVS_FAILURE;
+    case PresetChangeResult::BadState:
+      return ERR_BAD_STATE;
+    default:
+      return ERR_NONE;
+  }
+}
+
 }  // namespace
 
-void ConfigProto::begin(VendorHid* port) {
+void ConfigProto::begin(VendorHid* port, PresetManager* presets,
+                        std::function<void()> onBeforeMutation,
+                        std::function<void()> onAfterMutation) {
   port_ = port;
+  presets_ = presets;
+  onBeforeMutation_ = onBeforeMutation;
+  onAfterMutation_ = onAfterMutation;
   port->onFrame = [this](const uint8_t* d, size_t l) { handleFrame(d, l); };
 }
 
@@ -200,6 +223,7 @@ void ConfigProto::acceptFrame_(uint8_t cmd, uint8_t seq, uint8_t total,
   completedCmd_ = cmd;
   completedSeq_ = seq;
   completedTotal_ = total;
+  completedBodyLength_ = rxBodyLength_;
   if (rxLen_ != rxBodyLength_ || crc16(rxBuf_, rxLen_) != rxBodyCrc16_) {
     resetRx_();
     sendErr_(cmd, seq, ERR_CHECKSUM);
@@ -207,6 +231,36 @@ void ConfigProto::acceptFrame_(uint8_t cmd, uint8_t seq, uint8_t total,
   }
   completedValid_ = true;
   resetRx_();
+  completeRequest_();
+}
+
+void ConfigProto::completeRequest_() {
+  uint8_t cmd = completedCmd_;
+  bool mutation = cmd == CMD_WRITE_PRESET || cmd == CMD_DELETE || cmd == CMD_MOVE;
+  if (mutation) {
+    bool validLength = (cmd == CMD_WRITE_PRESET && completedBodyLength_ == PRESET_RECORD_SIZE) ||
+                       (cmd == CMD_DELETE && completedBodyLength_ == 1) ||
+                       (cmd == CMD_MOVE && completedBodyLength_ == 2);
+    if (!validLength) {
+      sendErr_(cmd, completedSeq_, ERR_BAD_PAYLOAD);
+      return;
+    }
+
+    if (onBeforeMutation_) onBeforeMutation_();
+    PresetChangeResult result = PresetChangeResult::Ok;
+    if (cmd == CMD_WRITE_PRESET) {
+      result = presets_->write(rxBuf_, completedBodyLength_);
+    } else if (cmd == CMD_DELETE) {
+      result = presets_->remove(rxBuf_[0]);
+    } else {
+      result = presets_->move(rxBuf_[0], rxBuf_[1]);
+    }
+    if (result != PresetChangeResult::Ok) {
+      sendErr_(cmd, completedSeq_, errorForResult(result));
+      return;
+    }
+    if (onAfterMutation_) onAfterMutation_();
+  }
   respondToCommand_();
 }
 
@@ -227,6 +281,41 @@ void ConfigProto::respondToCommand_() {
       sendMore_(cmd, seq, reinterpret_cast<const uint8_t*>(caps), strlen(caps));
       break;
     }
+    case CMD_GET_PRESETS: {
+      uint8_t manifest[1 + PRESET_MAX_INSTALLED * (2 + PRESET_NAME_MAX - 1)];
+      size_t len = 0;
+      uint8_t count = presets_->count();
+      manifest[len++] = count;
+      for (uint8_t i = 0; i < count; ++i) {
+        const InstalledPreset& preset = presets_->entryAt(i);
+        manifest[len++] = preset.id;
+        size_t nameLength = strnlen(preset.name, PRESET_NAME_MAX - 1);
+        manifest[len++] = static_cast<uint8_t>(nameLength);
+        memcpy(manifest + len, preset.name, nameLength);
+        len += nameLength;
+      }
+      sendMore_(cmd, seq, manifest, len);
+      break;
+    }
+    case CMD_READ_PRESET: {
+      if (completedBodyLength_ != 1) {
+        sendErr_(cmd, seq, ERR_BAD_PAYLOAD);
+        break;
+      }
+      uint8_t record[PRESET_RECORD_SIZE];
+      PresetChangeResult result = presets_->read(rxBuf_[0], record);
+      if (result != PresetChangeResult::Ok) {
+        sendErr_(cmd, seq, errorForResult(result));
+      } else {
+        sendMore_(cmd, seq, record, sizeof(record));
+      }
+      break;
+    }
+    case CMD_WRITE_PRESET:
+    case CMD_DELETE:
+    case CMD_MOVE:
+      sendAck_(cmd, seq, STATUS_OK);
+      break;
     default:
       sendErr_(cmd, seq, ERR_NOT_IMPLEMENTED);
       break;

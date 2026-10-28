@@ -163,7 +163,9 @@ void setup() {
   delay(300);
 #if !NAVIO_FORCE_BLE
   if (vendorHid.begin()) {
-    configProto.begin(&vendorHid);
+    configProto.begin(&vendorHid, &presets, releaseAllActions, [] {
+      leds.showPreset(presets.active().accent, presets.active().name);
+    });
   } else {
     Serial.println("[Navio] Vendor HID interface registration failed");
   }
