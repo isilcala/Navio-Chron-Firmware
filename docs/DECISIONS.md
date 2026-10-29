@@ -261,6 +261,15 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   已静态确认当前包及 qio_qspi sdkconfig 启用 BOOTLOADER_APP_ROLLBACK_ENABLE，且未启用
   anti-rollback，仍须上机验证，不把“能写入”当成完整 OTA。
   侧键 10 秒和 BOOT 插拔救援在验收前保留。随后实现主机工具与固件侧。
+- 实施修订：首启动确认由“必须主机重连 CONFIRM”改为“设备本地自检成功后自动 CONFIRM”。
+  Arduino 默认 verifyOta 会无条件确认，项目保留 verifyRollbackLater 延迟到预设加载与
+  USB Vendor HID 注册检查后再确认；主机 CONFIRM 仅作幂等诊断，不再决定升级是否保留。
+  线上命令与状态布局不变，避免用户未重连导致下次复位意外回退。
+- 实现与核心实机验收完成（2026-10-29）：OtaManager + ConfigProto 全命令、tools/ota_upload.py、
+  hidapi/WebOTA 探针。A/B 双向及连续升级约 45–46s，BEGIN<0.1s、FINISH≈0.1s；SHA-256 错误、
+  非 ESP 镜像、错 offset、ABORT、30s 超时均不激活。PENDING_VERIFY 复位回退已实测，
+  本地自检自动 VALID 已实测；Web 传输中断后原槽 VALID，预设清单保持不变。
+  五环境构建、原协议/动态预设/JS 16 项回归通过。WebHID 重启后允许用户重新选择设备再验证确认。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

@@ -4,3 +4,5 @@
 reference/
 Thumbs.db
 release/
+__pycache__/
+*.py[cod]

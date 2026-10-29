@@ -12,6 +12,7 @@
 #include "hid/UsbTransport.h"
 #include "proto/ConfigProto.h"
 #include "proto/VendorHid.h"
+#include "ota/OtaManager.h"
 #include "input/DownloadMode.h"
 #include "input/Encoders.h"
 #include "input/InputEvents.h"
@@ -20,6 +21,8 @@
 #include "power/Battery.h"
 
 using namespace navio;
+
+extern "C" bool verifyRollbackLater() { return true; }
 
 static MatrixScanner matrix;
 static Encoders encoders;
@@ -33,6 +36,7 @@ static ITransport* transport = &usbTransport;
 // Phase 2 配置通道（Vendor HID，桌面端/WebHID 下发预设用）
 static VendorHid vendorHid;
 static ConfigProto configProto;
+static OtaManager otaManager;
 
 static Action s_buttonActions[BTN_COUNT];
 
@@ -162,9 +166,11 @@ void setup() {
 
   neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
   delay(300);
+  bool vendorReady = false;
 #if !NAVIO_FORCE_BLE
-  if (vendorHid.begin()) {
-    configProto.begin(&vendorHid, &presets, releaseAllActions, [] {
+  vendorReady = vendorHid.begin();
+  if (vendorReady) {
+    configProto.begin(&vendorHid, &presets, &otaManager, releaseAllActions, [] {
       leds.showPreset(presets.active().accent, presets.active().name);
     });
   } else {
@@ -173,6 +179,16 @@ void setup() {
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
 #endif
   bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
+  if (otaManager.runningImageState() == OtaImageState::PendingVerify) {
+    if (vendorReady && presets.count() > 0) {
+      OtaImageState confirmed;
+      if (otaManager.confirm(confirmed) != OtaError::None) {
+        Serial.println("[Navio] OTA self-test confirm failed");
+      }
+    } else {
+      Serial.println("[Navio] OTA self-test failed, image left pending");
+    }
+  }
   leds.showPreset(presets.active().accent, presets.active().name);
   // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
   for (int i = 0; i < 3; ++i) {
@@ -198,12 +214,17 @@ void loop() {
       releaseAllActions();
       Serial.printf("[Navio] matrix event queue overflow: %u dropped\n", dropped);
     }
+    bool otaBusy = otaManager.isBusy();
     BtnEvent be;
-    while (matrix.next(be)) dispatchButton(be.id, be.pressed);
+    while (matrix.next(be)) {
+      if (!otaBusy) dispatchButton(be.id, be.pressed);
+    }
 
     encoders.poll();
     EncoderEvent ee;
-    while (encoders.next(ee)) dispatchEncoder(ee.id, ee.dir);
+    while (encoders.next(ee)) {
+      if (!otaBusy) dispatchEncoder(ee.id, ee.dir);
+    }
   }
 
   // 低频任务
@@ -296,10 +317,12 @@ static void checkLongPressActions() {
     uint32_t held = millis() - sideHeldSince;
     sideArmed = false;
     s_sideHoldActive = false;  // 松手后状态灯由 updateLinkMode 在 200ms 内自动恢复
-    if (held >= SIDE_HOLD_PAIRING_MS && held < SIDE_HOLD_REFLASH_MS) {
-      enterPairingMode();
-    } else if (held < SIDE_HOLD_PAIRING_MS) {
-      switchPreset();
+    if (!otaManager.isBusy()) {
+      if (held >= SIDE_HOLD_PAIRING_MS && held < SIDE_HOLD_REFLASH_MS) {
+        enterPairingMode();
+      } else if (held < SIDE_HOLD_PAIRING_MS) {
+        switchPreset();
+      }
     }
   }
 #if NAVIO_IGNORE_MATRIX

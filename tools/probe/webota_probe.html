@@ -1,0 +1,207 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navio OTA WebHID Probe</title>
+<style>
+  body{font:16px/1.5 sans-serif;max-width:64em;margin:2em}
+  button,input{font-size:1em;margin:.4em .4em .4em 0}
+  pre{white-space:pre-wrap;background:#eee;padding:1em;min-height:18em}
+</style>
+<h1>Navio OTA WebHID Probe</h1>
+<input id="firmware" type="file" accept=".bin">
+<div>
+  <button id="connect">Connect</button>
+  <button id="status" disabled>OTA_STATUS</button>
+  <button id="upgrade" disabled>Upgrade</button>
+  <button id="confirmPending" disabled>Verify + Confirm</button>
+</div>
+<pre id="out">Choose firmware.bin, connect Navio Chron, then upgrade.</pre>
+<script src="navio_proto.js"></script>
+<script>
+const P = NavioProto;
+const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
+  OTA_WRITE: 11, OTA_FINISH: 12, OTA_ABORT: 13, OTA_STATUS: 14,
+  OTA_REBOOT: 15, OTA_CONFIRM: 16 };
+const LONG = { timeoutMs: 10000, maxRetries: 2 };
+const waiters = [], reports = [];
+const out = document.getElementById('out');
+let device, session, pendingTarget = null, pendingPresets = null;
+
+function log(value) {
+  out.textContent += `\n${typeof value === 'string' ? value : JSON.stringify(value)}`;
+  out.scrollTop = out.scrollHeight;
+}
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function u16(data, offset = 0) { return data[offset] | data[offset + 1] << 8; }
+function u32(data, offset = 0) {
+  return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24) >>> 0;
+}
+function le32(value) {
+  return new Uint8Array([value & 255, value >> 8 & 255, value >> 16 & 255, value >> 24 & 255]);
+}
+function concat(...parts) { return P.concat(...parts); }
+function json(data) { return JSON.parse(new TextDecoder().decode(data)); }
+
+const transport = {
+  send: frame => device.sendReport(6, frame),
+  receive: timeoutMs => new Promise((resolve, reject) => {
+    if (reports.length) return resolve(reports.shift());
+    const waiter = { resolve, timer: setTimeout(() => {
+      waiters.splice(waiters.indexOf(waiter), 1);
+      reject(new P.TimeoutError());
+    }, timeoutMs) };
+    waiters.push(waiter);
+  }),
+};
+function newSession() {
+  reports.length = 0;
+  session = new P.Session(transport);
+}
+function attachDevice(next) {
+  device = next;
+  if (device.navioListenerAttached) return;
+  device.navioListenerAttached = true;
+  device.addEventListener('inputreport', event => {
+    if (event.reportId !== 6) return;
+    const report = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
+    if (!waiters.length) { reports.push(report); return; }
+    const waiter = waiters.shift();
+    clearTimeout(waiter.timer);
+    waiter.resolve(report);
+  });
+}
+async function reconnect() {
+  await sleep(1500);
+  let lastError;
+  for (let attempt = 0; attempt < 40; ++attempt) {
+    try {
+      const devices = await navigator.hid.getDevices();
+      const next = devices.find(d => d.vendorId === 0xcafe && d.productId === 0xbeef);
+      if (next) {
+        attachDevice(next);
+        if (!device.opened) await device.open();
+        newSession();
+        log(`Reconnected: ${device.productName}`);
+        return;
+      }
+    } catch (error) { lastError = error; }
+    await sleep(500);
+  }
+  throw lastError || new Error('Automatic reconnect failed; click Connect, then Verify + Confirm');
+}
+async function otaStatus() {
+  const data = await session.request(CMD.OTA_STATUS);
+  if (data.length !== 16 || data[13] || data[14] || data[15]) throw new Error('Malformed OTA_STATUS');
+  return { session: data[0], updateError: data[1], targetSlot: data[2], runningSlot: data[3],
+    imageSize: u32(data, 4), received: u32(data, 8), imageState: data[12] };
+}
+function setBusy(busy) {
+  for (const id of ['connect', 'status', 'upgrade', 'confirmPending', 'firmware'])
+    document.getElementById(id).disabled = busy || (id !== 'connect' && !device);
+}
+async function run(fn) {
+  setBusy(true);
+  try { await fn(); } catch (error) { log(error.stack || String(error)); }
+  finally { setBusy(false); }
+}
+
+document.getElementById('connect').onclick = () => run(async () => {
+  if (!navigator.hid) throw new Error('WebHID is unavailable; use Chromium');
+  if (!device || !device.opened) {
+    const devices = await navigator.hid.requestDevice({
+      filters: [{ vendorId: 0xcafe, productId: 0xbeef, usagePage: 0xff00, usage: 1 }]
+    });
+    if (!devices.length) throw new Error('No device selected');
+    attachDevice(devices[0]);
+  }
+  if (!device.opened) await device.open();
+  newSession();
+  setBusy(false);
+  log(`Connected: ${device.productName}`);
+});
+
+document.getElementById('status').onclick = () => run(async () => log(await otaStatus()));
+
+document.getElementById('upgrade').onclick = () => run(async () => {
+  const file = document.getElementById('firmware').files[0];
+  if (!file) throw new Error('Choose an application firmware.bin first');
+  const firmware = new Uint8Array(await file.arrayBuffer());
+  if (!firmware.length) throw new Error('Empty firmware image');
+  const started = performance.now();
+  const hello = json(await session.request(CMD.HELLO));
+  let initial = await otaStatus();
+  log({ hello, initial });
+  if (initial.session === 2) {
+    await session.request(CMD.OTA_REBOOT);
+    await device.close();
+    await reconnect();
+    initial = await otaStatus();
+    log({ recovered: initial });
+  }
+  if (initial.session !== 0) throw new Error('OTA session is active; abort or reboot first');
+  if (initial.imageState === 2) throw new Error('Confirm the running image before another OTA');
+  const info = json(await session.request(CMD.GET_INFO));
+  for (let cmd = 10; cmd <= 16; ++cmd)
+    if (!info.cmds.includes(cmd)) throw new Error('Device does not advertise complete OTA support');
+  const beforePresets = await session.request(CMD.GET_PRESETS);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', firmware));
+
+  const beginBody = concat(le32(firmware.length), digest);
+  const begin = await session.request(CMD.OTA_BEGIN, beginBody, LONG);
+  if (begin.length !== 4 || ![0, 1].includes(begin[0]) || u16(begin, 1) !== 2044 || begin[3])
+    throw new Error('Malformed OTA_BEGIN response');
+  const target = begin[0];
+  log(`BEGIN app${target}, ${firmware.length} bytes`);
+
+  const total = Math.ceil(firmware.length / 2044);
+  const reportEvery = Math.max(1, Math.floor(total / 20));
+  for (let block = 0, offset = 0; offset < firmware.length; ++block, offset += 2044) {
+    const chunk = firmware.subarray(offset, Math.min(offset + 2044, firmware.length));
+    const response = await session.request(CMD.OTA_WRITE, concat(le32(offset), chunk));
+    if (u32(response) !== offset + chunk.length) throw new Error(`Offset mismatch at ${offset}`);
+    if ((block + 1) % reportEvery === 0 || offset + chunk.length === firmware.length)
+      log(`WRITE ${offset + chunk.length}/${firmware.length}`);
+  }
+
+  const finish = await session.request(CMD.OTA_FINISH, new Uint8Array(), LONG);
+  if (finish.length !== 1 || finish[0] !== target) throw new Error('Malformed OTA_FINISH response');
+  log('FINISH OK; rebooting');
+  await session.request(CMD.OTA_REBOOT);
+  await device.close();
+  pendingTarget = target;
+  pendingPresets = beforePresets;
+  await reconnect();
+
+  const updatedHello = json(await session.request(CMD.HELLO));
+  const updated = await otaStatus();
+  log({ updatedHello, updated });
+  if (updated.runningSlot !== target) throw new Error('Booted slot does not match OTA target');
+  if (![1, 2].includes(updated.imageState)) throw new Error('New image is not valid or pending');
+  const afterPresets = await session.request(CMD.GET_PRESETS);
+  if (beforePresets.length !== afterPresets.length || beforePresets.some((v, i) => v !== afterPresets[i]))
+    throw new Error('Preset manifest changed during OTA');
+
+  const confirmed = await session.request(CMD.OTA_CONFIRM);
+  if (confirmed.length !== 1 || confirmed[0] !== 1) throw new Error('Malformed OTA_CONFIRM response');
+  log(`CONFIRM app${target} VALID; total=${((performance.now() - started) / 1000).toFixed(1)}s`);
+  pendingTarget = null;
+  pendingPresets = null;
+});
+
+document.getElementById('confirmPending').onclick = () => run(async () => {
+  const updatedHello = json(await session.request(CMD.HELLO));
+  const updated = await otaStatus();
+  log({ updatedHello, updated });
+  const target = pendingTarget === null ? updated.runningSlot : pendingTarget;
+  if (updated.runningSlot !== target) throw new Error('Booted slot does not match OTA target');
+  if (![1, 2].includes(updated.imageState)) throw new Error('New image is not valid or pending');
+  const afterPresets = await session.request(CMD.GET_PRESETS);
+  if (pendingPresets && (pendingPresets.length !== afterPresets.length ||
+      pendingPresets.some((v, i) => v !== afterPresets[i])))
+    throw new Error('Preset manifest changed during OTA');
+  const confirmed = await session.request(CMD.OTA_CONFIRM);
+  if (confirmed.length !== 1 || confirmed[0] !== 1) throw new Error('Malformed OTA_CONFIRM response');
+  log(`CONFIRM app${target} VALID`);
+  pendingTarget = null;
+  pendingPresets = null;
+});
+</script>

@@ -17,6 +17,15 @@ GET_INFO = 0x02
 GET_PRESETS = 0x03
 WRITE_PRESET = 0x04
 READ_CHUNK = 0x09
+OTA_BEGIN = 0x0A
+OTA_WRITE = 0x0B
+OTA_FINISH = 0x0C
+OTA_ABORT = 0x0D
+OTA_STATUS = 0x0E
+OTA_REBOOT = 0x0F
+OTA_CONFIRM = 0x10
+OTA_BLOCK_MAX = 2044
+OTA_LONG_TIMEOUT = 10.0
 OK = 0
 CHUNK = 1
 MORE = 2
@@ -121,8 +130,8 @@ class Navio:
             raise RuntimeError("Response magic mismatch")
         return frame
 
-    def read_ack(self):
-        frame = self.read_frame()
+    def read_ack(self, timeout=1.0):
+        frame = self.read_frame(timeout)
         body_length = u16(frame[4:6])
         if body_length > 54 or crc16(frame[8:8 + body_length]) != u16(frame[6:8]):
             raise RuntimeError("Response message header/CRC mismatch")
@@ -135,13 +144,35 @@ class Navio:
             raise RuntimeError("Malformed ACK")
         return body[0], body[1], body[2], body[3:]
 
-    def start(self, cmd, body=b""):
+    def read_matching_ack(self, cmd, seq, timeout):
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("HID response timeout")
+            try:
+                response = self.read_ack(remaining)
+            except ProtoError as error:
+                if error.echo_cmd == cmd and error.seq == seq:
+                    raise
+                continue
+            if response[0] == cmd and response[1] == seq:
+                return response
+
+    def start(self, cmd, body=b"", timeout=1.0, max_retries=3):
         total = fragment_count(len(body))
         stream = message_stream(body)
         for seq in range(total):
             part = stream[58 * seq:58 * seq + 58]
-            self.send(make_frame(cmd, seq, total, part))
-            echo, ack_seq, status, data = self.read_ack()
+            frame = make_frame(cmd, seq, total, part)
+            for attempt in range(max_retries + 1):
+                self.send(frame)
+                try:
+                    echo, ack_seq, status, data = self.read_matching_ack(cmd, seq, timeout)
+                    break
+                except TimeoutError:
+                    if attempt >= max_retries:
+                        raise
             if echo != cmd or ack_seq != seq:
                 raise RuntimeError("ACK identity mismatch")
             if seq + 1 < total:
@@ -185,9 +216,24 @@ class Navio:
             raise RuntimeError("Large response CRC16 mismatch")
         return body
 
-    def request(self, cmd, body=b""):
-        status, data = self.start(cmd, body)
+    def request(self, cmd, body=b"", timeout=1.0, max_retries=3):
+        status, data = self.start(cmd, body, timeout, max_retries)
         return self.read_large(data) if status == MORE else data
+
+
+def ota_status(navio):
+    data = navio.request(OTA_STATUS)
+    if len(data) != 16 or data[13:] != b"\0\0\0":
+        raise RuntimeError("Malformed OTA_STATUS response")
+    return {
+        "session": data[0],
+        "update_error": data[1],
+        "target_slot": data[2],
+        "running_slot": data[3],
+        "image_size": int.from_bytes(data[4:8], "little"),
+        "received": int.from_bytes(data[8:12], "little"),
+        "image_state": data[12],
+    }
 
 
 def expect_error(code, fn, detail=None):
@@ -211,7 +257,7 @@ def run_smoke(navio):
         "record": 1,
         "maxBody": BODY_MAX,
         "maxPresets": 6,
-        "cmds": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "cmds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
     }
     print("PASS GET_INFO + READ_CHUNK", info)
     return hello, info
@@ -260,6 +306,7 @@ def run_faults(navio):
     stream = message_stream(body)
     first_frame = make_frame(WRITE_PRESET, 0, 2, stream[:58])
     navio.send(first_frame)
+    time.sleep(0.05)
     navio.send(first_frame)
     ack = navio.read_frame()
     duplicate = navio.read_frame()

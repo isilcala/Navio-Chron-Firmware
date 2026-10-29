@@ -1,8 +1,8 @@
 # Navio OTA Protocol v1
 
-> 状态：已冻结（2026-10-29，评审通过），尚未实现。
+> 状态：已冻结（2026-10-29，评审通过）；已实现并通过核心实机验收。
 > 本文是 `PROTOCOL.md` 的 OTA 扩展；线上帧、分片、重传、ACK/ERR 与 CRC 规则沿用该文件。
-> 实现完成并通过 §11 验收门槛后才可标记已实现；文档状态不得超前于代码。
+> 后续协议或实现变更必须重跑 §11 相关验收；文档状态不得超前于代码。
 
 ## 1. 目标与范围
 
@@ -35,8 +35,9 @@
 `OTA_WRITE` 正文为 4B offset 加最多 2044B 数据，因此仍满足 `BODY_MAX=2048` 和最多 36 片。
 每个块只在 Flash 接受完整数据后返回最终 ACK；首版不需要滑动窗口。
 
-BEGIN 包含同步分区擦除，FINISH 包含读回/镜像验证和 otadata 写入，二者不得沿用基础的 1000ms
-主机超时；其他 OTA 命令仍沿用 1000ms/最多 3 次重试。主机必须按命令设置超时，不能用固定总时长
+BEGIN 选择目标分区并初始化 Update/SHA-256，当前 Arduino Update 在后续写入阶段执行目标区域擦除，
+因此 BEGIN 实测通常很快；FINISH 包含读回/镜像验证和 otadata 写入。二者仍使用保守的 10000ms
+主机超时，其他 OTA 命令沿用 1000ms/最多 3 次重试。主机必须按命令设置超时，不能用固定总时长
 判断升级挂死。约 1MB 镜像约需 475 个块、每块最多 36 片，逐片停等的基线为数十秒级帧传输，
 叠加 Flash 与 WebHID 事件开销后应按约 1–3 分钟的量级展示进度，实测后再收紧预期。
 
@@ -185,12 +186,13 @@ OTA 会话是跨命令的应用状态，不等同于 Config Protocol 的单消�
 
 成功 ACK data，1B：`[runningImageState=VALID]`。
 
-主机只有在 HELLO、GET_INFO、GET_PRESETS 及基本输入链路符合预期后才发送 CONFIRM。运行镜像保持
-`PENDING_VERIFY` 时不得开始下一次 OTA。
+设备在首启动完成本地自检（至少包括预设可加载与 USB Vendor HID 注册）成功后，自动执行
+CONFIRM 并转为 VALID，不要求主机重新连接。主机重连后的 HELLO、GET_INFO、GET_PRESETS 和
+CONFIRM 是额外诊断；VALID 上重复 CONFIRM 仍幂等成功。运行镜像保持 PENDING_VERIFY 时不得开始
+下一次 OTA。
 
-升级工具必须在同一升级会话内完成 REBOOT→重连验证→CONFIRM。工具退出后仍未确认的镜像，
-在用户拔插或复位时自动回退是预期的安全行为，不是“升级丢失”故障；确认窗口故意不设超时，
-也不做未经主机验证的固件自确认。纯 BLE 使用场景的确认策略留待 BLE OTA 阶段定义。
+只有本地自检失败或尚未完成才保持 PENDING_VERIFY；此时再次复位自动回退是预期安全行为。
+USB 与纯 BLE 使用场景采用同一套本地确认语义。
 
 ## 6. 会话约束与超时
 
@@ -219,9 +221,14 @@ OTA 会话是跨命令的应用状态，不等同于 Config Protocol 的单消�
 - `ERR_BAD_STATE`：命令与会话/镜像状态不符，或接收期间调用非 OTA 变更命令。
 - `ERR_CHECKSUM`：完整镜像 SHA-256 不匹配，detail 可携带 `UPDATE_ERROR_SHA256=15`。
 - `ERR_FLASH_FAILURE` / `ERR_IMAGE_INVALID` 的 detail 用于诊断，主机不得仅根据 detail 推断成功。
+  经激活阶段（esp_ota_set_boot_partition 镜像校验）发现的失败统一按 ERR_FLASH_FAILURE 上报，
+  因为 Arduino 将该校验失败与 otadata 写失败合并为 UPDATE_ERROR_ACTIVATE，无法可靠细分。
 
 首个 OTA_WRITE 就可能因镜像 magic 不是 0xE9 返回 `ERR_IMAGE_INVALID`，不得等到 FINISH 才报，
-也不得把它当作可重试的 Flash 传输故障。`ERR_NVS_FAILURE` 不用于 OTA Flash 写入。
+也不得把它当作可重试的 Flash 传输故障。此时 detail 通常为 `UPDATE_ERROR_DECRYPT=13`：
+当前 Arduino Update（core 3.12）的 AUTO 解密判定先于魔数检查，非 0xE9 首块先走解密失败
+路径；魔数检查命中时 detail 为 `UPDATE_ERROR_MAGIC_BYTE=8`。固件将两者都映射为
+`ERR_IMAGE_INVALID`。`ERR_NVS_FAILURE` 不用于 OTA Flash 写入。
 任何错误 ACK/ERR 丢失都按基础协议重传最终响应。
 
 ## 8. 复位、断电与回退语义
@@ -250,7 +257,7 @@ OTA 会话是跨命令的应用状态，不等同于 Config Protocol 的单消�
 5. OTA_FINISH，确认 READY_TO_REBOOT；任何校验失败都不得重启到目标镜像。
 6. OTA_REBOOT，等待重新枚举。
 7. HELLO 核对新 fw；STATUS 核对 runningSlot/runningImageState，并做 GET_PRESETS 与基本输入检查。
-8. 成功后 OTA_CONFIRM；若未确认，保留自动回退语义。
+8. 本地自检通常已使镜像转为 VALID；主机可幂等调用 OTA_CONFIRM 作为诊断，无需重连来保留固件。
 
 开发首版允许同版本与降级，便于 A/B 回归；主机应展示版本，不把 SHA-256 当作发布签名。
 
@@ -265,11 +272,11 @@ OTA 会话是跨命令的应用状态，不等同于 Config Protocol 的单消�
 ## 11. 验收门槛
 
 - 正常 app0→app1、app1→app0 升级及连续重复升级。
-- 实测并记录 BEGIN 擦除、FINISH 校验/激活及整包传输耗时，主机长超时与进度显示符合实测。
+- 实测并记录 BEGIN 初始化、FINISH 校验/激活及整包传输耗时，主机长超时与进度显示符合实测。
 - 每块 ACK 丢失重传不重复推进 received，错 offset/乱序/超长/空块有确定错误。
 - 错长度、错 SHA-256、非 ESP 应用镜像、错误目标镜像均不激活。
 - BEGIN→ABORT、接收超时、RECEIVING 中重新开始、FINISH 前断连/断电均保留旧应用。
-- FINISH 后重启进入新应用；HELLO/预设/BLE 绑定与输入正常后才能 CONFIRM。
-- 首启动不确认及模拟启动失败可自动回退；CONFIRM 重试幂等。
+- FINISH 后重启进入新应用，本地自检成功即自动 VALID；主机重连与 CONFIRM 重试幂等。
+- 模拟本地自检失败可自动回退；仅未重连不得触发回退。
 - OTA 不改变 NVS 中用户预设和绑定；原 Config Protocol 与动态预设故障回归全部通过。
 - 完整五环境构建、hidapi 与 WebHID 主机路径通过；救援烧录入口始终可用。

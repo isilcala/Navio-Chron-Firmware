@@ -135,22 +135,40 @@
       this.maxRetries = maxRetries;
     }
 
-    async exchange(frame) { // 发送一片并等待响应，超时按 §7.7 重发同一片
+    matchesResponse_(response, request) {
+      if (response[1] !== CMD.ACK && response[1] !== CMD.ERR) return false;
+      if (request[1] === CMD.READ_CHUNK) {
+        if (response[1] === CMD.ACK)
+          return response[4] === CMD.READ_CHUNK && response[5] === request[8];
+        return response[8] === CMD.READ_CHUNK && response[9] === request[2];
+      }
+      return response[8] === request[1] && response[9] === request[2];
+    }
+
+    async exchange(frame, { timeoutMs = this.timeoutMs, maxRetries = this.maxRetries } = {}) {
+      // 发送一片并等待响应，超时按 §7.7 重发同一片；丢弃上一片的迟到重复响应
       let attempt = 0;
       for (;;) {
         await this.transport.send(frame);
+        const deadline = performance.now() + timeoutMs;
         try {
-          return await this.transport.receive(this.timeoutMs);
+          for (;;) {
+            const remaining = deadline - performance.now();
+            if (remaining <= 0) throw new TimeoutError();
+            const response = await this.transport.receive(remaining);
+            checkFrame(response);
+            if (this.matchesResponse_(response, frame)) return response;
+          }
         } catch (error) {
-          if (!(error instanceof TimeoutError) || ++attempt > this.maxRetries) throw error;
+          if (!(error instanceof TimeoutError) || ++attempt > maxRetries) throw error;
         }
       }
     }
 
-    async request(cmd, body = new Uint8Array()) {
+    async request(cmd, body = new Uint8Array(), options = {}) {
       const frames = encodeRequest(cmd, body);
       for (let seq = 0; seq < frames.length; ++seq) {
-        const ack = parseAckErr(await this.exchange(frames[seq]));
+        const ack = parseAckErr(await this.exchange(frames[seq], options));
         if (ack.echo !== cmd || ack.seq !== seq) throw new Error("ACK identity mismatch");
         if (seq + 1 < frames.length) {
           if (ack.status !== STATUS.CHUNK) throw new Error(`Expected CHUNK, got ${ack.status}`);

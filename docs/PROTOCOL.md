@@ -84,7 +84,7 @@ CRC 只用于错误检测，不提供加密或身份认证。
 | `0x07` | `LED_PREVIEW` | 灯光预览，不落盘 |
 | `0x08` | `READ_PRESET` | 按稳定 ID 读取一套预设 |
 | `0x09` | `READ_CHUNK` | 主机逐片拉取大响应 |
-| `0x0A`–`0x10` | `OTA_BEGIN`–`OTA_CONFIRM` | OTA 扩展，见 `OTA_PROTOCOL.md`（已冻结，未实现） |
+| `0x0A`–`0x10` | `OTA_BEGIN`–`OTA_CONFIRM` | OTA 扩展，见 `OTA_PROTOCOL.md`（已实现） |
 | `0x40` | `ACK` | 成功响应 |
 | `0x41` | `ERR` | 错误响应 |
 
@@ -224,8 +224,8 @@ chunkTotal = ceil(dataLength / 55)
 | 9 | `ERR_BAD_PAYLOAD` | 命令正文/schema 非法 |
 | 10 | `ERR_NVS_FAILURE` | 持久化失败 |
 | 11 | `ERR_UNSUPPORTED_VERSION` | 协议或 schema 版本不支持 |
-| 12 | `ERR_FLASH_FAILURE` | OTA 分区、擦写、激活或确认失败（OTA，未实现） |
-| 13 | `ERR_IMAGE_INVALID` | OTA 应用镜像或签名验证失败（OTA，未实现） |
+| 12 | `ERR_FLASH_FAILURE` | OTA 分区、擦写、激活或确认失败 |
+| 13 | `ERR_IMAGE_INVALID` | OTA 应用镜像或签名验证失败 |
 
 ## 11. 版本与预设交换格式
 

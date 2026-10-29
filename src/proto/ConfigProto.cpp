@@ -38,11 +38,12 @@ uint8_t errorForResult(PresetChangeResult result) {
 
 }  // namespace
 
-void ConfigProto::begin(VendorHid* port, PresetManager* presets,
+void ConfigProto::begin(VendorHid* port, PresetManager* presets, OtaManager* ota,
                         std::function<void()> onBeforeMutation,
                         std::function<void()> onAfterMutation) {
   port_ = port;
   presets_ = presets;
+  ota_ = ota;
   onBeforeMutation_ = onBeforeMutation;
   onAfterMutation_ = onAfterMutation;
   port->onFrame = [this](const uint8_t* d, size_t l) { handleFrame(d, l); };
@@ -52,6 +53,8 @@ void ConfigProto::poll() {
   uint32_t now = millis();
   if (rxActive_ && now - rxLastMs_ >= kTransactionTimeoutMs) resetRx_();
   if (txActive_ && now - txLastMs_ >= kTransactionTimeoutMs) resetTx_();
+  if (ota_) ota_->poll();
+  if (rebootPending_ && static_cast<int32_t>(now - rebootAtMs_) >= 0) esp_restart();
 }
 
 void ConfigProto::resetRx_() {
@@ -237,6 +240,11 @@ void ConfigProto::acceptFrame_(uint8_t cmd, uint8_t seq, uint8_t total,
 
 void ConfigProto::completeRequest_() {
   uint8_t cmd = completedCmd_;
+  if (!commandAllowed_(cmd)) {
+    finishError_(ERR_BAD_STATE);
+    return;
+  }
+  if (ota_ && cmd >= CMD_OTA_BEGIN && cmd <= CMD_OTA_CONFIRM) ota_->touch();
   bool mutation = cmd == CMD_WRITE_PRESET || cmd == CMD_DELETE || cmd == CMD_MOVE;
   if (mutation) {
     bool validLength = (cmd == CMD_WRITE_PRESET && completedBodyLength_ == PRESET_RECORD_SIZE) ||
@@ -276,7 +284,7 @@ void ConfigProto::respondToCommand_() {
     case CMD_GET_INFO: {
       static const char caps[] =
           "{\"record\":1,\"maxBody\":2048,\"maxPresets\":6,"
-          "\"cmds\":[1,2,3,4,5,6,7,8,9]}";
+          "\"cmds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]}";
       finishResponse_(reinterpret_cast<const uint8_t*>(caps), strlen(caps));
       break;
     }
@@ -311,6 +319,111 @@ void ConfigProto::respondToCommand_() {
       }
       break;
     }
+    case CMD_OTA_BEGIN: {
+      if (completedBodyLength_ != 36) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      if (onBeforeMutation_) onBeforeMutation_();
+      uint8_t target = 0xFF;
+      OtaError result = ota_->begin(readLe32(rxBuf_), rxBuf_ + 4, target);
+      if (result != OtaError::None) {
+        finishOtaError_(result);
+      } else {
+        uint8_t data[4] = {target, 0, 0, 0};
+        writeLe16(data + 1, OTA_BLOCK_MAX);
+        finishResponse_(data, sizeof(data));
+      }
+      break;
+    }
+    case CMD_OTA_WRITE: {
+      if (completedBodyLength_ < 5) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      uint32_t next = 0;
+      OtaError result = ota_->write(readLe32(rxBuf_), rxBuf_ + 4,
+                                    completedBodyLength_ - 4, next);
+      if (result != OtaError::None) {
+        finishOtaError_(result);
+      } else {
+        uint8_t data[4];
+        writeLe32(data, next);
+        finishResponse_(data, sizeof(data));
+      }
+      break;
+    }
+    case CMD_OTA_FINISH: {
+      if (completedBodyLength_ != 0) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      uint8_t target = 0xFF;
+      OtaError result = ota_->finish(target);
+      if (result != OtaError::None) {
+        finishOtaError_(result);
+      } else {
+        finishResponse_(&target, 1);
+      }
+      break;
+    }
+    case CMD_OTA_ABORT: {
+      if (completedBodyLength_ != 0) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      OtaError result = ota_->abort();
+      if (result != OtaError::None) finishOtaError_(result);
+      else finishResponse_();
+      break;
+    }
+    case CMD_OTA_STATUS: {
+      if (completedBodyLength_ != 0) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      OtaStatus status = ota_->status();
+      uint8_t data[16] = {};
+      data[0] = static_cast<uint8_t>(status.sessionState);
+      data[1] = status.updateError;
+      data[2] = status.targetSlot;
+      data[3] = status.runningSlot;
+      writeLe32(data + 4, status.imageSize);
+      writeLe32(data + 8, status.received);
+      data[12] = static_cast<uint8_t>(status.runningImageState);
+      finishResponse_(data, sizeof(data));
+      break;
+    }
+    case CMD_OTA_REBOOT: {
+      if (completedBodyLength_ != 0) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      OtaError result = ota_->reboot();
+      if (result != OtaError::None) {
+        finishOtaError_(result);
+      } else {
+        finishResponse_();
+        rebootAtMs_ = millis() + 250;
+        rebootPending_ = true;
+      }
+      break;
+    }
+    case CMD_OTA_CONFIRM: {
+      if (completedBodyLength_ != 0) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      OtaImageState state = OtaImageState::Unknown;
+      OtaError result = ota_->confirm(state);
+      if (result != OtaError::None) {
+        finishOtaError_(result);
+      } else {
+        uint8_t data = static_cast<uint8_t>(state);
+        finishResponse_(&data, 1);
+      }
+      break;
+    }
     case CMD_WRITE_PRESET:
     case CMD_DELETE:
     case CMD_MOVE:
@@ -320,6 +433,44 @@ void ConfigProto::respondToCommand_() {
       finishError_(ERR_NOT_IMPLEMENTED);
       break;
   }
+}
+
+bool ConfigProto::commandAllowed_(uint8_t cmd) const {
+  if (!ota_) return true;
+  if (cmd == CMD_HELLO || cmd == CMD_GET_INFO || cmd == CMD_OTA_STATUS) return true;
+  switch (ota_->sessionState()) {
+    case OtaSessionState::Receiving:
+      return cmd == CMD_OTA_BEGIN || cmd == CMD_OTA_WRITE || cmd == CMD_OTA_FINISH ||
+             cmd == CMD_OTA_ABORT;
+    case OtaSessionState::ReadyToReboot:
+      return cmd == CMD_OTA_REBOOT;
+    default:
+      return true;
+  }
+}
+
+void ConfigProto::finishOtaError_(OtaError error) {
+  uint8_t code = ERR_FLASH_FAILURE;
+  uint8_t detail = 0;
+  switch (error) {
+    case OtaError::BadPayload: code = ERR_BAD_PAYLOAD; break;
+    case OtaError::Overflow: code = ERR_OVERFLOW; break;
+    case OtaError::BadSeq: code = ERR_BAD_SEQ; break;
+    case OtaError::BadState: code = ERR_BAD_STATE; break;
+    case OtaError::Checksum:
+      code = ERR_CHECKSUM;
+      detail = ota_->errorDetail();
+      break;
+    case OtaError::ImageInvalid:
+      code = ERR_IMAGE_INVALID;
+      detail = ota_->errorDetail();
+      break;
+    case OtaError::FlashFailure:
+      detail = ota_->errorDetail();
+      break;
+    default: break;
+  }
+  finishError_(code, detail);
 }
 
 void ConfigProto::finishResponse_(const uint8_t* data, size_t len) {
@@ -334,10 +485,11 @@ void ConfigProto::finishResponse_(const uint8_t* data, size_t len) {
   sendAck_(completedCmd_, completedSeq_, STATUS_OK, data, len);
 }
 
-void ConfigProto::finishError_(uint8_t errCode) {
+void ConfigProto::finishError_(uint8_t errCode, uint8_t detail) {
   completedError_ = errCode;
+  completedErrorDetail_ = detail;
   completedResponse_ = CompletedResponse::Error;
-  sendErr_(completedCmd_, completedSeq_, errCode);
+  sendErr_(completedCmd_, completedSeq_, errCode, detail);
 }
 
 void ConfigProto::replayCompleted_() {
@@ -349,7 +501,7 @@ void ConfigProto::replayCompleted_() {
       sendMore_(completedCmd_, completedSeq_, txBuf_, txBodyLength_);
       break;
     case CompletedResponse::Error:
-      sendErr_(completedCmd_, completedSeq_, completedError_);
+      sendErr_(completedCmd_, completedSeq_, completedError_, completedErrorDetail_);
       break;
     default:
       break;

@@ -18,8 +18,8 @@ async function expectErr(code, detail, fn, name) {
 }
 
 // ---- 模拟设备：严格按 PROTOCOL.md 的设备侧行为（HELLO/GET_INFO/WRITE_PRESET 子集）----
-const HELLO_JSON = new TextEncoder().encode('{"proto":2,"fw":"0.3.0-dev","name":"Navio Chron"}');
-const INFO_JSON = new TextEncoder().encode('{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9]}');
+const HELLO_JSON = new TextEncoder().encode('{"proto":2,"fw":"0.4.0-dev","name":"Navio Chron"}');
+const INFO_JSON = new TextEncoder().encode('{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]}');
 
 class MockDevice {
   constructor() {
@@ -51,13 +51,13 @@ class MockDevice {
       }
       const chunkSeq = body[0];
       if (!this.pendingLarge) {
-        this.responses.push(this.errFrame(cmd, chunkSeq, P.ERR.BAD_STATE)); return;
+        this.responses.push(this.errFrame(cmd, seq, P.ERR.BAD_STATE)); return;
       }
       const { data, cursor } = this.pendingLarge;
       const totalChunks = P.chunkCount(data.length);
       if (chunkSeq === cursor - 1) { /* 重复请求：重发同一片 */ }
       else if (chunkSeq !== cursor) {
-        this.responses.push(this.errFrame(cmd, chunkSeq, P.ERR.BAD_SEQ, cursor)); return;
+        this.responses.push(this.errFrame(cmd, seq, P.ERR.BAD_SEQ, cursor)); return;
       } else {
         this.pendingLarge.cursor++;
       }
@@ -179,12 +179,23 @@ async function main() {
 
   // 5. GET_INFO 大响应：MORE + READ_CHUNK 拉取（>51B）
   const info = JSON.parse(new TextDecoder().decode(await session.request(P.CMD.GET_INFO)));
-  assert(info.maxBody === 2048 && info.cmds.length === 9, "GET_INFO fields");
+  assert(info.maxBody === 2048 && info.cmds.length === 16, "GET_INFO fields");
   ok("GET_INFO large response via MORE/READ_CHUNK");
 
   // 6. 多片 WRITE_PRESET 正常确认
   await session.request(P.CMD.WRITE_PRESET, body);
   ok("multi-fragment WRITE_PRESET accepted");
+
+  {
+    const stream = P.messageStream(new Uint8Array(60));
+    const f0 = P.encodeFrame(P.CMD.WRITE_PRESET, 0, 2, stream.subarray(0, 58));
+    const f1 = P.encodeFrame(P.CMD.WRITE_PRESET, 1, 2, stream.subarray(58, 116));
+    P.parseAckErr(await session.exchange(f0));
+    device.responses.push(device.ackFrame(P.CMD.WRITE_PRESET, 0, P.STATUS.CHUNK));
+    const ack1 = P.parseAckErr(await session.exchange(f1));
+    assert(ack1.seq === 1, "late duplicate ACK must not satisfy the next fragment");
+    ok("late duplicate ACK is discarded");
+  }
 
   // 7. 故障注入
   await expectErr(P.ERR.BAD_MAGIC, undefined, async () => {

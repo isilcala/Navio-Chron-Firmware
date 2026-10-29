@@ -21,8 +21,8 @@ pin map and power architecture.
 - [x] **Production presets: JianYing (CapCut) and DaVinci Resolve on Windows — verified over USB & BLE**
 - [ ] More presets: Premiere, macOS variants
 - [ ] Sleep/wake and battery validation (large-knob B-phase rework verified)
-- [ ] Full USB OTA (dual app slots; frozen protocol in `docs/OTA_PROTOCOL.md`)
-- [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor follows OTA)
+- [x] Full USB OTA (dual app slots, SHA-256, rollback and local self-confirm; hidapi + WebHID verified)
+- [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor is next)
 
 ## Build & flash
 
@@ -31,6 +31,15 @@ pin map and power architecture.
    Holding the side key while powering on also enters download mode
 3. Fallback: hold BOOT, plug USB, release, upload. If the board stays in download mode
    after flashing, tap RST once
+
+For devices already running the OTA-capable firmware, upgrade the application over Vendor HID:
+
+```bash
+python tools/ota_upload.py .pio/build/navio_chron/firmware.bin
+```
+
+The tool verifies SHA-256, reboots into the other app slot, checks presets and confirms the image.
+Local startup self-checks also confirm automatically; reconnecting is only for diagnostics.
 
 Preset mappings live in `src/mapping/Presets.cpp` (Phase 1: edit + reflash).
 Diagnostic builds on core 3.12: `ble_diag` (live BLE logging over USB-JTAG serial),
@@ -45,9 +54,10 @@ src/action/       action model (key chord / consumer / wheel)
 src/mapping/      preset data
 src/hid/          ITransport + Adafruit_TinyUSB independent HID + NimBLE 2.5 BLE
 src/proto/        independent vendor HID + configuration frame protocol
+src/ota/          dual-slot application updates, SHA-256, rollback and self-confirm
 src/led/          WS2812 status & key lighting (Adafruit_NeoPixel on core 3.x)
 src/power/        battery estimation
-tools/            PlatformIO build scripts (USB include paths)
+tools/            PlatformIO build scripts, OTA uploader, hidapi/WebHID probes
 docs/hardware/    schematics + hardware notes + photos
 reference/        upstream firmware (read-only, not part of the build; gitignored)
 ```
