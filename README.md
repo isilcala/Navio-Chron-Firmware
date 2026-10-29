@@ -22,6 +22,7 @@ pin map and power architecture.
 - [ ] More presets: Premiere, macOS variants
 - [ ] Sleep/wake and battery validation (large-knob B-phase rework verified)
 - [x] Full USB OTA (dual app slots, SHA-256, rollback and local self-confirm; hidapi + WebHID verified)
+- [ ] Unified Web flasher (frozen plan in `docs/WEB_FLASHING.md`; ROM probe verified, unified entry pending)
 - [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor is next)
 
 ## Build & flash
@@ -41,6 +42,14 @@ python tools/ota_upload.py .pio/build/navio_chron/firmware.bin
 The tool verifies SHA-256, reboots into the other app slot, checks presets and confirms the image.
 Local startup self-checks also confirm automatically; reconnecting is only for diagnostics.
 
+For the ROM Web Serial probe, generate the release images + manifest and serve the repository:
+
+```bash
+python tools/make_release.py
+python -m http.server 8000
+# Open http://localhost:8000/tools/probe/webflash_probe.html
+```
+
 Preset mappings live in `src/mapping/Presets.cpp` (Phase 1: edit + reflash).
 Diagnostic builds on core 3.12: `ble_diag` (live BLE logging over USB-JTAG serial),
 `debug_boot` / `led_beacon`.
@@ -57,7 +66,8 @@ src/proto/        independent vendor HID + configuration frame protocol
 src/ota/          dual-slot application updates, SHA-256, rollback and self-confirm
 src/led/          WS2812 status & key lighting (Adafruit_NeoPixel on core 3.x)
 src/power/        battery estimation
-tools/            PlatformIO build scripts, OTA uploader, hidapi/WebHID probes
+tools/            build/release scripts, OTA uploader, hidapi/WebHID/ROM probes + esptool-js
+release/          generated four-image bundles + manifest (gitignored)
 docs/hardware/    schematics + hardware notes + photos
 reference/        upstream firmware (read-only, not part of the build; gitignored)
 ```

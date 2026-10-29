@@ -271,6 +271,23 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   本地自检自动 VALID 已实测；Web 传输中断后原槽 VALID，预设清单保持不变。
   五环境构建、原协议/动态预设/JS 16 项回归通过。WebHID 重启后允许用户重新选择设备再验证确认。
 
+## D22. Web 统一刷写：OTA 优先、ROM 迁移、BOOT 救援（2026-10-29）
+
+- `docs/WEB_FLASHING.md` 已评审冻结：普通用户无需本地工具链；Navio 走现有 WebHID OTA，
+  演示固件用 esptool-js 内置复位进入 ROM 后完整刷写，无法自动化时统一进入一次 BOOT 救援。
+  不对未知固件猜 1200bps/DTR/RTS，不追求 100% 免按键。
+- manifest 由 make_release.py 从 bootloader 构建产物的镜像头解析 flash 参数：当前实测为
+  DIO/80MHz/4MB，地址固定为 0/0x8000/0xE000/0x10000；同时提供 OTA firmware.bin 与
+  ROM 四件套及 SHA-256。WebHID 过滤器与版本规则也归入 manifest，页面不得另建事实源。
+  初版曾按 platformio.ini 写成 QIO，实机回读发现构建产物实际为 DIO，改写镜像头后会导致
+  看门狗启动循环，故以产物为准。
+- NVS 按身份而非路径处理：HID VID/PID 匹配即视为 Navio，即使 HELLO 失败也在 ROM 路径保留
+  预设；仅能取得 Web Serial 的未知设备默认干净刷写，但必须明确告知并确认擦除范围。
+- 首版进入 ROM 不使用自定义 reset profile，CustomReset 仅实测需要时增加；esptool-js 固定版本
+  自托管并记录 SRI/完整性摘要和 Apache-2.0 许可。实测 0.7.0 原生 USB 的刷后 HardReset 不产生
+  EN 脉冲，ROM 探针刷后显式拉高 RTS 100ms 再释放（DTR=false）。实施顺序为 manifest/ROM 探针
+  → 统一入口 → 实测矩阵。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带

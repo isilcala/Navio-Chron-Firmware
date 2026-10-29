@@ -1,0 +1,153 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navio ROM Web Serial Flash Probe</title>
+<style>
+  body{font:16px/1.5 sans-serif;max-width:70em;margin:2em}
+  input,button{font-size:1em;margin:.4em .4em .4em 0}
+  input[type=text]{width:46em;max-width:90%}
+  pre{white-space:pre-wrap;background:#eee;padding:1em;min-height:20em}
+</style>
+<h1>Navio ROM Web Serial Flash Probe</h1>
+<!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
+<input id="manifest" type="text" value="/release/navio_chron_0.4.0-dev/manifest.json">
+<label><input id="erase" type="checkbox" checked> eraseAll (unknown-device clean flash only)</label>
+<div>
+  <button id="load">Load + verify images</button>
+  <button id="flash" disabled>Connect + flash</button>
+  <button id="verify" disabled>Verify Navio HELLO</button>
+</div>
+<pre id="out">Serve the repository over HTTP, load a manifest, then flash.</pre>
+<script src="navio_proto.js"></script>
+<script type="module">
+import { ESPLoader, Transport } from './esptool-js.bundle.js';
+
+const P = NavioProto;
+const out = document.getElementById('out');
+let manifest, images, device, session, flashComplete = false;
+const waiters = [], reports = [];
+function log(value) {
+  out.textContent += `\n${typeof value === 'string' ? value : JSON.stringify(value)}`;
+  out.scrollTop = out.scrollHeight;
+}
+function hex(data) { return [...data].map(v => v.toString(16).padStart(2, '0')).join(''); }
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+async function sha256(data) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', data))); }
+function setBusy(busy) {
+  for (const id of ['load', 'flash', 'verify', 'manifest', 'erase'])
+    document.getElementById(id).disabled = busy || (id === 'flash' && !images) ||
+      (id === 'verify' && !flashComplete);
+}
+async function run(fn) {
+  setBusy(true);
+  try { await fn(); } catch (error) { log(error.stack || String(error)); }
+  finally { setBusy(false); }
+}
+
+document.getElementById('load').onclick = () => run(async () => {
+  const url = document.getElementById('manifest').value;
+  manifest = await (await fetch(url)).json();
+  if (manifest.schema !== 1 || manifest.product !== 'navio-chron' || manifest.chip !== 'esp32s3')
+    throw new Error('Unsupported manifest');
+  if (!Array.isArray(manifest.images) || manifest.images.length !== 4)
+    throw new Error('Expected four images');
+  images = [];
+  const base = new URL(url, location.href);
+  for (const image of manifest.images) {
+    const response = await fetch(new URL(image.file, base));
+    if (!response.ok) throw new Error(`${image.file}: HTTP ${response.status}`);
+    const data = new Uint8Array(await response.arrayBuffer());
+    const digest = await sha256(data);
+    if (digest !== image.sha256) throw new Error(`${image.file}: SHA-256 mismatch`);
+    images.push({ file: image.file, data, address: image.address });
+    log(`VERIFIED ${image.file} ${data.length}B @ 0x${image.address.toString(16)}`);
+  }
+  log(`READY ${manifest.version} ${manifest.flash.mode}/${manifest.flash.freq}/${manifest.flash.size}`);
+});
+
+document.getElementById('flash').onclick = () => run(async () => {
+  if (!images) throw new Error('Load and verify images first');
+  const port = await navigator.serial.requestPort();
+  const transport = new Transport(port, true);
+  try {
+    const loader = new ESPLoader({
+      transport,
+      baudrate: 115200,
+      terminal: { clean() {}, writeLine: log, write: data => { out.textContent += data; } },
+    });
+    const chipName = await loader.main();
+    log(`CHIP ${chipName}`);
+    if (!chipName.startsWith('ESP32-S3')) throw new Error(`Unexpected chip: ${chipName}`);
+    const eraseAll = document.getElementById('erase').checked;
+    if (eraseAll && !confirm('This erases the entire device flash. Continue?')) return;
+    await loader.writeFlash({
+      fileArray: images,
+      flashMode: manifest.flash.mode,
+      flashFreq: manifest.flash.freq,
+      flashSize: manifest.flash.size,
+      eraseAll,
+      compress: true,
+      reportProgress: (fileIndex, written, total) => {
+        if (written === total || written % 65536 < 2048)
+          log(`FLASH ${images[fileIndex].file}: ${written}/${total}`);
+      },
+    });
+    await transport.setSignals(false, true);
+    await sleep(100);
+    await transport.setSignals(false, false);
+    await sleep(500);
+    log('Hard reset pulse sent');
+    flashComplete = true;
+    log('FLASH COMPLETE; select Verify Navio HELLO after re-enumeration');
+  } finally {
+    try { await transport.disconnect(); } catch (_) {}
+  }
+});
+
+const hidTransport = {
+  send: frame => device.sendReport(6, frame),
+  receive: timeoutMs => new Promise((resolve, reject) => {
+    if (reports.length) return resolve(reports.shift());
+    const waiter = { resolve, timer: setTimeout(() => {
+      waiters.splice(waiters.indexOf(waiter), 1);
+      reject(new P.TimeoutError());
+    }, timeoutMs) };
+    waiters.push(waiter);
+  }),
+};
+function attachDevice(next) {
+  device = next;
+  if (device.navioListenerAttached) return;
+  device.navioListenerAttached = true;
+  device.addEventListener('inputreport', event => {
+    if (event.reportId !== 6) return;
+    const report = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
+    if (!waiters.length) { reports.push(report); return; }
+    const waiter = waiters.shift();
+    clearTimeout(waiter.timer);
+    waiter.resolve(report);
+  });
+}
+function newSession() {
+  reports.length = 0;
+  session = new P.Session(hidTransport);
+}
+document.getElementById('verify').onclick = () => run(async () => {
+  const filters = [{
+    vendorId: Number(manifest.hid.vendorId), productId: Number(manifest.hid.productId),
+    usagePage: Number(manifest.hid.usagePage), usage: manifest.hid.usage,
+  }];
+  const devices = await navigator.hid.requestDevice({ filters });
+  if (!devices.length) throw new Error('No Navio device selected');
+  const next = devices[0];
+  if (device && device !== next && device.opened) await device.close();
+  attachDevice(next);
+  if (!device.opened) await device.open();
+  newSession();
+  const hello = JSON.parse(new TextDecoder().decode(await session.request(P.CMD.HELLO)));
+  log({ hello });
+  if (hello.proto !== 2 || hello.name !== 'Navio Chron') throw new Error('Unexpected HID identity');
+  const presets = await session.request(P.CMD.GET_PRESETS);
+  if (!presets.length || presets[0] === 0) throw new Error('Preset manifest is empty');
+  log(`NAVIO OK: ${presets[0]} presets, fw=${hello.fw}`);
+});
+</script>

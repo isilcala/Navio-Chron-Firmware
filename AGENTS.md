@@ -25,6 +25,8 @@ pio run -t upload       # 烧录：板上固件长按侧键 10 秒或 BOOT 键 3
                         # 插电时按住侧键同样进入
 pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin  # 已支持 OTA 的固件：Vendor HID 应用升级
+python tools/make_release.py # 构建后生成 release 四件套 + manifest
+python -m http.server 8000   # ROM 探针：http://localhost:8000/tools/probe/webflash_probe.html
 # 兜底（固件挂死/首次/诊断固件）：拔线 → 按住 BOOT → 插线 → 松开 → upload
 # 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST；装配后 RST 摸不到则重新插拔
 ```
@@ -46,7 +48,9 @@ src/proto/      独立 Vendor HID（ID6 + 63B）+ ConfigProto v2；回调入队�
 src/ota/        OtaManager：双槽应用写入、SHA-256、激活、回退状态与本地自检确认
 src/led/        WS2812：LedController（统一 Adafruit_NeoPixel 后端）
 src/power/      电池电压估算（GPIO3 ÷2 分压）
-tools/          add_fs_include.py / ota_upload.py；probe/ 含 hidapi 与 WebHID OTA 探针
+tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+manifest）；
+                probe/ 含 hidapi、WebHID OTA、Web Serial ROM 探针与自托管 esptool-js bundle
+release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 ```
 
 - **键码一律用 HID Usage ID**（`src/hid/HidUsage.h`），全链路不做 ASCII 转换。
@@ -80,8 +84,9 @@ Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：
-1. Phase 2：协议、动态预设与 USB OTA 核心验收完成（D19/D20/D21），A/B、
-   断电恢复、本地自动确认、hidapi/WebHID 通过；下一步 Web 配置工具
+1. Phase 2：协议、动态预设与 USB OTA 核心验收完成（D19/D20/D21）；
+   Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），ROM 探针已实测通过，
+   统一入口实施中，随后进入 Web 配置工具
 2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
