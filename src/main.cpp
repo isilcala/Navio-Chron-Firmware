@@ -126,10 +126,11 @@ static void updateBleBattery() {
 static void dispatchButton(Btn id, bool pressed);
 static void tickEncoderPulses();
 static void checkLongPressActions();
+static void switchPreset();
 
 // 下载模式入口见 input/DownloadMode.h（BOOT 长按 3s，各固件共用）。
 // 组装后主入口 = 侧键（SW11, R1C1，全局保留键）分级长按：
-// 单击=切预设（即时）；长按 5s=蓝牙配对；长按 10s=固件烧写；
+// 短按松手=切预设；长按 5-10s 松手=蓝牙配对；长按 10s=固件烧写；
 // 插电/复位时按住侧键同样进烧写。按住期间 LED1 实时渐变反馈进度。
 constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static void dispatchEncoder(Enc id, int8_t dir);
@@ -297,6 +298,8 @@ static void checkLongPressActions() {
     s_sideHoldActive = false;  // 松手后状态灯由 updateLinkMode 在 200ms 内自动恢复
     if (held >= SIDE_HOLD_PAIRING_MS && held < SIDE_HOLD_REFLASH_MS) {
       enterPairingMode();
+    } else if (held < SIDE_HOLD_PAIRING_MS) {
+      switchPreset();
     }
   }
 #if NAVIO_IGNORE_MATRIX
@@ -318,10 +321,7 @@ static void dispatchButton(Btn id, bool pressed) {
   (void)pressed;
   return;
 #endif
-  if (id == Btn::SideKey) {  // 微动侧键固定作为预设切换
-    if (pressed) switchPreset();
-    return;
-  }
+  if (id == Btn::SideKey) return;  // 短按/长按统一由 checkLongPressActions 裁决
   const size_t index = static_cast<size_t>(id);
   if (pressed) {
     if (s_buttonActions[index]) return;

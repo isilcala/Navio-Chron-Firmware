@@ -199,7 +199,8 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 原侧键状态机在长按 5s 时立即清绑定，继续按到 10s 进烧写也会先清除 BLE 绑定，
   因而每次烧录后都需要重新配对；这不是刷写擦除 NVS，而是手势副作用。
 - 修订为：5–10s 内松手才进入配对（清绑定+广播）；达到 10s 只进入烧写，
-  不再执行配对。灯光进度语义不变，烧写前的阻塞双闪通过 `LedController::flush()` 立即输出，
+  不再执行配对。短按切换也延后到松手，由同一状态机按时长统一裁决，长按不再先切预设。
+  灯光进度语义不变，烧写前的阻塞双闪通过 `LedController::flush()` 立即输出，
   普通状态灯仍走 dirty + tick 按需刷新。
 
 ## D19. Config Protocol v2 与桌面 JSON / 设备二进制分工（2026-10-27）
