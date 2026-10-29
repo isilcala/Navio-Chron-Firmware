@@ -247,6 +247,21 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   manifest 选中槽记录损坏时先尝试另一槽，后续 generation 基于已见最高值；两槽均不可加载才
   回退出厂。新增重传回归及原 hidapi/动态预设/五环境测试通过。
 
+## D21. 完整 USB OTA 先行，协议与实现分阶段验收（2026-10-29）
+
+- 在 Web 编辑器之前完成完整 OTA，避免固件升级与 Web 两端同时联调；复用 Config Protocol v2
+  的 Vendor HID、分片重传和最终响应重放，不引入另一套 USB DFU 类或线上帧格式。
+- 当前 default 分区已有 otadata/app0/app1；本地 Arduino Update 已确认支持整包 SHA-256，
+  `Update.end()` 在镜像校验后设置下一启动分区。只升级应用 firmware.bin，不改 NVS、分区表或 bootloader。
+- `docs/OTA_PROTOCOL.md` 已评审冻结（2026-10-29）：追加
+  OTA_BEGIN/WRITE/FINISH/ABORT/STATUS/REBOOT/CONFIRM（0x0A–0x10），顺序块最大 2044B，
+  SHA-256 后才激活，显式重启并做首启动确认。
+  首版不做断点续传，接收中断从头重写，以简化恢复状态。
+- 完整验收必须包含首启动自动回退、断电/断连、错误镜像、A/B 连续升级、配置与绑定保留；
+  已静态确认当前包及 qio_qspi sdkconfig 启用 BOOTLOADER_APP_ROLLBACK_ENABLE，且未启用
+  anti-rollback，仍须上机验证，不把“能写入”当成完整 OTA。
+  侧键 10 秒和 BOOT 插拔救援在验收前保留。随后实现主机工具与固件侧。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带
