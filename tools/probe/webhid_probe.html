@@ -17,6 +17,7 @@
 const P = NavioProto;
 let device, session;
 const waiters = [];
+const reports = [];
 const out = document.getElementById('out');
 
 function log(value) { out.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); }
@@ -24,6 +25,7 @@ function log(value) { out.textContent = typeof value === 'string' ? value : JSON
 const transport = {
   send: frame => device.sendReport(6, frame),
   receive: timeoutMs => new Promise((resolve, reject) => {
+    if (reports.length) return resolve(reports.shift());
     const waiter = { resolve, timer: setTimeout(() => {
       waiters.splice(waiters.indexOf(waiter), 1);
       reject(new P.TimeoutError());
@@ -34,6 +36,7 @@ const transport = {
 
 async function run(cmd) {
   for (const id of ['hello', 'info']) document.getElementById(id).disabled = true;
+  reports.length = 0;
   try {
     const data = await session.request(cmd);
     log(JSON.parse(new TextDecoder().decode(data)));
@@ -54,10 +57,15 @@ document.getElementById('connect').onclick = async () => {
     device = devices[0];
     await device.open();
     device.addEventListener('inputreport', event => {
-      if (event.reportId !== 6 || !waiters.length) return;
+      if (event.reportId !== 6) return;
+      const report = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
+      if (!waiters.length) {
+        reports.push(report);
+        return;
+      }
       const waiter = waiters.shift();
       clearTimeout(waiter.timer);
-      waiter.resolve(new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength));
+      waiter.resolve(report);
     });
     session = new P.Session(transport); // 默认 1000ms / 3 次重试（PROTOCOL.md §2）
     for (const id of ['hello', 'info']) document.getElementById(id).disabled = false;

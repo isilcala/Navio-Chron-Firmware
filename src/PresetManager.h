@@ -48,7 +48,7 @@ class PresetManager {
   uint8_t manifestSlot_ = 0;
 
   int indexOf_(uint8_t id) const;
-  void loadFactory_(uint8_t activeId);
+  bool loadFactory_(uint8_t activeId);
   bool readManifest_(Preferences& prefs, uint8_t slot, Manifest& out) const;
   bool loadInstalled_(Preferences& prefs, const Manifest& manifest);
   PresetChangeResult commit_(const InstalledPreset* next, uint8_t count, uint8_t activeId,

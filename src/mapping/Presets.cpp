@@ -1,5 +1,7 @@
 #include "mapping/Keymap.h"
 
+#include "PresetManager.h"
+
 namespace navio {
 
 // ---------------------------------------------------------------------------
@@ -136,5 +138,6 @@ static const Preset kPresetF13 = {
 // 命名空间作用域的 const 默认内部链接，定义处加 extern 才能被其他编译单元引用
 extern const Preset kPresets[] = {kPresetJianYing, kPresetResolve, kPresetTest, kPresetF13};
 extern const size_t kPresetCount = sizeof(kPresets) / sizeof(kPresets[0]);
+static_assert(kPresetCount > 0 && kPresetCount <= PRESET_MAX_INSTALLED);
 
 }  // namespace navio

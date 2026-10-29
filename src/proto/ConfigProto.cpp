@@ -3,6 +3,7 @@
 #if CONFIG_TINYUSB_HID_ENABLED
 #include <string.h>
 
+#include "ByteOrder.h"
 #include "proto/Crc.h"
 
 namespace navio {
@@ -12,15 +13,6 @@ namespace {
 constexpr uint8_t kMagic = 0x4E;
 constexpr uint8_t kFragmentMax = 36;
 constexpr uint32_t kTransactionTimeoutMs = 3000;
-
-uint16_t readLe16(const uint8_t* data) {
-  return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
-}
-
-void writeLe16(uint8_t* out, uint16_t value) {
-  out[0] = static_cast<uint8_t>(value);
-  out[1] = static_cast<uint8_t>(value >> 8);
-}
 
 uint8_t fragmentsFor(size_t bodyLength) {
   return static_cast<uint8_t>((4 + bodyLength + 57) / 58);
@@ -155,16 +147,16 @@ void ConfigProto::handleFrame(const uint8_t* data, size_t len) {
     handleReadChunk_(seq, total, payload);
     return;
   }
+  if (completedResponse_ != CompletedResponse::None &&
+      memcmp(data, completedFrame_, VENDOR_REPORT_SIZE) == 0) {
+    replayCompleted_();
+    return;
+  }
   if (seq == 0) {
     resetRx_();
     resetTx_();
-    completedValid_ = false;
+    completedResponse_ = CompletedResponse::None;
     acceptFrame_(cmd, seq, total, payload);
-    return;
-  }
-  if (completedValid_ && cmd == completedCmd_ && seq == completedSeq_ &&
-      total == completedTotal_) {
-    respondToCommand_();
     return;
   }
   if (!rxActive_) {
@@ -201,6 +193,11 @@ void ConfigProto::acceptFrame_(uint8_t cmd, uint8_t seq, uint8_t total,
     return;
   }
 
+  if (rxExpectedSeq_ > 0 && seq == rxExpectedSeq_ - 1) {
+    rxLastMs_ = millis();
+    sendAck_(cmd, seq, STATUS_CHUNK);
+    return;
+  }
   if (seq != rxExpectedSeq_) {
     sendErr_(cmd, seq, ERR_BAD_SEQ, rxExpectedSeq_);
     return;
@@ -220,17 +217,21 @@ void ConfigProto::acceptFrame_(uint8_t cmd, uint8_t seq, uint8_t total,
     return;
   }
 
+  completedFrame_[0] = kMagic;
+  completedFrame_[1] = cmd;
+  completedFrame_[2] = seq;
+  completedFrame_[3] = total;
+  memcpy(completedFrame_ + 4, payload, 58);
+  completedFrame_[62] = crc8(completedFrame_, 62);
   completedCmd_ = cmd;
   completedSeq_ = seq;
-  completedTotal_ = total;
   completedBodyLength_ = rxBodyLength_;
-  if (rxLen_ != rxBodyLength_ || crc16(rxBuf_, rxLen_) != rxBodyCrc16_) {
-    resetRx_();
-    sendErr_(cmd, seq, ERR_CHECKSUM);
+  bool valid = rxLen_ == rxBodyLength_ && crc16(rxBuf_, rxLen_) == rxBodyCrc16_;
+  resetRx_();
+  if (!valid) {
+    finishError_(ERR_CHECKSUM);
     return;
   }
-  completedValid_ = true;
-  resetRx_();
   completeRequest_();
 }
 
@@ -242,7 +243,7 @@ void ConfigProto::completeRequest_() {
                        (cmd == CMD_DELETE && completedBodyLength_ == 1) ||
                        (cmd == CMD_MOVE && completedBodyLength_ == 2);
     if (!validLength) {
-      sendErr_(cmd, completedSeq_, ERR_BAD_PAYLOAD);
+      finishError_(ERR_BAD_PAYLOAD);
       return;
     }
 
@@ -256,7 +257,7 @@ void ConfigProto::completeRequest_() {
       result = presets_->move(rxBuf_[0], rxBuf_[1]);
     }
     if (result != PresetChangeResult::Ok) {
-      sendErr_(cmd, completedSeq_, errorForResult(result));
+      finishError_(errorForResult(result));
       return;
     }
     if (onAfterMutation_) onAfterMutation_();
@@ -265,20 +266,18 @@ void ConfigProto::completeRequest_() {
 }
 
 void ConfigProto::respondToCommand_() {
-  uint8_t cmd = completedCmd_;
-  uint8_t seq = completedSeq_;
-  switch (cmd) {
+  switch (completedCmd_) {
     case CMD_HELLO: {
       static const char info[] =
           "{\"proto\":2,\"fw\":\"" NAVIO_CHRON_FW_VERSION "\",\"name\":\"Navio Chron\"}";
-      sendAck_(cmd, seq, STATUS_OK, reinterpret_cast<const uint8_t*>(info), strlen(info));
+      finishResponse_(reinterpret_cast<const uint8_t*>(info), strlen(info));
       break;
     }
     case CMD_GET_INFO: {
       static const char caps[] =
           "{\"record\":1,\"maxBody\":2048,\"maxPresets\":6,"
           "\"cmds\":[1,2,3,4,5,6,7,8,9]}";
-      sendMore_(cmd, seq, reinterpret_cast<const uint8_t*>(caps), strlen(caps));
+      finishResponse_(reinterpret_cast<const uint8_t*>(caps), strlen(caps));
       break;
     }
     case CMD_GET_PRESETS: {
@@ -295,30 +294,64 @@ void ConfigProto::respondToCommand_() {
         memcpy(manifest + len, preset.name, nameLength);
         len += nameLength;
       }
-      sendMore_(cmd, seq, manifest, len);
+      finishResponse_(manifest, len);
       break;
     }
     case CMD_READ_PRESET: {
       if (completedBodyLength_ != 1) {
-        sendErr_(cmd, seq, ERR_BAD_PAYLOAD);
+        finishError_(ERR_BAD_PAYLOAD);
         break;
       }
       uint8_t record[PRESET_RECORD_SIZE];
       PresetChangeResult result = presets_->read(rxBuf_[0], record);
       if (result != PresetChangeResult::Ok) {
-        sendErr_(cmd, seq, errorForResult(result));
+        finishError_(errorForResult(result));
       } else {
-        sendMore_(cmd, seq, record, sizeof(record));
+        finishResponse_(record, sizeof(record));
       }
       break;
     }
     case CMD_WRITE_PRESET:
     case CMD_DELETE:
     case CMD_MOVE:
-      sendAck_(cmd, seq, STATUS_OK);
+      finishResponse_();
       break;
     default:
-      sendErr_(cmd, seq, ERR_NOT_IMPLEMENTED);
+      finishError_(ERR_NOT_IMPLEMENTED);
+      break;
+  }
+}
+
+void ConfigProto::finishResponse_(const uint8_t* data, size_t len) {
+  if (len > 51) {
+    completedResponse_ = CompletedResponse::More;
+    sendMore_(completedCmd_, completedSeq_, data, len);
+    return;
+  }
+  if (len) memcpy(completedData_, data, len);
+  completedDataLength_ = static_cast<uint8_t>(len);
+  completedResponse_ = CompletedResponse::Ack;
+  sendAck_(completedCmd_, completedSeq_, STATUS_OK, data, len);
+}
+
+void ConfigProto::finishError_(uint8_t errCode) {
+  completedError_ = errCode;
+  completedResponse_ = CompletedResponse::Error;
+  sendErr_(completedCmd_, completedSeq_, errCode);
+}
+
+void ConfigProto::replayCompleted_() {
+  switch (completedResponse_) {
+    case CompletedResponse::Ack:
+      sendAck_(completedCmd_, completedSeq_, STATUS_OK, completedData_, completedDataLength_);
+      break;
+    case CompletedResponse::More:
+      sendMore_(completedCmd_, completedSeq_, txBuf_, txBodyLength_);
+      break;
+    case CompletedResponse::Error:
+      sendErr_(completedCmd_, completedSeq_, completedError_);
+      break;
+    default:
       break;
   }
 }

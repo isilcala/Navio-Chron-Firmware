@@ -2,6 +2,7 @@
 
 #include <Preferences.h>
 
+#include "ByteOrder.h"
 #include "Config.h"
 #include "proto/Crc.h"
 
@@ -12,29 +13,12 @@ namespace {
 constexpr size_t MANIFEST_SIZE = 18;
 constexpr size_t MANIFEST_CRC_OFFSET = 16;
 
-uint16_t readLe16(const uint8_t* data) {
-  return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
-}
-
-void writeLe16(uint8_t* out, uint16_t value) {
-  out[0] = static_cast<uint8_t>(value);
-  out[1] = static_cast<uint8_t>(value >> 8);
-}
-
-uint32_t readLe32(const uint8_t* data) {
-  return static_cast<uint32_t>(data[0]) | (static_cast<uint32_t>(data[1]) << 8) |
-         (static_cast<uint32_t>(data[2]) << 16) | (static_cast<uint32_t>(data[3]) << 24);
-}
-
-void writeLe32(uint8_t* out, uint32_t value) {
-  out[0] = static_cast<uint8_t>(value);
-  out[1] = static_cast<uint8_t>(value >> 8);
-  out[2] = static_cast<uint8_t>(value >> 16);
-  out[3] = static_cast<uint8_t>(value >> 24);
-}
-
 void recordKey(uint8_t id, char out[5]) {
   snprintf(out, 5, "p_%02X", id);
+}
+
+const char* manifestKey(uint8_t slot) {
+  return slot == 0 ? "manifest_0" : "manifest_1";
 }
 
 bool decodeManifest(const uint8_t* data, PresetManager::Manifest& out, uint8_t slot) {
@@ -98,19 +82,23 @@ uint8_t PresetManager::index() const {
   return index >= 0 ? static_cast<uint8_t>(index) : 0;
 }
 
-void PresetManager::loadFactory_(uint8_t activeId) {
+bool PresetManager::loadFactory_(uint8_t activeId) {
   count_ = static_cast<uint8_t>(kPresetCount);
   for (uint8_t i = 0; i < count_; ++i) {
-    makeFactoryPreset(kPresets[i], i + 1, installed_[i]);
+    if (!makeFactoryPreset(kPresets[i], i + 1, installed_[i])) {
+      count_ = 0;
+      activeId_ = 0;
+      return false;
+    }
   }
   activeId_ = indexOf_(activeId) >= 0 ? activeId : 1;
   generation_ = 0;
   manifestSlot_ = 0;
+  return true;
 }
 
 bool PresetManager::readManifest_(Preferences& prefs, uint8_t slot, Manifest& out) const {
-  const char* keys[2] = {"manifest_0", "manifest_1"};
-  const char* key = keys[slot];
+  const char* key = manifestKey(slot);
   uint8_t data[MANIFEST_SIZE];
   if (prefs.getBytesLength(key) != sizeof(data) ||
       prefs.getBytes(key, data, sizeof(data)) != sizeof(data)) {
@@ -144,16 +132,16 @@ bool PresetManager::loadInstalled_(Preferences& prefs, const Manifest& manifest)
 void PresetManager::begin() {
   uint8_t legacy = 0;
   bool loaded = false;
+  int selected = -1;
   Manifest chosen;
+  Manifest manifests[2];
   Preferences prefs;
   if (prefs.begin(PREFS_NAMESPACE, true)) {
     legacy = prefs.getUChar(PREFS_KEY_PRESET, 0);
-    Manifest manifests[2];
     bool valid[2];
     for (uint8_t slot = 0; slot < 2; ++slot) {
       valid[slot] = readManifest_(prefs, slot, manifests[slot]);
     }
-    int selected = -1;
     if (valid[0] && valid[1]) {
       selected = static_cast<int32_t>(manifests[1].generation - manifests[0].generation) > 0 ? 1 : 0;
     } else if (valid[0]) {
@@ -161,9 +149,17 @@ void PresetManager::begin() {
     } else if (valid[1]) {
       selected = 1;
     }
-    if (selected >= 0 && loadInstalled_(prefs, manifests[selected])) {
-      chosen = manifests[selected];
-      loaded = true;
+    if (selected >= 0) {
+      if (loadInstalled_(prefs, manifests[selected])) {
+        chosen = manifests[selected];
+        loaded = true;
+      } else {
+        int fallback = 1 - selected;
+        if (valid[fallback] && loadInstalled_(prefs, manifests[fallback])) {
+          chosen = manifests[fallback];
+          loaded = true;
+        }
+      }
     }
     prefs.end();
   } else {
@@ -171,11 +167,15 @@ void PresetManager::begin() {
   }
 
   if (loaded) {
-    generation_ = chosen.generation;
+    generation_ = manifests[selected].generation;
     manifestSlot_ = chosen.slot;
   } else {
     uint8_t activeId = legacy < kPresetCount ? legacy + 1 : 1;
-    loadFactory_(activeId);
+    if (!loadFactory_(activeId)) Serial.println("[Navio] factory preset load failed");
+    if (selected >= 0) {
+      generation_ = manifests[selected].generation;
+      manifestSlot_ = manifests[selected].slot;
+    }
   }
 }
 
@@ -213,8 +213,7 @@ PresetChangeResult PresetManager::commit_(const InstalledPreset* next, uint8_t c
     for (uint8_t i = 0; i < count; ++i) manifest.ids[i] = next[i].id;
     uint8_t data[MANIFEST_SIZE];
     encodeManifest(manifest, data);
-    const char* keys[2] = {"manifest_0", "manifest_1"};
-    if (prefs.putBytes(keys[nextSlot], data, sizeof(data)) != sizeof(data)) {
+    if (prefs.putBytes(manifestKey(nextSlot), data, sizeof(data)) != sizeof(data)) {
       result = PresetChangeResult::NvsFailure;
     }
   }

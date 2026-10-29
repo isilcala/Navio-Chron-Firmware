@@ -1,5 +1,6 @@
 #include "mapping/PresetRecord.h"
 
+#include "ByteOrder.h"
 #include "proto/Crc.h"
 
 namespace navio {
@@ -11,15 +12,6 @@ constexpr size_t ACTION_SIZE = 5;
 constexpr size_t ACTION_COUNT = BTN_COUNT + ENC_COUNT * 2;
 constexpr size_t CRC_OFFSET = 148;
 static_assert(ACTION_OFFSET + ACTION_COUNT * ACTION_SIZE == CRC_OFFSET);
-
-uint16_t readLe16(const uint8_t* data) {
-  return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
-}
-
-void writeLe16(uint8_t* out, uint16_t value) {
-  out[0] = static_cast<uint8_t>(value);
-  out[1] = static_cast<uint8_t>(value >> 8);
-}
 
 bool validUtf8(const uint8_t* data, size_t len) {
   size_t i = 0;

@@ -61,6 +61,9 @@ class ConfigProto {
   void acceptFrame_(uint8_t cmd, uint8_t seq, uint8_t total, const uint8_t* payload);
   void completeRequest_();
   void respondToCommand_();
+  void finishResponse_(const uint8_t* data = nullptr, size_t len = 0);
+  void finishError_(uint8_t errCode);
+  void replayCompleted_();
   void handleReadChunk_(uint8_t seq, uint8_t total, const uint8_t* payload);
   void resetRx_();
   void resetTx_();
@@ -88,11 +91,15 @@ class ConfigProto {
   uint8_t txExpectedSeq_ = 0;
   bool txActive_ = false;
 
+  enum class CompletedResponse : uint8_t { None, Ack, More, Error };
+  uint8_t completedFrame_[VENDOR_REPORT_SIZE] = {};
+  uint8_t completedData_[51] = {};
   uint8_t completedCmd_ = 0;
   uint8_t completedSeq_ = 0;
-  uint8_t completedTotal_ = 0;
+  uint8_t completedDataLength_ = 0;
+  uint8_t completedError_ = 0;
   uint16_t completedBodyLength_ = 0;
-  bool completedValid_ = false;
+  CompletedResponse completedResponse_ = CompletedResponse::None;
 };
 
 }  // namespace navio

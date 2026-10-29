@@ -241,6 +241,10 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 后续修订：动作槽位锚定 Btn/Enc 枚举与方向顺序；GET_PRESETS 增加 activeId；
   DELETE 明确为移除安装项而非复活出厂版；LED_PREVIEW 冻结为 accent+rgbMode 但暂不实现；
   `code=0 && mods=0` 的 KeyChord 判非法，空动作只能使用 None。
+- 恢复加固：重复中间片重发 CHUNK；完整末帧用于识别重传，最终 ACK/ERR/MORE 统一缓存重放，
+  包括单帧命令与失败结果，避免重复执行或把失败改成假 OK。HELLO 统一走大小安全响应路径。
+  manifest 选中槽记录损坏时先尝试另一槽，后续 generation 基于已见最高值；两槽均不可加载才
+  回退出厂。新增重传回归及原 hidapi/动态预设/五环境测试通过。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

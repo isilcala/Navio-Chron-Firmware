@@ -257,6 +257,31 @@ def run_faults(navio):
     expect_error(5, lambda: (navio.send(frame), navio.read_ack())[1])
     print("PASS multi-frame CRC16 failure")
 
+    stream = message_stream(body)
+    first_frame = make_frame(WRITE_PRESET, 0, 2, stream[:58])
+    navio.send(first_frame)
+    navio.send(first_frame)
+    ack = navio.read_frame()
+    duplicate = navio.read_frame()
+    assert duplicate == ack
+    frame = make_frame(WRITE_PRESET, 1, 2, stream[58:])
+    expect_error(9, lambda: (navio.send(frame), navio.read_ack())[1])
+    print("PASS duplicate intermediate fragment replays CHUNK without reassembly")
+
+    invalid_record = bytes(150)
+    stream = message_stream(invalid_record)
+    for seq in range(2):
+        navio.send(make_frame(WRITE_PRESET, seq, 3, stream[58 * seq:58 * seq + 58]))
+        navio.read_ack()
+    final_frame = make_frame(WRITE_PRESET, 2, 3, stream[116:])
+    navio.send(final_frame)
+    time.sleep(0.05)
+    navio.send(final_frame)
+    error = navio.read_frame()
+    duplicate = navio.read_frame()
+    assert duplicate == error and error[1] == ERR and error[10] == 9
+    print("PASS failed final fragment replays the same ERR")
+
     stream = le16(len(body)) + le16(crc16(body)) + body
     navio.send(make_frame(WRITE_PRESET, 0, 2, stream[:58]))
     navio.read_ack()

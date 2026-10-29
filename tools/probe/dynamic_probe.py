@@ -1,4 +1,7 @@
-from hid_probe import GET_PRESETS, Navio, WRITE_PRESET, expect_error
+import time
+
+from hid_probe import (ACK, GET_PRESETS, Navio, WRITE_PRESET, expect_error,
+                       make_frame, message_stream)
 from preset_record import make_record, record_crc_valid, record_name, set_action
 
 DELETE = 0x05
@@ -55,6 +58,19 @@ def main():
         assert manifest(navio) == original + [(10, "Host Test")]
         assert active_id(navio) == original_active
         print("PASS WRITE_PRESET + READ_PRESET byte identity and activeId response")
+
+        delete_frame = make_frame(DELETE, 0, 1, message_stream(bytes([10])))
+        navio.send(delete_frame)
+        time.sleep(0.05)
+        navio.send(delete_frame)
+        ack = navio.read_frame()
+        duplicate = navio.read_frame()
+        assert duplicate == ack and ack[1] == ACK and ack[10] == 0
+        temporary_ids.discard(10)
+        assert manifest(navio) == original
+        navio.request(WRITE_PRESET, record)
+        temporary_ids.add(10)
+        print("PASS single-fragment DELETE replay does not execute twice")
 
         first_id = original[0][0]
         navio.request(MOVE, bytes([10, first_id]))
