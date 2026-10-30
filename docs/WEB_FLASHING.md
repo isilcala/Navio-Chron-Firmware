@@ -1,6 +1,6 @@
 # Navio Web 统一刷写方案
 
-> 状态：方案已冻结（2026-10-29，评审通过）；统一入口 OTA、已知 Navio BOOT/ROM 与首个演示固件自动迁移 profile 已实测通过，完整矩阵验收中。
+> 状态：方案已冻结（2026-10-29，评审通过）；单入口、三条核心路径及中断/负向验收已完成，GitHub Pages 托管实施中。
 > 目标是用尽量低的复杂度覆盖普通用户最常见的刷写场景，不追求任意固件 100% 免 BOOT。
 
 ## 1. 目标与甜点位置
@@ -153,6 +153,8 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
 - 不要求 PIO、Python、esptool、驱动安装说明或本地 Node 服务。
 - 首版不支持 Firefox/Safari、BLE OTA、在线升级 bootloader/分区表或任意芯片型号；
   除上述身份规则外，不提供用户可选的整片擦除功能。
+- GitHub Pages 由 `.github/workflows/pages.yml` 从同一次构建发布根目录统一页、manifest 与四件套；
+  release 产物不入库，部署时默认 manifest 为 `./manifest.json`，兼容 project Pages 子路径。
 
 ## 6. 错误与恢复规则
 
@@ -161,6 +163,11 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
 - 已在 ROM 的设备只用 `loader.main("no_reset")` 裸探测：成功取得 ESP32-S3 chipName 才可写入；
   失败直接进入 BOOT 救援，不调用任何复位策略。浏览器 `open()` 初始信号影响仍列入实机验收。
 - 自动复位失败：不循环重启设备，进入 BOOT 救援。
+- ESP32-S3 的 RTC Force Download Boot 标志可能跨复位保留，与物理 BOOT 无关；ROM 刷后必须先
+  清除 `0x6000812C` 的 bit0，再产生 EN 脉冲。已实测清除后无需断电即可进入 Navio。
+- 物理 BOOT 进入 ROM 时普通 USB-JTAG core reset 不重采样 strapping，清 RTC 与 DTR/RTS 仍不够；
+  `GPIO_STRAP` 的 SPI boot 位为 0 时改用乐鑫官方 WDT 配置（WDTCONFIG0/1 与 WPROTECT），
+  触发完整系统复位。已实测 `GPIO_STRAP=0x22` 时网页 WDT 复位自动进入 Navio；RST/断电仅作兜底。
 - ROM 连接成功但 chipName 不是 ESP32-S3：停止，不写任何数据。
 - manifest 加载失败、镜像下载或 SHA-256 不符：停止，不触碰设备或不写任何数据。
 - 写入中断：允许重新执行同一路径；OTA 依靠双槽，ROM 使用 ROM 下载器重新刷写。
@@ -221,5 +228,5 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
 ## 10. 待讨论项
 
 - 其他出货/演示固件的 USB 标识与复位 profile；FastLED `303A:1001` 已验收，不外推。
-- manifest 托管位置及 stable/dev 通道规则。
+- stable/dev 发布通道的版本节奏与正式页面 URL；GitHub Pages 构建方式已定。
 - 是否同时提供本地四件套/ZIP 导入作为离线救援。

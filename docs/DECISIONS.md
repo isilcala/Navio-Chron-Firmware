@@ -299,7 +299,19 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   使用 303A:1001 USB-Serial/JTAG；运行中 no_reset 失败且 RGB 不受影响，default_reset 可进入
   ROM。自动复位与写入必须保持同一串口会话，不能断开后再 no_reset。统一页仅对该实测 VID/PID
   开放自动入口；未知设备确认 eraseAll=true 后完整迁移，HELLO 与 app0/UNDEFINED 通过。
-  原始 4MB Flash 已备份校验，但恢复写入未实测，不宣称恢复流程已验收。
+  原始 4MB Flash 已备份校验；恢复写入与整片哈希校验已通过，恢复后 RGB 演示正常。
+- 单入口复测发现 RTC Force Download Boot 标志可跨复位保留，导致刷后仍进 DOWNLOAD，与物理
+  BOOT 无关。寄存器 `0x6000812C` 的 bit0 已在当前 ESP32-S3 头文件核实；ROM 刷后先清除该位
+  再发 EN 脉冲。演示备份恢复后自动迁移实测无需断电即出现 Navio。
+- 物理 BOOT 进入的救援路径另行实测：`GPIO_STRAP=0x22` 时清 RTC 并显式释放 DTR/RTS 仍留在
+  下载器，普通 core reset 不重采样 strapping。采用乐鑫官方 watchdog-reset 配置：写
+  `0x600080B0=0x50D83AA1`、`0x6000809C=2000`、`0x60008098=(1<<31)|(5<<28)|(1<<8)|2`，
+  再锁 WPROTECT，触发完整系统复位。网页只读探针已验证自动进入 Navio；RST/断电仅作兜底。
+  单入口 OTA、BOOT/ROM 与演示自动迁移均完成核心验收。
+- 托管定案为 GitHub Pages：`.github/workflows/pages.yml` 在 main 与手动触发时构建同一
+  `navio_chron` 产物和 manifest，发布根目录 `index.html`、`manifest.json` 与四件套，避免
+  project Pages 子路径问题。发布页源复用统一探针，仅将默认 manifest 改为 `./manifest.json`；
+  release 构建产物仍不入库。实际远端与 Pages 启用由用户完成，未部署前不得宣称已上线。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

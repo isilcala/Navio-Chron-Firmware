@@ -22,7 +22,7 @@ pin map and power architecture.
 - [ ] More presets: Premiere, macOS variants
 - [ ] Sleep/wake and battery validation (large-knob B-phase rework verified)
 - [x] Full USB OTA (dual app slots, SHA-256, rollback and local self-confirm; hidapi + WebHID verified)
-- [ ] Unified Web flasher (OTA, Navio BOOT/ROM and first demo auto-migration verified; full matrix pending)
+- [ ] Unified Web flasher (core paths, interruption and negative checks verified; GitHub Pages deployment pending)
 - [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor is next)
 
 ## Build & flash
@@ -51,6 +51,10 @@ python -m http.server 8000
 # ROM only: http://localhost:8000/tools/probe/webflash_probe.html
 ```
 
+For GitHub Pages, `.github/workflows/pages.yml` builds the firmware and publishes the unified page,
+manifest and four images on `main` and manual runs. Add a GitHub remote and enable Pages with
+**GitHub Actions** as the source to deploy.
+
 Preset mappings live in `src/mapping/Presets.cpp` (Phase 1: edit + reflash).
 Diagnostic builds on core 3.12: `ble_diag` (live BLE logging over USB-JTAG serial),
 `debug_boot` / `led_beacon`.
@@ -58,6 +62,7 @@ Diagnostic builds on core 3.12: `ble_diag` (live BLE logging over USB-JTAG seria
 ## Layout
 
 ```
+.github/workflows/  GitHub Pages build and deployment
 include/          pin map & tunables (cross-checked against schematics)
 src/input/        matrix scanner, encoder decoder → logical events
 src/action/       action model (key chord / consumer / wheel)

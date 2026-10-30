@@ -27,8 +27,9 @@ esptool --chip esp32s3 --port COMx --baud 460800 \
 
 ```bash
 esptool --chip esp32s3 --port COMx --baud 460800 \
-  write-flash 0 0x400000 fastled_full_4mb.bin
+  write-flash 0 fastled_full_4mb.bin
 ```
 
-截至 2026-10-29，dump 的大小和 SHA-256 已校验，自动迁移到 Navio 已实测；恢复写入本身
-尚未实测。此文件作为实机测试资产保存，不表示对其中第三方代码附加新的分发许可。
+截至 2026-10-29，dump 的大小和 SHA-256 已校验；自动迁移到 Navio、恢复写入及整片哈希
+校验均已实测，恢复后 RGB 演示正常。此文件作为实机测试资产保存，不表示对其中第三方代码
+附加新的分发许可。

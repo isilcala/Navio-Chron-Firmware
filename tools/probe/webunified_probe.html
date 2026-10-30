@@ -19,8 +19,6 @@
 <input id="manifest" type="text" value="/release/navio_chron_0.4.0-dev/manifest.json">
 <div>
   <button id="connect">连接并升级</button>
-  <button id="demo">演示固件自动升级</button>
-  <button id="rom">BOOT / ROM 救援</button>
   <button id="verify" hidden>重新连接并验证</button>
   <button id="diagnose" hidden>OTA 诊断</button>
 </div>
@@ -51,7 +49,7 @@ const $ = id => document.getElementById(id);
 const out = $('out'), waiters = [], reports = [];
 let manifest, releaseBase, device, session, navioConfirmed = false;
 let pendingConfirmation = null, pendingVerification = null, romConnection = null;
-let helloCache = null, presetsBefore = null;
+let helloCache = null, presetsBefore = null, serialMode = null;
 
 function log(value) {
   out.textContent += `${typeof value === 'string' ? value : JSON.stringify(value)}\n`;
@@ -73,7 +71,7 @@ function sameBytes(a, b) {
   return a && b && a.length === b.length && a.every((value, index) => value === b[index]);
 }
 function setBusy(busy) {
-  for (const id of ['connect', 'demo', 'rom', 'verify', 'diagnose', 'manifest', 'confirmWrite', 'cancelWrite'])
+  for (const id of ['connect', 'verify', 'diagnose', 'manifest', 'confirmWrite', 'cancelWrite'])
     $(id).disabled = busy;
 }
 async function run(fn) {
@@ -216,9 +214,10 @@ function showConfirmation(plan) {
 function showRescue(reason) {
   pendingConfirmation = null;
   pendingVerification = null;
+  serialMode = 'no_reset';
   $('confirm').hidden = true;
   $('verify').hidden = true;
-  status(`${reason}\n请按住 BOOT 插入 USB，松开后点击“BOOT / ROM 救援”。`);
+  status(`${reason}\n请按住 BOOT 插入 USB，松开后点击“连接并升级”。`);
 }
 function showSuccess(message, otaDiagnostic = true) {
   pendingVerification = null;
@@ -227,6 +226,7 @@ function showSuccess(message, otaDiagnostic = true) {
   navioConfirmed = false;
   presetsBefore = null;
   helloCache = null;
+  serialMode = null;
   $('verify').hidden = true;
   $('confirm').hidden = true;
   $('diagnose').hidden = !otaDiagnostic;
@@ -349,14 +349,26 @@ async function runRomWrite(plan) {
           log(`FLASH ${plan.images[fileIndex].file}: ${written}/${total}`);
       },
     });
-    await transport.setSignals(false, true);
-    await sleep(100);
-    await transport.setSignals(false, false);
-    await sleep(500);
-    log('Hard reset pulse sent');
+    await loader.writeReg(0x6000812C, 0, 1);
+    log('Cleared RTC force-download flag');
+    const strap = await loader.readReg(0x60004038);
+    if ((strap & 8) === 0) {
+      await loader.writeReg(0x600080B0, 0x50D83AA1);
+      await loader.writeReg(0x6000809C, 2000);
+      await loader.writeReg(0x60008098, (1 << 31) | (5 << 28) | (1 << 8) | 2);
+      await loader.writeReg(0x600080B0, 0);
+      await sleep(500);
+      log('Watchdog reset sent');
+    } else {
+      await transport.setSignals(false, true);
+      await sleep(100);
+      await transport.setSignals(false, false);
+      await sleep(500);
+      log('Hard reset pulse sent');
+    }
     pendingVerification = plan;
     $('verify').hidden = false;
-    status('刷写完成，等待验证；请点击“重新连接并验证”');
+    status('刷写完成，等待验证；若 Navio 未出现，请按 RST 或断电重插后点击“重新连接并验证”');
   } finally {
     try { await transport.disconnect(); } catch (_) {}
     romConnection = null;
@@ -364,18 +376,27 @@ async function runRomWrite(plan) {
 }
 
 $('connect').onclick = () => run(async () => {
-  if (!navigator.hid) throw new Error('WebHID 不可用，请使用桌面 Chrome / Edge');
   if (!manifest) await loadRelease();
-  navioConfirmed = false;
-  helloCache = null;
-  presetsBefore = null;
+  if (serialMode) {
+    const mode = serialMode;
+    await startSerial(mode);
+    return;
+  }
+  if (!navigator.hid) {
+    serialMode = navioConfirmed ? 'no_reset' : 'auto';
+    status('再次点击“连接并升级”，选择设备串口');
+    return;
+  }
   pendingVerification = null;
   $('verify').hidden = true;
   $('diagnose').hidden = true;
   $('progress').value = 0;
   const selected = await chooseHid();
   if (!selected) {
-    showRescue('未选择 Navio 设备；可以重试，或进入 BOOT 救援。');
+    serialMode = navioConfirmed ? 'no_reset' : 'auto';
+    status(navioConfirmed
+      ? '未检测到 Navio HID；再次点击“连接并升级”选择串口，预设保留决策不变'
+      : '未选择 Navio；再次点击“连接并升级”以选择串口');
     return;
   }
   navioConfirmed = true;
@@ -399,17 +420,13 @@ $('connect').onclick = () => run(async () => {
   await startOta();
 });
 
-async function startSerial(resetMode, demoProfile = false) {
+async function startSerial(resetMode) {
   if (!navigator.serial) throw new Error('Web Serial 不可用，请使用桌面 Chrome / Edge');
   if (!manifest) await loadRelease();
+  serialMode = null;
   if (romConnection) {
     try { await romConnection.transport.disconnect(); } catch (_) {}
     romConnection = null;
-  }
-  if (demoProfile) {
-    navioConfirmed = false;
-    helloCache = null;
-    presetsBefore = null;
   }
   $('diagnose').hidden = true;
   $('verify').hidden = true;
@@ -421,12 +438,13 @@ async function startSerial(resetMode, demoProfile = false) {
     if (error.name === 'NotFoundError') { status('未选择串口，可以重试'); return; }
     throw error;
   }
+  const info = port.getInfo();
+  const demoProfile = resetMode === 'auto' && info.usbVendorId === 0x303A && info.usbProductId === 0x1001;
+  const effectiveResetMode = demoProfile ? 'default_reset' : resetMode === 'auto' ? 'no_reset' : resetMode;
   if (demoProfile) {
-    const info = port.getInfo();
-    if (info.usbVendorId !== 0x303A || info.usbProductId !== 0x1001) {
-      showRescue('未识别的演示固件 USB 标识；未尝试复位，也未写入 Flash。');
-      return;
-    }
+    navioConfirmed = false;
+    helloCache = null;
+    presetsBefore = null;
     log('DEMO PROFILE 303A:1001 USB-Serial/JTAG');
   }
   const transport = new Transport(port, true);
@@ -436,13 +454,13 @@ async function startSerial(resetMode, demoProfile = false) {
     terminal: { clean() {}, writeLine: log, write: data => { out.textContent += data; } },
   });
   try {
-    const chipName = await loader.main(resetMode);
+    const chipName = await loader.main(effectiveResetMode);
     log(`CHIP ${chipName}`);
     if (!chipName.startsWith('ESP32-S3')) throw new Error(`Unexpected chip: ${chipName}`);
   } catch (error) {
     try { await transport.disconnect(); } catch (_) {}
     log(error.stack || String(error));
-    showRescue(resetMode === 'no_reset'
+    showRescue(effectiveResetMode === 'no_reset'
       ? '没有取得 ROM 响应；未尝试复位，也未写入 Flash。'
       : '演示固件自动进入 ROM 失败；未写入 Flash。');
     return;
@@ -458,8 +476,6 @@ async function startSerial(resetMode, demoProfile = false) {
   const decision = R.decide({ navioConfirmed, serialOnly: true, romSyncOk: true });
   showConfirmation({ ...decision, images, beforePresets: presetsBefore });
 }
-$('demo').onclick = () => run(() => startSerial('default_reset', true));
-$('rom').onclick = () => run(() => startSerial('no_reset'));
 
 $('confirmWrite').onclick = () => run(async () => {
   const plan = pendingConfirmation;
@@ -474,6 +490,8 @@ $('cancelWrite').onclick = () => run(async () => {
   pendingConfirmation = null;
   navioConfirmed = false;
   presetsBefore = null;
+  helloCache = null;
+  serialMode = null;
   $('confirm').hidden = true;
   if (romConnection) {
     try { await romConnection.transport.disconnect(); } catch (_) {}
