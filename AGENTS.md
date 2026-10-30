@@ -88,7 +88,7 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
 现有双模输入与五环境构建均通过。遗留（按优先级）：
 1. Phase 2：协议、动态预设与 USB OTA 核心验收完成（D19/D20/D21）；
    Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），单入口、三条核心路径及
-   中断/负向验收已完成；GitHub Pages 托管实施中，随后进入 Web 配置工具
+   中断/负向验收已完成；GitHub Pages 已部署，线上刷写验收中，随后进入 Web 配置工具
 2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）

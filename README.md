@@ -22,7 +22,7 @@ pin map and power architecture.
 - [ ] More presets: Premiere, macOS variants
 - [ ] Sleep/wake and battery validation (large-knob B-phase rework verified)
 - [x] Full USB OTA (dual app slots, SHA-256, rollback and local self-confirm; hidapi + WebHID verified)
-- [ ] Unified Web flasher (core paths, interruption and negative checks verified; GitHub Pages deployment pending)
+- [ ] Unified Web flasher (core paths verified and GitHub Pages deployed; online acceptance pending)
 - [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor is next)
 
 ## Build & flash
