@@ -313,7 +313,7 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   project Pages 子路径问题。发布页源复用统一探针，仅将默认 manifest 改为 `./manifest.json`；
   release 构建产物仍不入库。2026-10-30 已通过 `a482bfa` 首次部署
   https://isilcala.github.io/Navio-Chron-Firmware/ ，线上 manifest 与 firmware SHA-256 一致；
-  线上刷写仍需用户设备验收。
+  线上 OTA 验收已通过（2026-10-30）。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

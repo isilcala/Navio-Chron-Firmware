@@ -1,88 +1,83 @@
 # Navio-Chron-Firmware
 
-Firmware for the [Navio Chron](https://github.com/Cityforest2000/Navio-Chron) open-source
-video-editing keypad (hardware by Cityforest2000; PCB V1.0, two boards, ESP32-S3 SuperMini).
-New codebase written from scratch — see `docs/hardware/HARDWARE_NOTES.md` for the verified
-pin map and power architecture.
+Independent, from-scratch firmware for the [Navio Chron](https://github.com/Cityforest2000/Navio-Chron)
+open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 
-## Status — Phase 1 & 1b complete
+> **Work in progress.** Core input, presets, USB/BLE HID, OTA and Web flashing are working;
+> the browser-based preset editor and additional presets are still being built.
 
-- [x] Hardware bring-up layer: 4x5 matrix (16 switches), 3 encoders, WS2812 chain (15 px),
-      battery sensing
-- [x] USB HID (independent keyboard + consumer control + mouse + vendor interfaces),
-      Adafruit_TinyUSB on core 3.12, driverless on Windows; macOS validation pending
-- [x] **BLE HID** (NimBLE-Arduino): pairing on Windows/Android, auto-reconnect,
-      USB/BLE auto-selection (USB host wins when enumerated)
-- [x] Compile-time presets, cycled with the side micro-switch, persisted across reboots
-- [x] Side-key gestures: short release cycles the preset; release after 5-10s =
-      BLE pairing / 10s hold = reflash, without an unintended preset switch or clearing bonds
-- [x] No-unplug reflashing (side key or BOOT long-press → download mode, double-blink confirm)
-- [x] Mouse report over BLE (wheel + combos)
-- [x] **Production presets: JianYing (CapCut) and DaVinci Resolve on Windows — verified over USB & BLE**
-- [ ] More presets: Premiere, macOS variants
-- [ ] Sleep/wake and battery validation (large-knob B-phase rework verified)
-- [x] Full USB OTA (dual app slots, SHA-256, rollback and local self-confirm; hidapi + WebHID verified)
-- [ ] Unified Web flasher (core paths verified and GitHub Pages deployed; online acceptance pending)
-- [ ] Phase 2: PC-side configuration tool (dynamic presets verified; Web editor is next)
+## Current status
 
-## Build & flash
+- [x] Matrix keys, 3 encoders, WS2812 lighting and battery sensing
+- [x] USB HID keyboard, mouse, consumer control and vendor interface
+- [x] BLE HID with pairing, reconnect and USB/BLE auto-selection
+- [x] JianYing (CapCut) and DaVinci Resolve presets for Windows, verified over USB and BLE
+- [x] Dynamic presets in NVS and Navio Config Protocol v2
+- [x] Dual-slot USB OTA with SHA-256, rollback and local self-confirm
+- [x] Unified Web flasher: OTA, demo migration and BOOT/ROM recovery,
+      [deployed and verified online](https://isilcala.github.io/Navio-Chron-Firmware/)
+- [ ] Browser preset editor
+- [ ] Premiere and macOS preset variants
+- [ ] Sleep/wake and battery-power validation
 
-1. [VS Code + PlatformIO](https://platformio.org/) (or `pio` CLI), env `navio_chron`
-2. Hold the **side key for 10s** (or module BOOT for 3s; LED turns purple) → upload.
-   Holding the side key while powering on also enters download mode
-3. Fallback: hold BOOT, plug USB, release, upload. If the board stays in download mode
-   after flashing, tap RST once
+See `docs/PROJECT.md` for the roadmap and `docs/DECISIONS.md` for technical decisions.
 
-For devices already running the OTA-capable firmware, upgrade the application over Vendor HID:
+## Flash online
+
+Open **https://isilcala.github.io/Navio-Chron-Firmware/** in desktop Chrome or Edge.
+GitHub Actions builds the firmware, manifest and four ROM images and publishes them with
+`.github/workflows/pages.yml` on `main` and manual runs.
+
+## Build locally
+
+Use VS Code + PlatformIO (or the `pio` CLI), environment `navio_chron`:
+
+```bash
+pio run
+pio run -t upload
+```
+
+Hold the side key for 10s (or module BOOT for 3s) to enter download mode.
+Fallback: hold BOOT, plug USB, release, then upload. Tap RST or reconnect power if the board
+stays in download mode after flashing.
+
+Upgrade an OTA-capable device over Vendor HID:
 
 ```bash
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin
 ```
 
-The tool verifies SHA-256, reboots into the other app slot, checks presets and confirms the image.
-Local startup self-checks also confirm automatically; reconnecting is only for diagnostics.
-
-For the Web flashing probes, generate the release images + manifest and serve the repository:
+For local Web flashing probes:
 
 ```bash
 python tools/make_release.py
 python -m http.server 8000
-# Unified: http://localhost:8000/tools/probe/webunified_probe.html
-# ROM only: http://localhost:8000/tools/probe/webflash_probe.html
+# http://localhost:8000/tools/probe/webunified_probe.html
 ```
-
-For GitHub Pages, `.github/workflows/pages.yml` builds the firmware and publishes the unified page,
-manifest and four images on `main` and manual runs. Add a GitHub remote and enable Pages with
-**GitHub Actions** as the source to deploy.
-
-Preset mappings live in `src/mapping/Presets.cpp` (Phase 1: edit + reflash).
-Diagnostic builds on core 3.12: `ble_diag` (live BLE logging over USB-JTAG serial),
-`debug_boot` / `led_beacon`.
 
 ## Layout
 
 ```
+include/          pin map and tunables
+src/              input, actions, mappings, HID, protocol, OTA, LEDs and power
+tools/            build/release tools and hidapi/WebHID/Web Serial probes
+docs/             protocol, decisions and hardware notes
 .github/workflows/  GitHub Pages build and deployment
-include/          pin map & tunables (cross-checked against schematics)
-src/input/        matrix scanner, encoder decoder → logical events
-src/action/       action model (key chord / consumer / wheel)
-src/mapping/      preset data
-src/hid/          ITransport + Adafruit_TinyUSB independent HID + NimBLE 2.5 BLE
-src/proto/        independent vendor HID + configuration frame protocol
-src/ota/          dual-slot application updates, SHA-256, rollback and self-confirm
-src/led/          WS2812 status & key lighting (Adafruit_NeoPixel on core 3.x)
-src/power/        battery estimation
-tools/            build/release scripts, OTA uploader, hidapi/WebHID/ROM/unified probes,
-                  pure Web flash rules + Node tests, self-hosted esptool-js
-release/          generated four-image bundles + manifest (gitignored)
-docs/hardware/    schematics + hardware notes + photos
-reference/        upstream firmware (read-only, not part of the build; gitignored)
+release/          generated release images and manifest (gitignored)
+reference/        upstream reference (read-only, gitignored)
 ```
 
-## Credits & license
+## Credits
 
-- Hardware: [Cityforest2000](https://github.com/Cityforest2000/Navio-Chron)
-  ([oshwhub project](https://oshwhub.com/cityforest/)) — upstream repo has no license file yet
-- HID report descriptor and BLE details cross-checked against
-  [HijelHID_BLEKeyboard](https://github.com/HijelHub/HijelHID_BLEKeyboard) (Apache-2.0)
-- This firmware: license TBD before public release
+1. **[Navio Chron — Cityforest2000](https://github.com/Cityforest2000/Navio-Chron)**:
+   the open-source DIY keyboard and original hardware project this firmware is built for.
+2. [HijelHID_BLEKeyboard](https://github.com/HijelHub/HijelHID_BLEKeyboard) (Apache-2.0):
+   HID report descriptor and BLE implementation reference.
+3. Adafruit TinyUSB, NimBLE-Arduino, Adafruit NeoPixel, esptool-js and pako,
+   used under their respective licenses.
+
+## License
+
+This repository is WIP and currently has **no `LICENSE` file**; the project license is TBD.
+The upstream Navio-Chron repository also has no license file. No additional rights are implied.
+Third-party code and test assets, including the FastLED demo dump, retain their original terms.
