@@ -1,0 +1,509 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navio Unified Web Flash Probe</title>
+<style>
+  body{font:16px/1.5 sans-serif;max-width:70em;margin:2em}
+  input,button{font-size:1em;margin:.4em .4em .4em 0}
+  input[type=text]{width:46em;max-width:90%}
+  button{padding:.45em .8em}
+  #status{font-weight:600;margin:1em 0;white-space:pre-wrap}
+  #confirm{border:1px solid #999;padding:1em;margin:1em 0;white-space:pre-wrap}
+  #eraseWarning{color:#a00000;font-weight:700}
+  #preserveNotice{color:#075f20;font-weight:700}
+  progress{width:100%;height:1.4em}
+  pre{white-space:pre-wrap;background:#eee;padding:1em;min-height:16em}
+  [hidden]{display:none!important}
+</style>
+<h1>Navio Web 刷写</h1>
+<!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
+<input id="manifest" type="text" value="/release/navio_chron_0.4.0-dev/manifest.json">
+<div>
+  <button id="connect">连接并升级</button>
+  <button id="demo">演示固件自动升级</button>
+  <button id="rom">BOOT / ROM 救援</button>
+  <button id="verify" hidden>重新连接并验证</button>
+  <button id="diagnose" hidden>OTA 诊断</button>
+</div>
+<div id="status">正在加载发布包…</div>
+<progress id="progress" value="0" max="100"></progress>
+<div id="confirm" hidden>
+  <div id="confirmText"></div>
+  <div id="eraseWarning" hidden>将擦除设备数据，包括已有预设。</div>
+  <div id="preserveNotice" hidden>已确认 Navio 身份，将保留你的预设。</div>
+  <button id="confirmWrite">确认升级</button>
+  <button id="cancelWrite">取消</button>
+</div>
+<details>
+  <summary>诊断日志</summary>
+  <pre id="out"></pre>
+</details>
+<script src="navio_proto.js"></script>
+<script src="webflash_rules.js"></script>
+<script type="module">
+import { ESPLoader, Transport } from './esptool-js.bundle.js';
+
+const P = NavioProto, R = NavioWebflashRules;
+const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
+  OTA_WRITE: 11, OTA_FINISH: 12, OTA_ABORT: 13, OTA_STATUS: 14,
+  OTA_REBOOT: 15, OTA_CONFIRM: 16 };
+const LONG = { timeoutMs: 10000, maxRetries: 2 };
+const $ = id => document.getElementById(id);
+const out = $('out'), waiters = [], reports = [];
+let manifest, releaseBase, device, session, navioConfirmed = false;
+let pendingConfirmation = null, pendingVerification = null, romConnection = null;
+let helloCache = null, presetsBefore = null;
+
+function log(value) {
+  out.textContent += `${typeof value === 'string' ? value : JSON.stringify(value)}\n`;
+  out.scrollTop = out.scrollHeight;
+}
+function status(value) { $('status').textContent = value; }
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function hex(data) { return [...data].map(v => v.toString(16).padStart(2, '0')).join(''); }
+async function sha256(data) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', data))); }
+function json(data) { return JSON.parse(new TextDecoder().decode(data)); }
+function u16(data, offset = 0) { return data[offset] | data[offset + 1] << 8; }
+function u32(data, offset = 0) {
+  return (data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24) >>> 0;
+}
+function le32(value) {
+  return new Uint8Array([value & 255, value >> 8 & 255, value >> 16 & 255, value >> 24 & 255]);
+}
+function sameBytes(a, b) {
+  return a && b && a.length === b.length && a.every((value, index) => value === b[index]);
+}
+function setBusy(busy) {
+  for (const id of ['connect', 'demo', 'rom', 'verify', 'diagnose', 'manifest', 'confirmWrite', 'cancelWrite'])
+    $(id).disabled = busy;
+}
+async function run(fn) {
+  setBusy(true);
+  try { await fn(); }
+  catch (error) {
+    log(error.stack || String(error));
+    status(error.message || String(error));
+    if (pendingVerification) $('verify').hidden = false;
+  }
+  finally { setBusy(false); }
+}
+
+async function loadRelease() {
+  const url = $('manifest').value;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`发布包加载失败：HTTP ${response.status}`);
+  const parsed = await response.json();
+  R.validateManifest(parsed);
+  manifest = parsed;
+  releaseBase = new URL(url, location.href);
+  status(`发布包 ${manifest.version}（${manifest.channel}）已就绪`);
+  log(`MANIFEST ${manifest.version} ${manifest.flash.mode}/${manifest.flash.freq}/${manifest.flash.size}`);
+}
+async function downloadImage(image) {
+  const response = await fetch(new URL(image.file, releaseBase));
+  if (!response.ok) throw new Error(`${image.file}: HTTP ${response.status}`);
+  const data = new Uint8Array(await response.arrayBuffer());
+  if (await sha256(data) !== image.sha256) throw new Error(`${image.file}: SHA-256 mismatch`);
+  log(`VERIFIED ${image.file} ${data.length}B`);
+  return { file: image.file, data, address: image.address, sha256: image.sha256 };
+}
+async function downloadImages(onlyFirmware = false) {
+  const selected = onlyFirmware ? manifest.images.filter(image => image.file === 'firmware.bin') : manifest.images;
+  const images = [];
+  for (const image of selected) images.push(await downloadImage(image));
+  return images;
+}
+
+const hidTransport = {
+  send: frame => device.sendReport(6, frame),
+  receive: timeoutMs => new Promise((resolve, reject) => {
+    if (reports.length) return resolve(reports.shift());
+    const waiter = { resolve, timer: setTimeout(() => {
+      waiters.splice(waiters.indexOf(waiter), 1);
+      reject(new P.TimeoutError());
+    }, timeoutMs) };
+    waiters.push(waiter);
+  }),
+};
+function attachDevice(next) {
+  device = next;
+  if (device.navioUnifiedListenerAttached) return;
+  device.navioUnifiedListenerAttached = true;
+  device.addEventListener('inputreport', event => {
+    if (event.reportId !== 6) return;
+    const report = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
+    if (!waiters.length) { reports.push(report); return; }
+    const waiter = waiters.shift();
+    clearTimeout(waiter.timer);
+    waiter.resolve(report);
+  });
+}
+function newSession() {
+  reports.length = 0;
+  session = new P.Session(hidTransport);
+}
+function hidFilters() {
+  return [{
+    vendorId: Number(manifest.hid.vendorId), productId: Number(manifest.hid.productId),
+    usagePage: Number(manifest.hid.usagePage), usage: manifest.hid.usage,
+  }];
+}
+function isNavioDevice(candidate) {
+  return candidate.vendorId === Number(manifest.hid.vendorId) &&
+    candidate.productId === Number(manifest.hid.productId);
+}
+async function chooseHid() {
+  const authorized = await navigator.hid.getDevices();
+  let next = authorized.find(isNavioDevice);
+  if (!next) {
+    const devices = await navigator.hid.requestDevice({ filters: hidFilters() });
+    if (!devices.length) return null;
+    next = devices[0];
+  }
+  if (device && device !== next && device.opened) await device.close();
+  attachDevice(next);
+  if (!device.opened) await device.open();
+  newSession();
+  return next;
+}
+async function readHello() {
+  const hello = json(await session.request(CMD.HELLO));
+  if (hello.proto !== 2 || hello.name !== 'Navio Chron') throw new Error('Unexpected HID identity');
+  return hello;
+}
+async function otaStatus() {
+  const data = await session.request(CMD.OTA_STATUS);
+  if (data.length !== 16 || data[13] || data[14] || data[15]) throw new Error('Malformed OTA_STATUS');
+  return { session: data[0], updateError: data[1], targetSlot: data[2], runningSlot: data[3],
+    imageSize: u32(data, 4), received: u32(data, 8), imageState: data[12] };
+}
+async function reconnect() {
+  await sleep(1500);
+  const started = performance.now();
+  for (let attempt = 0; performance.now() - started < 10000; ++attempt) {
+    try {
+      const devices = await navigator.hid.getDevices();
+      const next = devices.find(isNavioDevice);
+      if (attempt % 4 === 0)
+        log(`RECONNECT attempt=${attempt} authorized=${devices.length} navio=${Boolean(next)}`);
+      if (next) {
+        attachDevice(next);
+        if (!device.opened) await device.open();
+        newSession();
+        log(`Reconnected: ${device.productName}, elapsed=${Math.round(performance.now() - started)}ms`);
+        return true;
+      }
+    } catch (error) {
+      if (attempt % 4 === 0) log(`RECONNECT attempt=${attempt} error=${error.message}`);
+    }
+    await sleep(500);
+  }
+  log('RECONNECT authorization not restored; manual selection required');
+  return false;
+}
+
+function showConfirmation(plan) {
+  pendingConfirmation = plan;
+  $('confirmText').textContent = plan.path === 'ota'
+    ? `当前版本：${helloCache.fw}\n目标版本：${manifest.version}（${manifest.channel}）\n将通过应用升级保留现有预设。`
+    : `目标版本：${manifest.version}（${manifest.channel}）\n将完整刷写设备。`;
+  $('eraseWarning').hidden = !plan.showEraseWarning;
+  $('preserveNotice').hidden = !plan.showPreserveNotice;
+  $('confirmWrite').textContent = plan.versionPermission?.kind === 'downgrade' ? '确认降级' :
+    plan.versionPermission?.kind === 'reinstall' ? '重新安装' : '确认升级';
+  $('confirm').hidden = false;
+  status('请确认写入操作');
+}
+function showRescue(reason) {
+  pendingConfirmation = null;
+  pendingVerification = null;
+  $('confirm').hidden = true;
+  $('verify').hidden = true;
+  status(`${reason}\n请按住 BOOT 插入 USB，松开后点击“BOOT / ROM 救援”。`);
+}
+function showSuccess(message, otaDiagnostic = true) {
+  pendingVerification = null;
+  pendingConfirmation = null;
+  romConnection = null;
+  navioConfirmed = false;
+  presetsBefore = null;
+  helloCache = null;
+  $('verify').hidden = true;
+  $('confirm').hidden = true;
+  $('diagnose').hidden = !otaDiagnostic;
+  $('progress').value = 100;
+  status(message);
+}
+
+async function startOta() {
+  const decision = R.decide({ hidVisible: true, helloOk: true, hasOtaCmds: true,
+    currentVersion: helloCache.fw, targetVersion: manifest.version, channel: manifest.channel });
+  if (decision.path === 'latest') {
+    status('已是最新版本');
+    return;
+  }
+  const images = await downloadImages(true);
+  presetsBefore = await session.request(CMD.GET_PRESETS);
+  if (!presetsBefore.length || presetsBefore[0] === 0) throw new Error('Preset manifest is empty');
+  showConfirmation({ ...decision, images, beforePresets: presetsBefore });
+}
+
+async function runOta(plan) {
+  const firmware = plan.images[0].data;
+  const started = performance.now();
+  let initial = await otaStatus();
+  log({ hello: helloCache, initial });
+  if (initial.session === 2) {
+    await session.request(CMD.OTA_REBOOT);
+    await device.close();
+    if (!await reconnect()) {
+      status('设备已重启，请点击“连接并升级”重新授权后继续');
+      return;
+    }
+    initial = await otaStatus();
+    log({ recovered: initial });
+  }
+  if (initial.session !== 0) throw new Error('OTA session is active; abort or reboot first');
+  if (initial.imageState === 2) throw new Error('Confirm the running image before another OTA');
+  const info = json(await session.request(CMD.GET_INFO));
+  for (let cmd = 10; cmd <= 16; ++cmd)
+    if (!info.cmds.includes(cmd)) throw new Error('Device does not advertise complete OTA support');
+
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', firmware));
+  const begin = await session.request(CMD.OTA_BEGIN, P.concat(le32(firmware.length), digest), LONG);
+  if (begin.length !== 4 || ![0, 1].includes(begin[0]) || u16(begin, 1) !== 2044 || begin[3])
+    throw new Error('Malformed OTA_BEGIN response');
+  const target = begin[0];
+  log(`BEGIN app${target}, ${firmware.length} bytes`);
+
+  const total = Math.ceil(firmware.length / 2044);
+  const reportEvery = Math.max(1, Math.floor(total / 20));
+  for (let block = 0, offset = 0; offset < firmware.length; ++block, offset += 2044) {
+    const chunk = firmware.subarray(offset, Math.min(offset + 2044, firmware.length));
+    const response = await session.request(CMD.OTA_WRITE, P.concat(le32(offset), chunk));
+    if (u32(response) !== offset + chunk.length) throw new Error(`Offset mismatch at ${offset}`);
+    $('progress').value = Math.round(95 * (offset + chunk.length) / firmware.length);
+    if ((block + 1) % reportEvery === 0 || offset + chunk.length === firmware.length)
+      log(`WRITE ${offset + chunk.length}/${firmware.length}`);
+  }
+  const finish = await session.request(CMD.OTA_FINISH, new Uint8Array(), LONG);
+  if (finish.length !== 1 || finish[0] !== target) throw new Error('Malformed OTA_FINISH response');
+  await session.request(CMD.OTA_REBOOT);
+  await device.close();
+  plan.target = target;
+  pendingVerification = plan;
+  status('正在重新连接…');
+  if (!await reconnect()) {
+    $('verify').hidden = false;
+    status('设备已重启；浏览器需要重新授权，请点击“重新连接并验证”');
+    return;
+  }
+  await verifyOta(plan, started);
+}
+
+async function verifyOta(plan, started = performance.now()) {
+  const updatedHello = await readHello();
+  if (updatedHello.fw !== manifest.version)
+    throw new Error(`版本不符：${updatedHello.fw} != ${manifest.version}`);
+  const updated = await otaStatus();
+  log({ updatedHello, updated });
+  if (updated.runningSlot !== plan.target) throw new Error('Booted slot does not match OTA target');
+  if (![1, 2].includes(updated.imageState)) throw new Error('New image is not valid or pending');
+  const afterPresets = await session.request(CMD.GET_PRESETS);
+  if (!sameBytes(plan.beforePresets, afterPresets)) throw new Error('Preset manifest changed during OTA');
+  const confirmed = await session.request(CMD.OTA_CONFIRM);
+  if (confirmed.length !== 1 || confirmed[0] !== 1) throw new Error('Image did not reach VALID');
+  const finalStatus = await otaStatus();
+  if (finalStatus.imageState !== 1 || finalStatus.runningSlot !== plan.target)
+    throw new Error('Final OTA state is not VALID on the target slot');
+  showSuccess(`升级完成：${updatedHello.fw}，预设已保留（${((performance.now() - started) / 1000).toFixed(1)}s）`);
+}
+
+async function verifyRom(plan) {
+  const updatedHello = await readHello();
+  if (updatedHello.fw !== manifest.version)
+    throw new Error(`版本不符：${updatedHello.fw} != ${manifest.version}`);
+  const afterPresets = await session.request(CMD.GET_PRESETS);
+  if (!afterPresets.length || afterPresets[0] === 0) throw new Error('Preset manifest is empty');
+  if (plan.beforePresets && !sameBytes(plan.beforePresets, afterPresets))
+    throw new Error('Preset manifest changed during ROM flash');
+  const current = await otaStatus();
+  log({ updatedHello, current });
+  if (current.runningSlot !== 0 || current.imageState !== 6)
+    throw new Error(`ROM state mismatch: app${current.runningSlot}, state=${current.imageState}`);
+  showSuccess(`刷写完成：${updatedHello.fw}，app0 / UNDEFINED`, false);
+}
+
+async function runRomWrite(plan) {
+  const { loader, transport } = romConnection;
+  try {
+    await loader.writeFlash({
+      fileArray: plan.images,
+      flashMode: manifest.flash.mode,
+      flashFreq: manifest.flash.freq,
+      flashSize: manifest.flash.size,
+      eraseAll: plan.eraseAll,
+      compress: true,
+      reportProgress: (fileIndex, written, total) => {
+        $('progress').value = Math.min(95, Math.round(95 * (fileIndex + written / total) / plan.images.length));
+        if (written === total || written % 65536 < 2048)
+          log(`FLASH ${plan.images[fileIndex].file}: ${written}/${total}`);
+      },
+    });
+    await transport.setSignals(false, true);
+    await sleep(100);
+    await transport.setSignals(false, false);
+    await sleep(500);
+    log('Hard reset pulse sent');
+    pendingVerification = plan;
+    $('verify').hidden = false;
+    status('刷写完成，等待验证；请点击“重新连接并验证”');
+  } finally {
+    try { await transport.disconnect(); } catch (_) {}
+    romConnection = null;
+  }
+}
+
+$('connect').onclick = () => run(async () => {
+  if (!navigator.hid) throw new Error('WebHID 不可用，请使用桌面 Chrome / Edge');
+  if (!manifest) await loadRelease();
+  navioConfirmed = false;
+  helloCache = null;
+  presetsBefore = null;
+  pendingVerification = null;
+  $('verify').hidden = true;
+  $('diagnose').hidden = true;
+  $('progress').value = 0;
+  const selected = await chooseHid();
+  if (!selected) {
+    showRescue('未选择 Navio 设备；可以重试，或进入 BOOT 救援。');
+    return;
+  }
+  navioConfirmed = true;
+  try {
+    helloCache = await readHello();
+  } catch (error) {
+    log(error.stack || String(error));
+    showRescue('已确认 Navio USB 身份，但设备没有响应；预设保留决策将在本次会话中保留。');
+    return;
+  }
+  log({ hello: helloCache });
+  const info = json(await session.request(CMD.GET_INFO));
+  log({ info });
+  const hasOtaCmds = Array.from({ length: 7 }, (_, index) => index + 10).every(cmd => info.cmds.includes(cmd));
+  const decision = R.decide({ hidVisible: true, helloOk: true, hasOtaCmds,
+    currentVersion: helloCache.fw, targetVersion: manifest.version, channel: manifest.channel });
+  if (decision.path === 'rescue') {
+    showRescue('当前固件不支持应用升级；将保留预设，需要一次 BOOT 救援。');
+    return;
+  }
+  await startOta();
+});
+
+async function startSerial(resetMode, demoProfile = false) {
+  if (!navigator.serial) throw new Error('Web Serial 不可用，请使用桌面 Chrome / Edge');
+  if (!manifest) await loadRelease();
+  if (romConnection) {
+    try { await romConnection.transport.disconnect(); } catch (_) {}
+    romConnection = null;
+  }
+  if (demoProfile) {
+    navioConfirmed = false;
+    helloCache = null;
+    presetsBefore = null;
+  }
+  $('diagnose').hidden = true;
+  $('verify').hidden = true;
+  pendingVerification = null;
+  $('progress').value = 0;
+  let port;
+  try { port = await navigator.serial.requestPort(); }
+  catch (error) {
+    if (error.name === 'NotFoundError') { status('未选择串口，可以重试'); return; }
+    throw error;
+  }
+  if (demoProfile) {
+    const info = port.getInfo();
+    if (info.usbVendorId !== 0x303A || info.usbProductId !== 0x1001) {
+      showRescue('未识别的演示固件 USB 标识；未尝试复位，也未写入 Flash。');
+      return;
+    }
+    log('DEMO PROFILE 303A:1001 USB-Serial/JTAG');
+  }
+  const transport = new Transport(port, true);
+  const loader = new ESPLoader({
+    transport,
+    baudrate: 115200,
+    terminal: { clean() {}, writeLine: log, write: data => { out.textContent += data; } },
+  });
+  try {
+    const chipName = await loader.main(resetMode);
+    log(`CHIP ${chipName}`);
+    if (!chipName.startsWith('ESP32-S3')) throw new Error(`Unexpected chip: ${chipName}`);
+  } catch (error) {
+    try { await transport.disconnect(); } catch (_) {}
+    log(error.stack || String(error));
+    showRescue(resetMode === 'no_reset'
+      ? '没有取得 ROM 响应；未尝试复位，也未写入 Flash。'
+      : '演示固件自动进入 ROM 失败；未写入 Flash。');
+    return;
+  }
+  romConnection = { port, transport, loader };
+  let images;
+  try { images = await downloadImages(false); }
+  catch (error) {
+    try { await transport.disconnect(); } catch (_) {}
+    romConnection = null;
+    throw error;
+  }
+  const decision = R.decide({ navioConfirmed, serialOnly: true, romSyncOk: true });
+  showConfirmation({ ...decision, images, beforePresets: presetsBefore });
+}
+$('demo').onclick = () => run(() => startSerial('default_reset', true));
+$('rom').onclick = () => run(() => startSerial('no_reset'));
+
+$('confirmWrite').onclick = () => run(async () => {
+  const plan = pendingConfirmation;
+  if (!plan) return;
+  pendingConfirmation = null;
+  $('confirm').hidden = true;
+  if (plan.path === 'ota') await runOta(plan);
+  else if (plan.path === 'rom') await runRomWrite(plan);
+});
+
+$('cancelWrite').onclick = () => run(async () => {
+  pendingConfirmation = null;
+  navioConfirmed = false;
+  presetsBefore = null;
+  $('confirm').hidden = true;
+  if (romConnection) {
+    try { await romConnection.transport.disconnect(); } catch (_) {}
+    romConnection = null;
+  }
+  status('已取消，未写入设备');
+});
+
+$('verify').onclick = () => run(async () => {
+  const plan = pendingVerification;
+  if (!plan) return;
+  const selected = await chooseHid();
+  if (!selected) { status('未选择设备，验证尚未完成'); return; }
+  navioConfirmed = true;
+  if (plan.path === 'ota') await verifyOta(plan);
+  else await verifyRom(plan);
+});
+
+$('diagnose').onclick = () => run(async () => {
+  if (!device || !device.opened) throw new Error('设备未连接');
+  const current = await otaStatus();
+  const confirmed = await session.request(CMD.OTA_CONFIRM);
+  log({ current, confirmed: Array.from(confirmed) });
+  status(`OTA 诊断：app${current.runningSlot}，state=${current.imageState}`);
+});
+
+$('manifest').addEventListener('input', () => {
+  manifest = null;
+  releaseBase = null;
+  status('发布包已变更，点击连接或救援以重新加载');
+});
+window.addEventListener('load', () => run(loadRelease));
+</script>

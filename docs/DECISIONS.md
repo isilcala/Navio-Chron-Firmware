@@ -287,6 +287,19 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   自托管并记录 SRI/完整性摘要和 Apache-2.0 许可。实测 0.7.0 原生 USB 的刷后 HardReset 不产生
   EN 脉冲，ROM 探针刷后显式拉高 RTS 100ms 再释放（DTR=false）。实施顺序为 manifest/ROM 探针
   → 统一入口 → 实测矩阵。
+- 统一入口开工前修订：Navio 身份在当前升级会话内锁存，跨 BOOT 与串口重枚举继续决定
+  `eraseAll=false`，但不跨页面刷新持久化；确认页同时明示“保留预设”或“擦除数据”。ROM 裸探测
+  固定用 `main("no_reset")`，失败直接救援，不做复位尝试。stable 同版本显示已最新并结束，dev
+  同版本仅允许显式重装；SemVer 遵循 pre-release 规则。OTA 验证目标槽与 VALID，ROM 直刷验证
+  app0 与 UNDEFINED(6)，不得混用断言。演示固件自动复位仍须实测 profile，不作提前承诺。
+- 统一 OTA 实机发现 Chrome 重枚举后可持续 `getDevices()=[]`（60 秒仍为 authorized=0），
+  属授权未恢复，延长轮询无效。自动重连窗口定为 10 秒，随后转用户手动重新授权验证；
+  这与 D21 的重新选择许可一致，不再把手动授权显示为超时错误。
+- 首个演示固件 profile 实测通过（2026-10-29）：SuperMini FastLED 演示应用（Arduino 3.3.7）
+  使用 303A:1001 USB-Serial/JTAG；运行中 no_reset 失败且 RGB 不受影响，default_reset 可进入
+  ROM。自动复位与写入必须保持同一串口会话，不能断开后再 no_reset。统一页仅对该实测 VID/PID
+  开放自动入口；未知设备确认 eraseAll=true 后完整迁移，HELLO 与 app0/UNDEFINED 通过。
+  原始 4MB Flash 已备份校验，但恢复写入未实测，不宣称恢复流程已验收。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
