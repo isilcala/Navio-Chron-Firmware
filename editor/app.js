@@ -1,5 +1,5 @@
-import { renderDevice } from './device_svg.js?v=20261030-4';
-const P = NavioEditorPreset, $ = id => document.getElementById(id);
+import { renderDevice } from './device_svg.js?v=20261101-1';
+const P = NavioEditorPreset, L = NavioEditorLibrary, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const key = (mods, code) => ({ kind: P.Kind.KeyChord, mods, code, wheelDy: 0 });
 const consumer = code => ({ kind: P.Kind.Consumer, mods: 0, code, wheelDy: 0 });
@@ -45,25 +45,38 @@ function factoryLibrary() {
   f13.actions[16] = consumer(0xE9); f13.actions[17] = consumer(0xEA);
   f13.actions[18] = key(1, 0x2E); f13.actions[19] = key(1, 0x2D);
   f13.actions[20] = wheel(0, 1); f13.actions[21] = wheel(0, -1);
+  for (const preset of [jianying, resolve, test, f13]) {
+    preset._readonly = true;
+    preset.templateId = preset.name;
+  }
   return [jianying, resolve, test, f13];
 }
-let migrationNeeded = false;
-function loadLibrary() {
+function loadUserPresets() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && saved.schemaVersion === 1 && Array.isArray(saved.presets) && saved.presets.length) {
-      if (saved.demoVersion === 3) return saved.presets;
-      migrationNeeded = saved.presets.some(preset => preset._dirty || preset._dirtySlots?.length);
-      if (migrationNeeded) return saved.presets;
-    }
-  } catch (_) {}
-  return factoryLibrary();
+    const userPresets = L.migrateLegacy(saved).userPresets;
+    L.syncTemplates(userPresets, factoryLibrary(), (preset, template) =>
+      confirm(`官方模板“${template.name}”已更新，是否用新版替换你的预设“${preset.name}”？`));
+    return userPresets;
+  } catch (_) { return []; }
 }
-let library = loadLibrary(), selectedPresetId = library[0].uuid;
-function currentPreset() { return library.find(preset => preset.uuid === selectedPresetId) || library[0]; }
+let templates = factoryLibrary(), userPresets = loadUserPresets(), selectedPresetId = templates[0].uuid;
+function currentPreset() {
+  return userPresets.find(preset => preset.uuid === selectedPresetId) ||
+    templates.find(preset => preset.uuid === selectedPresetId) || templates[0];
+}
+function ensureUserCopy() {
+  const preset = currentPreset();
+  if (!preset._readonly) return preset;
+  const copy = P.clonePreset(preset);
+  copy.uuid = uuid(); copy._readonly = false; copy._dirty = true;
+  copy.originTemplateId = preset.templateId; copy.originTemplateVersion = L.TEMPLATE_VERSION;
+  userPresets.push(copy); selectedPresetId = copy.uuid;
+  return copy;
+}
 function dirtySlots() { return new Set(currentPreset()._dirtySlots || []); }
 function saveLibrary() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, demoVersion: 3, presets: library }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(L.packageLibrary(userPresets)));
 }
 function toast(message, error = false) {
   const element = $('toast');
@@ -74,7 +87,7 @@ function toast(message, error = false) {
   toastTimer = setTimeout(() => element.classList.remove('show'), 3200);
 }
 function markDirty(slot) {
-  const preset = currentPreset();
+  const preset = ensureUserCopy();
   preset._dirty = true;
   if (slot >= 0) {
     preset._dirtySlots = preset._dirtySlots || [];
@@ -82,15 +95,20 @@ function markDirty(slot) {
   }
   saveLibrary();
   renderSaveState();
+  renderLibrary();
 }
 function renderSaveState() {
-  const count = library.filter(preset => preset._dirty).length;
+  const count = userPresets.filter(preset => preset._dirty).length;
   $('saveState').textContent = count ? `${count} 套本地修改 · 不会写入设备` : '本地修改，不会写入设备';
 }
-function renderLibrary() {
-  $('presetList').innerHTML = library.map(preset => `<div class="preset-item ${preset.uuid === selectedPresetId ? 'active' : ''}" data-uuid="${preset.uuid}" tabindex="0" role="button">
+function presetItem(preset) {
+  return `<div class="preset-item ${preset.uuid === selectedPresetId ? 'active' : ''}" data-uuid="${preset.uuid}" tabindex="0" role="button">
     <i class="swatch" style="background:rgb(${preset.accent.join(',')})"></i><span class="preset-name"></span>${preset._dirty ? '<span class="dirty-mark">●</span>' : ''}
-  </div>`).join('');
+  </div>`;
+}
+function renderLibrary() {
+  $('presetList').innerHTML = `<h3 class="library-section">官方模板</h3>${templates.map(presetItem).join('')}
+    <h3 class="library-section">我的预设</h3>${userPresets.length ? userPresets.map(presetItem).join('') : '<p class="hint">修改官方模板会自动创建副本</p>'}`;
   $('presetList').querySelectorAll('.preset-item').forEach(element => {
     element.querySelector('.preset-name').textContent = currentName(element.dataset.uuid);
     const select = () => {
@@ -102,7 +120,10 @@ function renderLibrary() {
     element.addEventListener('keydown', event => { if (event.key === 'Enter') select(); });
   });
 }
-function currentName(id) { return library.find(preset => preset.uuid === id)?.name || ''; }
+function currentName(id) {
+  return userPresets.find(preset => preset.uuid === id)?.name ||
+    templates.find(preset => preset.uuid === id)?.name || '';
+}
 function renderTitle() { $('currentPresetTitle').textContent = currentPreset().name || '未命名预设'; }
 function renderEncoderDetail() {
   const detail = $('encoderDetail');
@@ -172,7 +193,7 @@ function renderAll() { renderTitle(); renderLibrary(); renderSvg(); renderInspec
 $('inspector').addEventListener('change', event => {
   const form = event.target.closest('.action-card');
   if (!form) return;
-  const slot = Number(form.dataset.slot), action = { ...currentPreset().actions[slot] };
+  const slot = Number(form.dataset.slot), preset = ensureUserCopy(), action = { ...preset.actions[slot] };
   if (event.target.dataset.field === 'kind') {
     action.kind = Number(event.target.value);
     if (action.kind === P.Kind.None) { action.mods = 0; action.code = 0; action.wheelDy = 0; }
@@ -181,7 +202,7 @@ $('inspector').addEventListener('change', event => {
     else if (action.kind === P.Kind.Wheel) { action.code = 0; action.wheelDy = 1; }
     const issue = P.actionError(action, slot < 16);
     if (issue) { toast(issue, true); return; }
-    currentPreset().actions[slot] = action;
+    preset.actions[slot] = action;
     markDirty(slot);
     renderSvg(); renderInspector();
   }
@@ -189,19 +210,19 @@ $('inspector').addEventListener('change', event => {
 $('inspector').addEventListener('input', event => {
   const form = event.target.closest('.action-card');
   if (!form || event.target.dataset.field === 'kind') return;
-  const slot = Number(form.dataset.slot), action = { ...currentPreset().actions[slot] };
+  const slot = Number(form.dataset.slot), preset = ensureUserCopy(), action = { ...preset.actions[slot] };
   if (event.target.dataset.field === 'code') action.code = Number(event.target.value);
   else if (event.target.dataset.field === 'wheelDy') action.wheelDy = Number(event.target.value);
   else if (event.target.dataset.bit) action.mods = event.target.checked ? action.mods | Number(event.target.dataset.bit) : action.mods & ~Number(event.target.dataset.bit);
   const issue = P.actionError(action, slot < 16);
   if (issue) { toast(issue, true); return; }
-  currentPreset().actions[slot] = action;
+  preset.actions[slot] = action;
   markDirty(slot);
   renderSvg();
   form.querySelector('h3').innerHTML = `<span>${form.querySelector('h3 span').textContent}</span> · ${P.actionLabel(action)}`;
 });
 $('presetName').addEventListener('input', event => {
-  const preset = currentPreset();
+  const preset = ensureUserCopy();
   preset.name = event.target.value;
   preset._dirty = true;
   $('nameBytes').textContent = `${P.utf8Length(preset.name)}/23B`;
@@ -209,28 +230,32 @@ $('presetName').addEventListener('input', event => {
   saveLibrary(); renderLibrary(); renderTitle(); renderSaveState();
 });
 $('presetAccent').addEventListener('input', event => {
-  const hex = event.target.value;
-  currentPreset().accent = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
+  const hex = event.target.value, preset = ensureUserCopy();
+  preset.accent = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
   markDirty(-1); renderLibrary();
 });
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; renderInspector(); }));
+function nextPresetId() {
+  return Math.max(...templates.map(preset => preset.id), ...userPresets.map(preset => preset.id), 0) + 1;
+}
 $('newPreset').addEventListener('click', () => {
-  const nextId = Math.max(...library.map(preset => preset.id), 0) + 1;
+  const nextId = nextPresetId();
   if (nextId > 255) { toast('本地 presetId 已用完', true); return; }
   const preset = P.createEmptyPreset(nextId, `自定义预设 ${nextId}`);
-  preset.uuid = uuid(); preset._dirty = true;
-  library.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
+  preset.uuid = uuid(); preset._dirty = true; preset.originTemplateId = null;
+  userPresets.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
 });
 $('duplicatePreset').addEventListener('click', () => {
-  const preset = P.clonePreset(currentPreset());
-  const nextId = Math.max(...library.map(item => item.id), 0) + 1;
+  const source = currentPreset(), preset = P.clonePreset(source), nextId = nextPresetId();
   if (nextId > 255) { toast('本地 presetId 已用完', true); return; }
   preset.id = nextId; preset.uuid = uuid(); preset.name = `${preset.name} 副本`; preset._dirty = true;
-  library.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
+  preset._readonly = false; preset.originTemplateId = source.templateId || null;
+  preset.originTemplateVersion = source.templateId ? L.TEMPLATE_VERSION : null;
+  userPresets.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
 });
 $('resetLibrary').addEventListener('click', () => {
-  if (!confirm('恢复三套示例预设？当前本地库会被替换。')) return;
-  localStorage.removeItem(STORAGE_KEY); library = factoryLibrary(); selectedPresetId = library[0].uuid;
+  if (!confirm('清空“我的预设”？官方模板会保留。')) return;
+  userPresets = []; selectedPresetId = templates[0].uuid;
   selectedInput = { type: 'btn', index: 0 }; saveLibrary(); renderAll();
 });
 $('exportPreset').addEventListener('click', () => {
@@ -253,19 +278,11 @@ $('importPreset').addEventListener('change', async event => {
     const errors = P.presetErrors(content.preset);
     if (errors.length) throw new Error(errors[0]);
     const preset = content.preset;
-    preset.uuid = uuid(); preset._dirty = true;
-    library.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
+    preset.uuid = uuid(); preset._dirty = true; preset.originTemplateId = null;
+    userPresets.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
     toast('已导入本地库，未写入设备');
   } catch (error) { toast(error.message, true); }
   event.target.value = '';
 });
 
 renderAll();
-if (migrationNeeded) {
-  if (confirm('示例预设已更新，是否用最新出厂预设替换本地库？\n选择“取消”将保留当前库。')) {
-    library = factoryLibrary();
-    selectedPresetId = library[0].uuid;
-  }
-  saveLibrary();
-  renderAll();
-}

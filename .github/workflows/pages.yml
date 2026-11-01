@@ -36,6 +36,7 @@ jobs:
           node tools/probe/webflash_rules_test.js
           node tools/probe/navio_proto_test.js
           node editor/preset_test.js
+          node editor/library_test.js
       - name: Assemble static site
         run: |
           release_dir=$(find release -mindepth 1 -maxdepth 1 -type d -name 'navio_chron_*' -print -quit)
