@@ -39,6 +39,7 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 
 ```
 .github/workflows/pages.yml  GitHub Pages：构建统一页、manifest 与四件套并部署
+editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试
 include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
 src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
 src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）
@@ -75,6 +76,7 @@ release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 | 技术选型、推翻或修订已有决策、新踩平台/库的坑 | `docs/DECISIONS.md`（新增 D 条目 / 修订 / 显式撤销——撤销要留痕，如 D11） |
 | 阶段目标完成、范围变化、手势/交互语义变更 | `docs/PROJECT.md` 分期表 + `README.md` Status + 本文件"当前状态" |
 | 构建环境（platformio.ini）、烧录流程、目录结构 | 本文件"构建环境/构建与烧录/代码地图" + `README.md` Build/Layout |
+| Web 编辑器交互、视觉资产、预设 CRUD 与本地库语义 | `docs/WEBUI_EDITOR.md` + `docs/PROJECT.md` 阶段状态 |
 | 升级/降级依赖版本 | `docs/DECISIONS.md`（版本策略 D8：锁定已验证组合） |
 
 原则：**文档陈述的状态永远不得超前于代码**（写"已完成"必须先实测）；
@@ -88,7 +90,8 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
 现有双模输入与五环境构建均通过。遗留（按优先级）：
 1. Phase 2：协议、动态预设与 USB OTA 核心验收完成（D19/D20/D21）；
    Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），单入口、三条核心路径及
-   中断/负向验收及 GitHub Pages 线上 OTA 验收已完成，下一步 Web 配置工具
+   中断/负向验收及 GitHub Pages 线上 OTA 验收已完成；Web 编辑器静态 SVG 原型已实现，
+   下一步设备连接与最小闭环
 2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Navio Chron 预设编辑器</title>
+  <meta http-equiv="Cache-Control" content="no-store">
+  <link rel="stylesheet" href="styles.css?v=20261030-4">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>预设编辑器 · 本地交互原型</small></div></div>
+    <div class="top-actions">
+      <span id="saveState" class="save-state">本地修改，不会写入设备</span>
+      <a href="../" class="button secondary">固件刷写</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="panel library-panel">
+      <div class="panel-heading"><div><span class="eyebrow">PRESET LIBRARY</span><h2>预设库</h2></div><button id="newPreset" class="icon-button" title="新建预设">＋</button></div>
+      <div id="presetList" class="preset-list"></div>
+      <div class="library-actions">
+        <button id="duplicatePreset" class="button secondary">复制当前</button>
+        <button id="resetLibrary" class="button ghost">恢复示例</button>
+      </div>
+      <div class="import-export">
+        <button id="exportPreset" class="button secondary">导出 .navio.json</button>
+        <label class="button secondary file-button">导入预设<input id="importPreset" type="file" accept=".json,.navio.json"></label>
+      </div>
+      <p class="hint">导入只会进入本地库，不会覆盖设备配置。本地库支持 schemaVersion 迁移。</p>
+    </aside>
+
+    <section class="device-panel">
+      <div class="device-heading"><div><span class="eyebrow">DEVICE MAP</span><h2 id="currentPresetTitle">当前预设</h2></div><span class="device-caption">点击键位或旋钮开始编辑</span></div>
+      <div id="device" class="device-stage"></div>
+      <div id="encoderDetail" class="encoder-detail" hidden></div>
+      <div class="legend"><span><i class="legend-selected"></i>当前选中</span><span><i class="legend-dirty"></i>本地已修改</span><span><i class="legend-locked"></i>全局保留</span></div>
+    </section>
+
+    <aside class="panel inspector-panel">
+      <div class="panel-heading"><div><span class="eyebrow">INSPECTOR</span><h2 id="selectionTitle">键位设置</h2></div></div>
+      <div class="preset-meta">
+        <label>预设名称<input id="presetName" type="text" maxlength="40"><span id="nameBytes" class="byte-count"></span></label>
+        <label class="color-label">主题色<input id="presetAccent" type="color" value="#ff7828"></label>
+      </div>
+      <div class="tabs" role="tablist"><button class="tab active" data-tab="mapping" role="tab">键位映射</button><button class="tab" data-tab="lighting" role="tab">灯光效果</button></div>
+      <div id="inspector"></div>
+    </aside>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="preset.js?v=20261030-4"></script>
+  <script type="module" src="app.js?v=20261030-4"></script>
+</body>
+</html>

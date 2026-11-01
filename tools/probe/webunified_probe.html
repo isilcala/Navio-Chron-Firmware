@@ -15,6 +15,7 @@
   [hidden]{display:none!important}
 </style>
 <h1>Navio Web 刷写</h1>
+<p><a id="editorLink" href="/editor/">打开预设编辑器</a></p>
 <!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
 <input id="manifest" type="text" value="/release/navio_chron_0.4.0-dev/manifest.json">
 <div>
@@ -46,6 +47,7 @@ const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
   OTA_REBOOT: 15, OTA_CONFIRM: 16 };
 const LONG = { timeoutMs: 10000, maxRetries: 2 };
 const $ = id => document.getElementById(id);
+$('editorLink').href = location.pathname.includes('/tools/probe/') ? '/editor/' : './editor/';
 const out = $('out'), waiters = [], reports = [];
 let manifest, releaseBase, device, session, navioConfirmed = false;
 let pendingConfirmation = null, pendingVerification = null, romConnection = null;

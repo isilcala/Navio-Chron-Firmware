@@ -315,6 +315,18 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   https://isilcala.github.io/Navio-Chron-Firmware/ ，线上 manifest 与 firmware SHA-256 一致；
   线上 OTA 验收已通过（2026-10-30）。
 
+## D23. Web 预设编辑器：俯视 SVG、本地库先行、显式 upsert（2026-10-30）
+
+- `docs/WEBUI_EDITOR.md` 冻结交互与数据约束：中央 SVG 俯视图点选、左侧本地库、右侧动作面板，
+  先静态原型再接设备；不引入框架或 3D，不为编辑器新增线上协议。
+- 数据模型为 21 个可编辑槽 + SideKey 锁定槽；每个编码器一个热点，面板分别编辑 CW/CCW/按压，
+  旋转槽不限制为 Wheel。锁定槽读入→写回原样保留。
+- 本地 UUID 与设备 presetId 分离；同 ID WRITE_PRESET 是 upsert，安装前必须显式确认替换，
+  满容量采用同 ID 覆盖而非先删后写。名称按 23B UTF-8 校验，不按字符数。
+- 批量应用不宣称原子：先全量校验，逐条提交，失败显示 X/Y 并重读对账。MOVE 使用 beforeId 锚点，
+  删除活动预设显示切换结果，activeId 靠 focus/重连/应用后刷新。
+- 页面预留独立灯光页签和预览层，但首版不承诺 LED_PREVIEW；Pages 同时承载编辑器与刷写页。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带

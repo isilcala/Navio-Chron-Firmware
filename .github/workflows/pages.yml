@@ -35,6 +35,7 @@ jobs:
         run: |
           node tools/probe/webflash_rules_test.js
           node tools/probe/navio_proto_test.js
+          node editor/preset_test.js
       - name: Assemble static site
         run: |
           release_dir=$(find release -mindepth 1 -maxdepth 1 -type d -name 'navio_chron_*' -print -quit)
@@ -43,6 +44,7 @@ jobs:
           cp tools/probe/webunified_probe.html _site/index.html
           cp tools/probe/navio_proto.js tools/probe/webflash_rules.js _site/
           cp tools/probe/esptool-js.bundle.js tools/probe/esptool-js.LICENSE _site/
+          cp -r editor _site/editor
           cp "$release_dir/manifest.json" _site/
           cp "$release_dir"/*.bin _site/
           sed -i 's#value="/release/[^"]*/manifest.json"#value="./manifest.json"#' _site/index.html

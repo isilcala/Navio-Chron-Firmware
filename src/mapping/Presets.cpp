@@ -20,7 +20,7 @@ static const Preset kPresetJianYing = {
         /* K2  顶部中   */ actKey(MOD_CTRL, HID_B),             // 切分
         /* K3  顶部右   */ actKey(MOD_NONE, HID_W),             // 右剪裁
         /* K4  旋钮右上 */ actKey(MOD_CTRL, HID_Z),             // 撤销
-        /* K5  旋钮右下 */ actKey(MOD_CTRL, HID_Y),             // 重做
+        /* K5  旋钮右下 */ actKey(MOD_CTRL | MOD_SHIFT, HID_Z),  // 重做
         /* K6  右下右   */ actKey(MOD_NONE, HID_SPACE),         // 播放/暂停
         /* K7  右下左   */ actKey(MOD_NONE, HID_BACKSPACE),     // 删除
         /* K8  箭头上   */ actKey(MOD_NONE, HID_UP),
@@ -104,7 +104,7 @@ static const Preset kPresetResolve = {
 // TODO(Elvin): 按 Premiere / 剪映 / Resolve / Procreate 的实际习惯细分，
 //              并拆分 Win(Ctrl) / Mac(Cmd) 版本；编码器先沿用测试配置。
 // 剪映预设参考（上游 layer0 原始映射，物理位见 docs/hardware/HARDWARE_NOTES.md）：
-//   K1=q K2=Ctrl+B K3=w K4=Ctrl+Z K5=Ctrl+Y K6=Space K7=Backspace
+//   K1=q K2=Ctrl+B K3=w K4=Ctrl+Z K5=Ctrl+Shift+Z K6=Space K7=Backspace
 //   K8=↑ K9=Alt K10=← K11=↓ K12=→ 大旋钮按压=Space 中央旋钮按压=v
 //   中央旋钮=←/→ 大旋钮=Alt+滚轮(时间轴) 滚轮=Ctrl+滚轮(缩放)
 static const Preset kPresetF13 = {
