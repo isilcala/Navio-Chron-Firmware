@@ -113,7 +113,7 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
 {
   "schema": 1,
   "product": "navio-chron",
-  "version": "0.4.0-dev",
+  "version": "0.5.0-dev",
   "channel": "dev",
   "chip": "esp32s3",
   "hid": {"vendorId": "0xCAFE", "productId": "0xBEEF", "usagePage": "0xFF00", "usage": 1},
