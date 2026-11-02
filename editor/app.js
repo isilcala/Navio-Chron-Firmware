@@ -15,7 +15,7 @@ function factoryLibrary() {
   jianying.actions[0] = key(0, 0x14); jianying.actions[1] = key(1, 0x05); jianying.actions[2] = key(0, 0x1A);
   jianying.actions[3] = key(1, 0x1D); jianying.actions[4] = key(3, 0x1D); jianying.actions[5] = key(0, 0x2C);
   jianying.actions[6] = key(0, 0x2A); jianying.actions[7] = key(0, 0x52); jianying.actions[8] = key(4, 0);
-  jianying.actions[9] = key(0, 0x51); jianying.actions[10] = key(0, 0x50); jianying.actions[11] = key(0, 0x4F);
+  jianying.actions[9] = key(0, 0x50); jianying.actions[10] = key(0, 0x51); jianying.actions[11] = key(0, 0x4F);
   jianying.actions[12] = key(0, 0x19); jianying.actions[13] = key(0, 0x2C); jianying.actions[14] = key(0, 0x27);
   jianying.actions[16] = key(0, 0x4F); jianying.actions[17] = key(0, 0x50);
   jianying.actions[18] = wheel(4, 1); jianying.actions[19] = wheel(4, -1);
