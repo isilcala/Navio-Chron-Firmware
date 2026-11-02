@@ -66,7 +66,9 @@ for (const { file, json } of entries) {
 // --- 装配：真实文件全量 ---
 const loaded = T.buildTemplates(entries);
 equal(loaded.errors.length, 0, `all ${files.length} official templates assemble without errors`);
-equal(loaded.templates.length, 9, "official library holds 9 templates");
+// 数量下限守卫防误删；目录/索引不一致的精确拦截由下方漂移检查负责（报错带修复指引）
+assert(loaded.templates.length >= 9, "official library shrank below 9 templates — intentional?");
+ok("official library holds at least 9 templates");
 const orders = loaded.templates.map(t => t.templateId);
 equal(orders[0], "jianying-win", "display order starts with jianying-win");
 equal(orders.includes("procreate"), true, "procreate template present");
