@@ -74,7 +74,9 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 - 官方模板共 9 套：`JianYing Win` / `JianYing Mac`、`Resolve Win` / `Resolve Mac`、
   `Premiere Win` / `Premiere Mac`、`Procreate`（iPad）、`Test`、`F13 Macro`。
   Mac 变体 Cmd=左 GUI（mods 位 3）、Option=Alt；快捷键按官方文档填写，以目标 App 实测为准微调。
-- 模板身份即名称；项目无存量用户，模板更名不做 originTemplateId 迁移（breaking change 直接做）。
+- 官方模板的身份是代码内固定的 `templateId` slug（如 `jianying-win`），与显示名解耦：模板改名、
+  改文案不断链。用户副本以 `originTemplateId` 记 slug，`syncTemplates` 按 slug 匹配；
+  模板 `uuid` 是运行时会话标识，不作持久身份。项目无存量用户，身份字段变更不做迁移。
 - 修饰键文案按预设的 `platform` 元数据显示（`win`/`mac`/`ipad`，默认 `win`，非法值加载时矫正为 `win`）：
   mac 与 iPad 共用 `Ctrl/Shift/Opt/Cmd` 短词，win 沿用 `Ctrl/Shift/Alt/Win`；设备图、动作面板、
   详情卡与修饰键勾选框统一跟随。`platform` 只是编辑器与 `.navio.json` 的元数据，不进 150B 记录、

@@ -7,7 +7,7 @@
   "use strict";
 
   const SCHEMA_VERSION = 2, TEMPLATE_VERSION = 1;
-  const FACTORY_IDS = { 1: "JianYing Win", 2: "Resolve Win", 3: "Test", 4: "F13 Macro" };
+  const FACTORY_IDS = { 1: "jianying-win", 2: "resolve-win", 3: "test", 4: "f13-macro" };
   const clone = value => JSON.parse(JSON.stringify(value));
 
   function packageLibrary(userPresets) {
@@ -47,7 +47,7 @@
     let changed = false;
     for (const preset of userPresets) {
       if (!preset.originTemplateId) continue;
-      const template = templates.find(item => item.name === preset.originTemplateId);
+      const template = templates.find(item => item.templateId === preset.originTemplateId);
       const sourceVersion = preset.originTemplateVersion || 0;
       if (!template || sourceVersion >= TEMPLATE_VERSION) continue;
       if (confirmReplacement(preset, template)) {

@@ -7,8 +7,8 @@ function ok(name) { passed++; console.log("PASS", name); }
 function assert(cond, msg) { if (!cond) throw new Error(`assert: ${msg}`); }
 function equal(actual, expected, name) { assert(Object.is(actual, expected), `${name}: ${actual} != ${expected}`); ok(name); }
 function throws(fn, name) { try { fn(); } catch (_) { ok(name); return; } throw new Error(`${name}: expected error`); }
-const template = { name: "JianYing Win", accent: [0, 170, 170], actions: [], _readonly: true, templateId: "JianYing Win" };
-const custom = { uuid: "user-1", id: 9, name: "mine", originTemplateId: "JianYing Win", originTemplateVersion: 0, actions: [] };
+const template = { name: "JianYing Win", accent: [0, 170, 170], actions: [], _readonly: true, templateId: "jianying-win" };
+const custom = { uuid: "user-1", id: 9, name: "mine", originTemplateId: "jianying-win", originTemplateVersion: 0, actions: [] };
 
 equal(L.SCHEMA_VERSION, 2, "library schema is version 2");
 equal(L.migrateLegacy(null).userPresets.length, 0, "empty storage starts with no user presets");
@@ -20,7 +20,7 @@ const legacy = L.migrateLegacy({ schemaVersion: 1, presets: [
   { uuid: "custom-2", id: 8, name: "other", _dirtySlots: [0] },
 ]});
 equal(legacy.userPresets.length, 2, "only modified legacy presets become user presets");
-equal(legacy.userPresets[0].originTemplateId, "JianYing Win", "factory origin is retained");
+equal(legacy.userPresets[0].originTemplateId, "jianying-win", "factory origin is retained");
 equal(legacy.userPresets[1].originTemplateId, null, "custom preset has no factory origin");
 equal(legacy.userPresets[0].originTemplateVersion, L.TEMPLATE_VERSION, "migration does not force an update prompt");
 const packaged = L.packageLibrary(legacy.userPresets);
@@ -45,6 +45,10 @@ equal(Object.hasOwn(replaced, "templateId"), false, "template-only identity does
 const current = { ...custom, originTemplateVersion: L.TEMPLATE_VERSION };
 equal(L.syncTemplates([current], [template], () => { throw new Error("must not prompt for current template"); }), false,
   "current template does not trigger a replacement prompt or save");
+const renamedTemplate = { name: "剪映 Win 版", templateId: "jianying-win", accent: [9, 9, 9], actions: [], _readonly: true };
+const follower = { uuid: "user-3", id: 10, name: "my copy", originTemplateId: "jianying-win", originTemplateVersion: 0, actions: [] };
+equal(L.syncTemplates([follower], [renamedTemplate], () => true), true, "template link survives display renames");
+equal(follower.accent.join(","), "9,9,9", "renamed template content still applies");
 const valid = P.createEmptyPreset(12, "Valid");
 valid.uuid = "valid";
 equal(L.validateUserPresets([valid], P), undefined, "valid stored entry passes centralized validation");

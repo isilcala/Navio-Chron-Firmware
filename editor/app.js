@@ -117,9 +117,12 @@ function factoryLibrary() {
   procreate.actions[18] = key(2, 0x30); procreate.actions[19] = key(2, 0x2F);
   procreate.actions[20] = wheel(0, 1); procreate.actions[21] = wheel(0, -1);
 
-  for (const preset of [jianying, jianyingMac, resolve, resolveMac, premiereWin, premiereMac, procreate, test, f13]) {
+  // 模板身份 = 代码内固定 slug（与显示名解耦，改名不断链）；uuid 仅是本页会话标识
+  for (const [preset, templateId] of [[jianying, 'jianying-win'], [jianyingMac, 'jianying-mac'],
+      [resolve, 'resolve-win'], [resolveMac, 'resolve-mac'], [premiereWin, 'premiere-win'],
+      [premiereMac, 'premiere-mac'], [procreate, 'procreate'], [test, 'test'], [f13, 'f13-macro']]) {
     preset._readonly = true;
-    preset.templateId = preset.name;
+    preset.templateId = templateId;
   }
   return [jianying, jianyingMac, resolve, resolveMac, premiereWin, premiereMac, procreate, test, f13];
 }
@@ -137,10 +140,7 @@ function loadUserPresets() {
     let normalized = false;
     for (const preset of userPresets) {
       if (preset._readonly !== false) { preset._readonly = false; normalized = true; }
-      if (Object.hasOwn(preset, 'templateId')) {
-        if (!preset.originTemplateId && preset.templateId) preset.originTemplateId = preset.templateId;
-        delete preset.templateId; normalized = true;
-      }
+      if (Object.hasOwn(preset, 'templateId')) { delete preset.templateId; normalized = true; }
       if (Object.hasOwn(preset, '_device')) { delete preset._device; normalized = true; }
       if (preset._installedId !== undefined && (!Number.isInteger(preset._installedId) ||
           preset._installedId < 1 || preset._installedId > 255)) {
