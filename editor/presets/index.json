@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "file": "jianying-win.json",
+      "templateId": "jianying-win",
+      "order": 10
+    },
+    {
+      "file": "jianying-mac.json",
+      "templateId": "jianying-mac",
+      "order": 20
+    },
+    {
+      "file": "resolve-win.json",
+      "templateId": "resolve-win",
+      "order": 30
+    },
+    {
+      "file": "resolve-mac.json",
+      "templateId": "resolve-mac",
+      "order": 40
+    },
+    {
+      "file": "premiere-win.json",
+      "templateId": "premiere-win",
+      "order": 50
+    },
+    {
+      "file": "premiere-mac.json",
+      "templateId": "premiere-mac",
+      "order": 60
+    },
+    {
+      "file": "procreate.json",
+      "templateId": "procreate",
+      "order": 70
+    },
+    {
+      "file": "test.json",
+      "templateId": "test",
+      "order": 80
+    },
+    {
+      "file": "f13-macro.json",
+      "templateId": "f13-macro",
+      "order": 90
+    }
+  ]
+}

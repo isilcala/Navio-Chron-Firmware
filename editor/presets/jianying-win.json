@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "jianying-win",
+    "order": 10,
+    "description": "剪映专业版 Windows：Ctrl+B 分割、Ctrl+Z/Shift+Ctrl+Z 撤销重做、Alt/Ctrl+滚轮缩放（上游 layer0 实测回填）"
+  },
+  "preset": {
+    "id": 1,
+    "name": "JianYing Win",
+    "accent": [
+      0,
+      170,
+      170
+    ],
+    "rgbMode": 0,
+    "platform": "win",
+    "actions": [
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 20,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 1,
+        "code": 5,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 26,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 1,
+        "code": 29,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 3,
+        "code": 29,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 44,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 42,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 82,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 4,
+        "code": 0,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 80,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 81,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 79,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 25,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 44,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 39,
+        "wheelDy": 0
+      },
+      {
+        "kind": 0,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 79,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 80,
+        "wheelDy": 0
+      },
+      {
+        "kind": 3,
+        "mods": 4,
+        "code": 0,
+        "wheelDy": 1
+      },
+      {
+        "kind": 3,
+        "mods": 4,
+        "code": 0,
+        "wheelDy": -1
+      },
+      {
+        "kind": 3,
+        "mods": 1,
+        "code": 0,
+        "wheelDy": 1
+      },
+      {
+        "kind": 3,
+        "mods": 1,
+        "code": 0,
+        "wheelDy": -1
+      }
+    ]
+  }
+}

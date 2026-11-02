@@ -39,7 +39,8 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 
 ```
 .github/workflows/pages.yml  GitHub Pages：构建统一页、manifest 与四件套并部署
-editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试
+editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
+                presets/ 官方模板库（一预设一 JSON + 生成索引 index.json）
 include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
 src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
 src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）
@@ -50,7 +51,8 @@ src/proto/      独立 Vendor HID（ID6 + 63B）+ ConfigProto v2；回调入队�
 src/ota/        OtaManager：双槽应用写入、SHA-256、激活、回退状态与本地自检确认
 src/led/        WS2812：LedController（统一 Adafruit_NeoPixel 后端）
 src/power/      电池电压估算（GPIO3 ÷2 分压）
-tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+manifest）；
+tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+manifest）/
+                build_templates.js（官方模板索引生成，改 presets/ 后必跑）；
                 probe/ 含 hidapi、WebHID OTA、ROM 与统一入口探针、webflash_rules 纯规则及
                 Node 测试、自托管 esptool-js bundle
 release/        构建生成的四件套、manifest 与 ZIP（gitignored）

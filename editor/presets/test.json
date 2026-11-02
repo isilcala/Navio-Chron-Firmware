@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "test",
+    "order": 80,
+    "description": "冒烟测试：按键出数字/符号，编码器出音量/方向/滚轮，用于逐路验证"
+  },
+  "preset": {
+    "id": 3,
+    "name": "Test",
+    "accent": [
+      0,
+      0,
+      200
+    ],
+    "rgbMode": 0,
+    "platform": "win",
+    "actions": [
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 30,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 31,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 32,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 33,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 34,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 35,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 36,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 37,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 38,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 39,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 45,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 46,
+        "wheelDy": 0
+      },
+      {
+        "kind": 2,
+        "mods": 0,
+        "code": 226,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 40,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 41,
+        "wheelDy": 0
+      },
+      {
+        "kind": 0,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 0
+      },
+      {
+        "kind": 2,
+        "mods": 0,
+        "code": 233,
+        "wheelDy": 0
+      },
+      {
+        "kind": 2,
+        "mods": 0,
+        "code": 234,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 79,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 80,
+        "wheelDy": 0
+      },
+      {
+        "kind": 3,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 1
+      },
+      {
+        "kind": 3,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": -1
+      }
+    ]
+  }
+}

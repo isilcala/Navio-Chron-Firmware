@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "procreate",
+    "order": 70,
+    "description": "Procreate iPad：⌘Z/⇧⌘Z、B/E 画笔橡皮、L/C/S/V 面板与工具、X 换色、Space=QuickMenu、[ ] 笔刷大小（官方手册）"
+  },
+  "preset": {
+    "id": 9,
+    "name": "Procreate",
+    "accent": [
+      40,
+      190,
+      110
+    ],
+    "rgbMode": 0,
+    "platform": "ipad",
+    "actions": [
+      {
+        "kind": 1,
+        "mods": 8,
+        "code": 29,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 10,
+        "code": 29,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 44,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 14,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 8,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 15,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 27,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 82,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 6,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 80,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 81,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 79,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 22,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 8,
+        "code": 14,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 23,
+        "wheelDy": 0
+      },
+      {
+        "kind": 0,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 48,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 47,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 2,
+        "code": 48,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 2,
+        "code": 47,
+        "wheelDy": 0
+      },
+      {
+        "kind": 3,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 1
+      },
+      {
+        "kind": 3,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": -1
+      }
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "f13-macro",
+    "order": 90,
+    "description": "F13-F24 宏：按键映射到 F13..F24，在剪辑软件里自定义快捷键即可用"
+  },
+  "preset": {
+    "id": 4,
+    "name": "F13 Macro",
+    "accent": [
+      160,
+      0,
+      200
+    ],
+    "rgbMode": 0,
+    "platform": "win",
+    "actions": [
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 104,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 105,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 106,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 107,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 108,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 109,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 110,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 111,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 112,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 113,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 114,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 115,
+        "wheelDy": 0
+      },
+      {
+        "kind": 2,
+        "mods": 0,
+        "code": 205,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 0,
+        "code": 44,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 1,
+        "code": 29,
+        "wheelDy": 0
+      },
+      {
+        "kind": 0,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 0
+      },
+      {
+        "kind": 2,
+        "mods": 0,
+        "code": 233,
+        "wheelDy": 0
+      },
+      {
+        "kind": 2,
+        "mods": 0,
+        "code": 234,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 1,
+        "code": 46,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 1,
+        "code": 45,
+        "wheelDy": 0
+      },
+      {
+        "kind": 3,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": 1
+      },
+      {
+        "kind": 3,
+        "mods": 0,
+        "code": 0,
+        "wheelDy": -1
+      }
+    ]
+  }
+}

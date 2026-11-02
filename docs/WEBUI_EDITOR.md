@@ -73,6 +73,14 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 - 本地库条目使用独立 UUID；设备记录使用 presetId 1..255，复制时不得隐式复用身份、继承 `_installedId` 或模板更新绑定。
 - 本地库分为随页面发布的官方模板与浏览器保存的用户预设。模板只读，编辑模板时先自动创建用户副本；
   模板不写入 localStorage，用户库使用 `{schemaVersion: 2, templateVersion, userPresets}`。
+- 官方模板以 `editor/presets/` 下"一预设一 JSON"维护，不再硬编码在 app.js。信封沿用 `.navio.json`
+  导出格式并要求 `metadata.templateId`（=文件名 slug）、`metadata.order`（展示顺序）与可选
+  `description`/`author`；`templateId` 仍是用户副本关联的身份（见上）。浏览器不能列目录，索引
+  `presets/index.json` 由 `tools/build_templates.js` 构建期生成并提交入库；CI 与
+  `editor/templates_test.js` 校验信封、150B 往返、slug/ID 唯一、索引漂移与固件逐槽基线。
+  贡献流程：编辑器导出 `.navio.json` → 放入 `presets/` 补 metadata → 跑生成脚本 → 提 PR。
+- 编辑器启动异步拉取模板：单条损坏跳过并警示；索引或整库失败进入错误态提示刷新，不静默降级；
+  官方文件的 `preset.platform` 严格校验（用户导入文件才做静默归一）。
 - 官方模板共 9 套：`JianYing Win` / `JianYing Mac`、`Resolve Win` / `Resolve Mac`、
   `Premiere Win` / `Premiere Mac`、`Procreate`（iPad）、`Test`、`F13 Macro`。
   Mac 变体 Cmd=左 GUI（mods 位 3）、Option=Alt；快捷键按官方文档填写，以目标 App 实测为准微调。
