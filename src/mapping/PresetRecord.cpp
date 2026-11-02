@@ -99,6 +99,7 @@ PresetRecordResult decodePresetRecord(const uint8_t* data, size_t len, Installed
 
   InstalledPreset decoded = {};
   decoded.id = data[6];
+  decoded.platform = data[13];
   memcpy(decoded.name, data + 14, nameLength);
   decoded.name[nameLength] = 0;
   decoded.preset.name = decoded.name;
@@ -131,6 +132,7 @@ void encodePresetRecord(const InstalledPreset& preset, uint8_t* out) {
   out[2] = 1;
   writeLe16(out + 4, PRESET_RECORD_SIZE);
   out[6] = preset.id;
+  out[13] = preset.platform;
   size_t nameLength = strnlen(preset.name, PRESET_NAME_MAX - 1);
   out[7] = static_cast<uint8_t>(nameLength);
   memcpy(out + 8, preset.preset.accent, 3);

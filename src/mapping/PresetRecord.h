@@ -11,6 +11,7 @@ struct InstalledPreset {
   uint8_t id = 0;
   char name[PRESET_NAME_MAX] = {};
   Preset preset;
+  uint8_t platform = 0;  // 记录 byte 13（D24）：固件不解释，仅随解码→编码往返保留
 };
 
 enum class PresetRecordResult : uint8_t { Ok, Invalid, UnsupportedVersion };
