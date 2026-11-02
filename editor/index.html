@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Navio Chron 预设编辑器</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261102-9">
+  <link rel="stylesheet" href="styles.css?v=20261102-10">
 </head>
 <body>
   <header class="topbar">
@@ -49,6 +49,11 @@
       <div class="preset-meta">
         <label>预设名称<input id="presetName" type="text" maxlength="40"><span id="nameBytes" class="byte-count"></span></label>
         <label class="color-label">主题色<input id="presetAccent" type="color" value="#ff7828"></label>
+        <label class="platform-label">修饰键文案<select id="presetPlatform">
+          <option value="win">Windows · Ctrl/Win</option>
+          <option value="mac">macOS · Ctrl/Opt/Cmd</option>
+          <option value="ipad">iPadOS · Ctrl/Opt/Cmd</option>
+        </select></label>
       </div>
       <div class="tabs" role="tablist"><button class="tab active" data-tab="mapping" role="tab">键位映射</button><button class="tab" data-tab="lighting" role="tab">灯光效果</button></div>
       <div id="inspector"></div>
@@ -63,10 +68,10 @@
       <div class="dialog-actions"><button value="cancel" class="button secondary">取消</button><button id="confirmReplacement" value="default" class="button">确认替换</button></div>
     </form>
   </dialog>
-  <script src="../tools/probe/navio_proto.js?v=20261102-9"></script>
-  <script src="preset.js?v=20261102-9"></script>
-  <script src="library.js?v=20261102-9"></script>
-  <script src="device.js?v=20261102-9"></script>
-  <script type="module" src="app.js?v=20261102-9"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261102-10"></script>
+  <script src="preset.js?v=20261102-10"></script>
+  <script src="library.js?v=20261102-10"></script>
+  <script src="device.js?v=20261102-10"></script>
+  <script type="module" src="app.js?v=20261102-10"></script>
 </body>
 </html>

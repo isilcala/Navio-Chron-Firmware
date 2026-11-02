@@ -38,6 +38,11 @@
   ];
   const KEY_LABELS = Object.fromEntries([...KEY_OPTIONS, ...CONSUMER_OPTIONS].map(option => [option.code, option.label]));
   const MOD_LABELS = ["Ctrl", "Shift", "Alt", "Win", "RCtrl", "RShift", "RAlt", "RWin"];
+  // 同一物理修饰键位的平台文案：macOS/iPadOS 上左 GUI=Cmd、Alt=Option；ipad 与 mac 共用一套
+  const MOD_LABELS_MAC = ["Ctrl", "Shift", "Opt", "Cmd", "RCtrl", "RShift", "ROpt", "RCmd"];
+  const PLATFORMS = ["win", "mac", "ipad"];
+  const normalizePlatform = value => PLATFORMS.includes(value) ? value : "win";
+  const modLabels = platform => normalizePlatform(platform) === "win" ? MOD_LABELS : MOD_LABELS_MAC;
 
   const { crc16, le16, u16 } = Proto;
   function emptyAction() { return { kind: Kind.None, mods: 0, code: 0, wheelDy: 0 }; }
@@ -52,13 +57,14 @@
     return action;
   }
   function createEmptyPreset(id = 1, name = "自定义预设") {
-    return { id, name, accent: [255, 120, 40], rgbMode: 0,
+    return { id, name, accent: [255, 120, 40], rgbMode: 0, platform: "win",
       actions: Array.from({ length: ACTION_COUNT }, emptyAction) };
   }
   function clonePreset(preset) { return JSON.parse(JSON.stringify(preset)); }
   function clonePresetData(preset) {
     const { id, name, accent, rgbMode, actions } = preset;
-    return clonePreset({ id, name, accent, rgbMode, actions });
+    // platform 是编辑器侧元数据：不进 150B 记录（encodePresetRecord 不读它），随导出/副本携带
+    return clonePreset({ id, name, accent, rgbMode, platform: normalizePlatform(preset.platform), actions });
   }
   function utf8Length(value) { return new TextEncoder().encode(value).length; }
   function hasUnpairedSurrogate(value) {
@@ -146,7 +152,7 @@
     if (!nameLength || nameLength > 23) throw new Error("Invalid preset name length");
     for (let i = 14 + nameLength; i < 38; ++i) if (data[i] !== 0) throw new Error("Invalid preset name padding");
     const preset = { id: data[6], name: new TextDecoder("utf-8", { fatal: true }).decode(data.subarray(14, 14 + nameLength)),
-      accent: Array.from(data.subarray(8, 11)), rgbMode: 0, actions: [] };
+      accent: Array.from(data.subarray(8, 11)), rgbMode: 0, platform: "win", actions: [] };
     for (let index = 0; index < ACTION_COUNT; ++index) {
       const offset = 38 + index * ACTION_SIZE;
       preset.actions.push({ kind: data[offset], mods: data[offset + 1], code: u16(data, offset + 2),
@@ -156,9 +162,9 @@
     if (errors.length) throw new Error(errors[0]);
     return preset;
   }
-  function actionLabel(action) {
+  function actionLabel(action, platform = "win") {
     if (!action || action.kind === Kind.None) return "未设置";
-    const mods = MOD_LABELS.filter((_, bit) => action.mods & (1 << bit));
+    const mods = modLabels(platform).filter((_, bit) => action.mods & (1 << bit));
     if (action.kind === Kind.KeyChord && action.code === 0) return mods.join("+");
     const code = action.kind === Kind.Wheel ? `滚轮${action.wheelDy > 0 ? "+" : ""}${action.wheelDy}` :
       KEY_LABELS[action.code] || `0x${action.code.toString(16).padStart(2, "0")}`;
@@ -166,6 +172,7 @@
   }
 
   return { RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
-    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
+    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, normalizePlatform, modLabels,
+    crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
     utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel };
 });

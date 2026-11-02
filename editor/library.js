@@ -7,7 +7,7 @@
   "use strict";
 
   const SCHEMA_VERSION = 2, TEMPLATE_VERSION = 1;
-  const FACTORY_IDS = { 1: "JianYing", 2: "Resolve", 3: "Test", 4: "F13 Macro" };
+  const FACTORY_IDS = { 1: "JianYing Win", 2: "Resolve Win", 3: "Test", 4: "F13 Macro" };
   const clone = value => JSON.parse(JSON.stringify(value));
 
   function packageLibrary(userPresets) {

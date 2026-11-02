@@ -81,6 +81,21 @@ equal(P.actionLabel(sample().actions[18]), "Win", "modifier-only action omits ze
 equal(P.crc16(new TextEncoder().encode("123456789")), 0x29B1, "CRC16 standard reference vector");
 equal(P.crc16, Proto.crc16, "record and protocol share CRC16 implementation");
 equal(P.MOD_LABELS.join(","), "Ctrl,Shift,Alt,Win,RCtrl,RShift,RAlt,RWin", "shared modifier labels");
+equal(P.MOD_LABELS_MAC.join(","), "Ctrl,Shift,Opt,Cmd,RCtrl,RShift,ROpt,RCmd", "mac modifier labels");
+equal(P.normalizePlatform("mac"), "mac", "known platform passes through");
+equal(P.normalizePlatform("android"), "win", "unknown platform falls back to win");
+equal(P.normalizePlatform(undefined), "win", "missing platform falls back to win");
+equal(P.modLabels("ipad")[3], "Cmd", "ipad shares the mac label set");
+const macChord = { kind: P.Kind.KeyChord, mods: 8 | 2, code: 0x1D, wheelDy: 0 };
+equal(P.actionLabel(macChord, "mac"), "Shift+Cmd+Z", "mac labels use Cmd and Opt wording");
+equal(P.actionLabel(macChord, "ipad"), "Shift+Cmd+Z", "ipad labels match mac");
+equal(P.actionLabel(macChord), "Shift+Win+Z", "default platform stays win wording");
+const macSample = sample(); macSample.platform = "mac";
+sameBytes(P.encodePresetRecord(macSample), P.encodePresetRecord(sample()), "platform metadata does not change the 150B record");
+equal(P.createEmptyPreset().platform, "win", "new presets default to win platform");
+const exchanged = P.clonePresetData({ ...sample(), platform: "ipad", uuid: "x" });
+equal(exchanged.platform, "ipad", "exchange data keeps the platform tag");
+equal(P.clonePresetData({ ...sample(), platform: "android" }).platform, "win", "exchange data sanitizes the platform tag");
 const keyAction = P.actionForKind(P.Kind.KeyChord);
 equal(P.actionError(keyAction, false), null, "Wheel to KeyChord produces a valid reset action");
 equal(keyAction.wheelDy, 0, "KeyChord default clears wheel delta");
@@ -99,7 +114,7 @@ equal(P.actionForKind(P.Kind.None, modifiedKey).mods, 0, "None reset clears modi
 const internal = Object.assign(sample(), { uuid: "local", _dirty: true, _dirtySlots: [0], _device: true,
   _readonly: true, templateId: "Test", originTemplateId: "Test" });
 const exportData = P.clonePresetData(internal);
-equal(Object.keys(exportData).sort().join(","), "accent,actions,id,name,rgbMode", "exchange data excludes internal fields");
+equal(Object.keys(exportData).sort().join(","), "accent,actions,id,name,platform,rgbMode", "exchange data excludes internal fields");
 equal(exportData.actions === internal.actions, false, "exchange data is deeply cloned");
 equal(internal._dirty, true, "exchange data cloning preserves source state");
 let dependencyError = null;

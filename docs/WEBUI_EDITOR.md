@@ -71,6 +71,14 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 - 本地库条目使用独立 UUID；设备记录使用 presetId 1..255，复制时不得隐式复用身份、继承 `_installedId` 或模板更新绑定。
 - 本地库分为随页面发布的官方模板与浏览器保存的用户预设。模板只读，编辑模板时先自动创建用户副本；
   模板不写入 localStorage，用户库使用 `{schemaVersion: 2, templateVersion, userPresets}`。
+- 官方模板共 9 套：`JianYing Win` / `JianYing Mac`、`Resolve Win` / `Resolve Mac`、
+  `Premiere Win` / `Premiere Mac`、`Procreate`（iPad）、`Test`、`F13 Macro`。
+  Mac 变体 Cmd=左 GUI（mods 位 3）、Option=Alt；快捷键按官方文档填写，以目标 App 实测为准微调。
+- 模板身份即名称；项目无存量用户，模板更名不做 originTemplateId 迁移（breaking change 直接做）。
+- 修饰键文案按预设的 `platform` 元数据显示（`win`/`mac`/`ipad`，默认 `win`，非法值加载时矫正为 `win`）：
+  mac 与 iPad 共用 `Ctrl/Shift/Opt/Cmd` 短词，win 沿用 `Ctrl/Shift/Alt/Win`；设备图、动作面板、
+  详情卡与修饰键勾选框统一跟随。`platform` 只是编辑器与 `.navio.json` 的元数据，不进 150B 记录、
+  不触发设备写入；设备读回的预设不带平台信息，解码时固定为 `win`。
 - 旧 `schemaVersion: 1` 库迁移时去除未修改的出厂示例，保留用户修改并记录来源模板。
   官方模板升级时逐套明确询问是否替换，保留本地 UUID、设备 presetId 和用户名称，不静默覆盖；
   接受或拒绝的决定立即写入 localStorage，后续启动不重复询问。合法旧库加载时会清除页面内部标志并保存清理结果。
@@ -126,7 +134,8 @@ Preset 数据分为 identity / metadata、actions、lighting，动作和灯光�
 - A：静态 SVG 原型、模拟预设、动作面板、本地库和导入导出，不接设备。
 - B：连接读取、修改一个键位、应用并重读验证，形成最小闭环。
 - C：设备新 ID 安装、设备删除/换序、满容量覆盖与批量对账。
-- D：视觉与可访问性、模板内容扩充、灯光准备和完整验收。
+- D：视觉与可访问性、模板内容扩充、灯光准备和完整验收
+  （首批平台模板已提前上线：Premiere Win/Mac、Resolve/剪映 Mac、Procreate iPad）。
 
 `preset.js` 与 Node 测试先于设备联调，Pages 同时发布编辑器与刷写页。
 

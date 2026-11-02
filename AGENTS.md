@@ -92,7 +92,11 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），单入口、三条核心路径及
    中断/负向验收及 GitHub Pages 线上 OTA 验收已完成；Web 编辑器 A 原型与模板分离已完成，
    B/C 均已通过真机验收，双键盘断开与换机重连已验证；下一步 D 体验收尾
-2. 预设扩展：Premiere / macOS 版本（Cmd=GUI 修饰）
+2. 预设扩展：Premiere Win/Mac、Resolve/剪映 Mac、Procreate(iPad) 已入编辑器官方模板库
+   （共 9 套；原 JianYing/Resolve 已更名 JianYing Win/Resolve Win；
+   修饰键文案按预设 platform 元数据分平台显示，Cmd=GUI 修饰；
+   快捷键按官方文档填写，待目标 App 实测微调）；
+   Final Cut 等更多模板待 D 阶段后评估，Android 平台待真实需求与实测快捷键
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
 

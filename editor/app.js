@@ -1,15 +1,16 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261102-9';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261102-10';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const key = (mods, code) => ({ kind: P.Kind.KeyChord, mods, code, wheelDy: 0 });
 const consumer = code => ({ kind: P.Kind.Consumer, mods: 0, code, wheelDy: 0 });
 const wheel = (mods, wheelDy) => ({ kind: P.Kind.Wheel, mods, code: 0, wheelDy });
+const platformOf = preset => P.normalizePlatform(preset?.platform);
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
 let activeTab = 'mapping', selectedInput = { type: 'btn', index: 0 }, toastTimer, libraryLoadError = null, librarySaveError = null;
 let quarantinedPresets = [];
 
 function factoryLibrary() {
-  const jianying = P.createEmptyPreset(1, 'JianYing');
+  const jianying = P.createEmptyPreset(1, 'JianYing Win');
   jianying.uuid = uuid(); jianying.accent = [0, 170, 170];
   jianying.actions[0] = key(0, 0x14); jianying.actions[1] = key(1, 0x05); jianying.actions[2] = key(0, 0x1A);
   jianying.actions[3] = key(1, 0x1D); jianying.actions[4] = key(3, 0x1D); jianying.actions[5] = key(0, 0x2C);
@@ -20,7 +21,7 @@ function factoryLibrary() {
   jianying.actions[18] = wheel(4, 1); jianying.actions[19] = wheel(4, -1);
   jianying.actions[20] = wheel(1, 1); jianying.actions[21] = wheel(1, -1);
 
-  const resolve = P.createEmptyPreset(2, 'Resolve');
+  const resolve = P.createEmptyPreset(2, 'Resolve Win');
   resolve.uuid = uuid(); resolve.accent = [200, 90, 0];
   resolve.actions[0] = key(0, 0x0C); resolve.actions[1] = key(1, 0x31); resolve.actions[2] = key(0, 0x12);
   resolve.actions[3] = key(1, 0x1D); resolve.actions[4] = key(1, 0x1C); resolve.actions[5] = key(0, 0x2C);
@@ -46,11 +47,81 @@ function factoryLibrary() {
   f13.actions[16] = consumer(0xE9); f13.actions[17] = consumer(0xEA);
   f13.actions[18] = key(1, 0x2E); f13.actions[19] = key(1, 0x2D);
   f13.actions[20] = wheel(0, 1); f13.actions[21] = wheel(0, -1);
-  for (const preset of [jianying, resolve, test, f13]) {
+
+  // 平台变体约定（AGENTS.md / D13）：模板在桌面端区分平台，固件不感知；
+  // Mac 的 Cmd = 左 GUI（mods 位 3），Option = Alt（位 2），与 Win 版同位同类只换修饰键。
+  // 快捷键依官方文档核实，仍待目标 App 实测微调（同出厂预设惯例）。
+
+  // 剪映专业版 macOS：Ctrl→Cmd（分割 ⌘B、重做 ⇧⌘Z）；⌘+滚轮=时间线缩放、
+  // Option+滚轮=上下文缩放（对应 Win 版大旋钮/滚轮分工，待实测微调）
+  const jianyingMac = P.createEmptyPreset(5, 'JianYing Mac');
+  jianyingMac.uuid = uuid(); jianyingMac.accent = [70, 200, 200]; jianyingMac.platform = 'mac';
+  jianyingMac.actions[0] = key(0, 0x14); jianyingMac.actions[1] = key(8, 0x05); jianyingMac.actions[2] = key(0, 0x1A);
+  jianyingMac.actions[3] = key(8, 0x1D); jianyingMac.actions[4] = key(10, 0x1D); jianyingMac.actions[5] = key(0, 0x2C);
+  jianyingMac.actions[6] = key(0, 0x2A); jianyingMac.actions[7] = key(0, 0x52); jianyingMac.actions[8] = key(4, 0);
+  jianyingMac.actions[9] = key(0, 0x50); jianyingMac.actions[10] = key(0, 0x51); jianyingMac.actions[11] = key(0, 0x4F);
+  jianyingMac.actions[12] = key(0, 0x19); jianyingMac.actions[13] = key(0, 0x2C); jianyingMac.actions[14] = key(0, 0x27);
+  jianyingMac.actions[16] = key(0, 0x4F); jianyingMac.actions[17] = key(0, 0x50);
+  jianyingMac.actions[18] = wheel(8, 1); jianyingMac.actions[19] = wheel(8, -1);
+  jianyingMac.actions[20] = wheel(4, 1); jianyingMac.actions[21] = wheel(4, -1);
+
+  // DaVinci Resolve macOS：同 Win 版位（I/O、⌘\ 添加编辑、JKL 刮擦、F9 插入）；
+  // macOS 版重做 = ⇧⌘Z；时间线缩放 = ⌘=/⌘-
+  const resolveMac = P.createEmptyPreset(6, 'Resolve Mac');
+  resolveMac.uuid = uuid(); resolveMac.accent = [230, 130, 30]; resolveMac.platform = 'mac';
+  resolveMac.actions[0] = key(0, 0x0C); resolveMac.actions[1] = key(8, 0x31); resolveMac.actions[2] = key(0, 0x12);
+  resolveMac.actions[3] = key(8, 0x1D); resolveMac.actions[4] = key(10, 0x1D); resolveMac.actions[5] = key(0, 0x2C);
+  resolveMac.actions[6] = key(2, 0x2A); resolveMac.actions[7] = key(0, 0x52); resolveMac.actions[8] = key(0, 0x10);
+  resolveMac.actions[9] = key(0, 0x50); resolveMac.actions[10] = key(0, 0x51); resolveMac.actions[11] = key(0, 0x4F);
+  resolveMac.actions[12] = key(0, 0x43); resolveMac.actions[13] = key(0, 0x0E); resolveMac.actions[14] = key(0, 0x2C);
+  resolveMac.actions[16] = key(0, 0x4F); resolveMac.actions[17] = key(0, 0x50);
+  resolveMac.actions[18] = key(0, 0x0F); resolveMac.actions[19] = key(0, 0x0D);
+  resolveMac.actions[20] = key(8, 0x2E); resolveMac.actions[21] = key(8, 0x2D);
+
+  // Adobe Premiere Pro Windows（官方默认键位）：I/O 打点、Ctrl+K 添加编辑（刀切）、
+  // Shift+Delete 波纹删除（HID 前向删除）、M 标记、","插入、JKL 刮擦、=/- 时间线缩放、\ 序列适配
+  const premiereWin = P.createEmptyPreset(7, 'Premiere Win');
+  premiereWin.uuid = uuid(); premiereWin.accent = [110, 90, 230];
+  premiereWin.actions[0] = key(0, 0x0C); premiereWin.actions[1] = key(1, 0x0E); premiereWin.actions[2] = key(0, 0x12);
+  premiereWin.actions[3] = key(1, 0x1D); premiereWin.actions[4] = key(3, 0x1D); premiereWin.actions[5] = key(0, 0x2C);
+  premiereWin.actions[6] = key(2, 0x4C); premiereWin.actions[7] = key(0, 0x52); premiereWin.actions[8] = key(0, 0x10);
+  premiereWin.actions[9] = key(0, 0x50); premiereWin.actions[10] = key(0, 0x51); premiereWin.actions[11] = key(0, 0x4F);
+  premiereWin.actions[12] = key(0, 0x36); premiereWin.actions[13] = key(0, 0x0E); premiereWin.actions[14] = key(0, 0x31);
+  premiereWin.actions[16] = key(0, 0x4F); premiereWin.actions[17] = key(0, 0x50);
+  premiereWin.actions[18] = key(0, 0x0F); premiereWin.actions[19] = key(0, 0x0D);
+  premiereWin.actions[20] = key(0, 0x2E); premiereWin.actions[21] = key(0, 0x2D);
+
+  // Adobe Premiere Pro macOS：同 Win 版，Ctrl→Cmd；⇧+前向删除 = 波纹删除（笔记本为 ⇧Fn Delete）
+  const premiereMac = P.createEmptyPreset(8, 'Premiere Mac');
+  premiereMac.uuid = uuid(); premiereMac.accent = [140, 120, 255]; premiereMac.platform = 'mac';
+  premiereMac.actions[0] = key(0, 0x0C); premiereMac.actions[1] = key(8, 0x0E); premiereMac.actions[2] = key(0, 0x12);
+  premiereMac.actions[3] = key(8, 0x1D); premiereMac.actions[4] = key(10, 0x1D); premiereMac.actions[5] = key(0, 0x2C);
+  premiereMac.actions[6] = key(2, 0x4C); premiereMac.actions[7] = key(0, 0x52); premiereMac.actions[8] = key(0, 0x10);
+  premiereMac.actions[9] = key(0, 0x50); premiereMac.actions[10] = key(0, 0x51); premiereMac.actions[11] = key(0, 0x4F);
+  premiereMac.actions[12] = key(0, 0x36); premiereMac.actions[13] = key(0, 0x0E); premiereMac.actions[14] = key(0, 0x31);
+  premiereMac.actions[16] = key(0, 0x4F); premiereMac.actions[17] = key(0, 0x50);
+  premiereMac.actions[18] = key(0, 0x0F); premiereMac.actions[19] = key(0, 0x0D);
+  premiereMac.actions[20] = key(0, 0x2E); premiereMac.actions[21] = key(0, 0x2D);
+
+  // Procreate（iPad，BLE 连接；快捷键依官方手册）：⌘Z/⇧⌘Z 撤销重做、B 画笔、E 橡皮、
+  // L 图层、C 颜色、S 选区、V 变换、X 换色、Space=QuickMenu、⌘K 操作菜单；
+  // 中央旋钮=[ ] 笔刷大小 ±5%、大旋钮=⇧[ ⇧] ±10%，滚轮=原生滚动（画布平移/缩放待实测微调）
+  const procreate = P.createEmptyPreset(9, 'Procreate');
+  procreate.uuid = uuid(); procreate.accent = [40, 190, 110]; procreate.platform = 'ipad';
+  procreate.actions[0] = key(8, 0x1D); procreate.actions[1] = key(10, 0x1D); procreate.actions[2] = key(0, 0x2C);
+  procreate.actions[3] = key(0, 0x0E); procreate.actions[4] = key(0, 0x08); procreate.actions[5] = key(0, 0x0F);
+  procreate.actions[6] = key(0, 0x1B); procreate.actions[7] = key(0, 0x52); procreate.actions[8] = key(0, 0x06);
+  procreate.actions[9] = key(0, 0x50); procreate.actions[10] = key(0, 0x51); procreate.actions[11] = key(0, 0x4F);
+  procreate.actions[12] = key(0, 0x16); procreate.actions[13] = key(8, 0x0E); procreate.actions[14] = key(0, 0x17);
+  procreate.actions[16] = key(0, 0x30); procreate.actions[17] = key(0, 0x2F);
+  procreate.actions[18] = key(2, 0x30); procreate.actions[19] = key(2, 0x2F);
+  procreate.actions[20] = wheel(0, 1); procreate.actions[21] = wheel(0, -1);
+
+  for (const preset of [jianying, jianyingMac, resolve, resolveMac, premiereWin, premiereMac, procreate, test, f13]) {
     preset._readonly = true;
     preset.templateId = preset.name;
   }
-  return [jianying, resolve, test, f13];
+  return [jianying, jianyingMac, resolve, resolveMac, premiereWin, premiereMac, procreate, test, f13];
 }
 function persistLibrary(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(L.packageLibrary([...list, ...quarantinedPresets])));
@@ -74,6 +145,9 @@ function loadUserPresets() {
       if (preset._installedId !== undefined && (!Number.isInteger(preset._installedId) ||
           preset._installedId < 1 || preset._installedId > 255)) {
         delete preset._installedId; normalized = true;
+      }
+      if (preset.platform !== undefined && !P.PLATFORMS.includes(preset.platform)) {
+        preset.platform = 'win'; normalized = true;
       }
     }
     const synced = L.syncTemplates(userPresets, templates, (preset, template) =>
@@ -221,15 +295,17 @@ function renderTitle() { $('currentPresetTitle').textContent = currentPreset().n
 function renderEncoderDetail() {
   const detail = $('encoderDetail');
   if (selectedInput.type !== 'encoder') { detail.hidden = true; return; }
-  const encoder = P.ENCODERS.find(item => item.id === selectedInput.id), actions = currentPreset().actions;
+  const encoder = P.ENCODERS.find(item => item.id === selectedInput.id), actions = currentPreset().actions,
+    platform = platformOf(currentPreset());
   detail.innerHTML = `<div class="detail-heading">${encoder.name}</div>
-    <div class="detail-item"><span>↻ 顺时针</span><strong>${P.actionLabel(actions[encoder.cwSlot])}</strong></div>
-    <div class="detail-item"><span>↺ 逆时针</span><strong>${P.actionLabel(actions[encoder.ccwSlot])}</strong></div>
-    <div class="detail-item"><span>⏹ 下压</span><strong>${P.actionLabel(actions[encoder.pressSlot])}</strong></div>`;
+    <div class="detail-item"><span>↻ 顺时针</span><strong>${P.actionLabel(actions[encoder.cwSlot], platform)}</strong></div>
+    <div class="detail-item"><span>↺ 逆时针</span><strong>${P.actionLabel(actions[encoder.ccwSlot], platform)}</strong></div>
+    <div class="detail-item"><span>⏹ 下压</span><strong>${P.actionLabel(actions[encoder.pressSlot], platform)}</strong></div>`;
   detail.hidden = false;
 }
 function renderSvg() {
-  renderDevice($('device'), { actions: currentPreset().actions, actionLabel: P.actionLabel,
+  renderDevice($('device'), { actions: currentPreset().actions,
+    actionLabel: action => P.actionLabel(action, platformOf(currentPreset())),
     selected: selectedInput, dirtySlots: dirtySlots(),
     onSelect: input => { selectedInput = input; renderSvg(); renderInspector(); } });
   renderEncoderDetail();
@@ -244,12 +320,12 @@ function actionForm(slot) {
   const source = action.kind === P.Kind.Consumer ? P.CONSUMER_OPTIONS : P.KEY_OPTIONS;
   const options = [...(action.kind === P.Kind.KeyChord ? [{ label: '仅修饰键', code: 0 }] : []), ...source]
     .map(option => `<option value="${option.code}" ${action.code === option.code ? 'selected' : ''}>${option.label}</option>`).join('');
-  const mods = P.MOD_LABELS.map((label, bit) =>
+  const mods = P.modLabels(platformOf(currentPreset())).map((label, bit) =>
     `<label class="mod"><input type="checkbox" data-bit="${1 << bit}" ${action.mods & (1 << bit) ? 'checked' : ''} ${action.kind === P.Kind.None || action.kind === P.Kind.Consumer ? 'disabled' : ''}>${label}</label>`).join('');
   const title = slot < 16 ? (slot === 15 ? 'SideKey' : `K${slot + 1}`) :
     slot < 18 ? '中央旋钮' : slot < 20 ? '大旋钮' : '滚轮';
   const direction = slot < 16 ? '' : slot % 2 === 0 ? ' · 顺时针' : ' · 逆时针';
-  return `<div class="action-card" data-slot="${slot}"><h3><span>${title}${direction}</span> · ${P.actionLabel(action)}</h3>
+  return `<div class="action-card" data-slot="${slot}"><h3><span>${title}${direction}</span> · ${P.actionLabel(action, platformOf(currentPreset()))}</h3>
     <div class="action-fields">
       <label class="action-field full">动作类型<select data-field="kind">${kindOptions}</select></label>
       ${action.kind !== P.Kind.Wheel ? `<label class="action-field full">键码 / 功能<select data-field="code" ${action.kind === P.Kind.None ? 'disabled' : ''}>${options}</select></label>` : ''}
@@ -264,6 +340,7 @@ function renderInspector() {
   $('nameBytes').textContent = `${P.utf8Length(preset.name)}/23B`;
   $('nameBytes').style.color = P.nameError(preset.name) ? 'var(--danger)' : '';
   $('presetAccent').value = `#${preset.accent.map(value => value.toString(16).padStart(2, '0')).join('')}`;
+  $('presetPlatform').value = platformOf(preset);
   $('selectionTitle').textContent = activeTab === 'lighting' ? '灯光效果' :
     selectedInput.type === 'btn' && selectedInput.index === 15 ? '全局保留键' : '键位设置';
   if (activeTab === 'lighting') {
@@ -449,7 +526,7 @@ $('inspector').addEventListener('input', event => {
   preset.actions[slot] = action;
   markDirty(slot);
   renderSvg();
-  form.querySelector('h3').innerHTML = `<span>${form.querySelector('h3 span').textContent}</span> · ${P.actionLabel(action)}`;
+  form.querySelector('h3').innerHTML = `<span>${form.querySelector('h3 span').textContent}</span> · ${P.actionLabel(action, platformOf(preset))}`;
 });
 function rejectPresetName(input, issue) {
   input.value = currentPreset().name;
@@ -475,6 +552,14 @@ $('presetAccent').addEventListener('input', event => {
   const hex = event.target.value, preset = ensureUserCopy();
   preset.accent = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
   markDirty(-1); renderLibrary();
+});
+// 平台只影响修饰键文案显示，不进 150B 记录：保存本地但不标 dirty、不触发设备写入
+$('presetPlatform').addEventListener('change', event => {
+  const platform = P.normalizePlatform(event.target.value);
+  const preset = ensureUserCopy();
+  if (platformOf(preset) === platform) return;
+  preset.platform = platform;
+  saveLibrary(); renderSvg(); renderInspector();
 });
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; renderInspector(); }));
 function nextPresetId() {
