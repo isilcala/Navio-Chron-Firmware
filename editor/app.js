@@ -1,14 +1,15 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261102-11';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261102-12';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const platformOf = preset => P.normalizePlatform(preset?.platform);
+const PLATFORM_CHIPS = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
 let activeTab = 'mapping', selectedInput = { type: 'btn', index: 0 }, toastTimer, libraryLoadError = null, librarySaveError = null;
 let quarantinedPresets = [];
 
 // 官方模板库：presets/index.json（tools/build_templates.js 构建期生成）→ 逐文件拉取 → 校验装配；
 // 单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-const ASSET_VERSION = '20261102-11';
+const ASSET_VERSION = '20261102-12';
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`HTTP ${response.status}：${url}`);
@@ -154,7 +155,7 @@ function renderSaveState() {
 function presetItem(preset) {
   const active = preset._device && preset.id === activeDeviceId ? '<span class="device-active">使用中</span>' : '';
   return `<div class="preset-item ${preset.uuid === selectedPresetId ? 'active' : ''}" data-uuid="${escapeHtml(preset.uuid)}" tabindex="0" role="button">
-    <i class="swatch" style="background:rgb(${preset.accent.join(',')})"></i><span class="preset-name"></span>${active}${preset._dirty ? '<span class="dirty-mark">●</span>' : ''}
+    <i class="swatch" style="background:rgb(${preset.accent.join(',')})"></i><span class="preset-name"></span><span class="platform-chip">${PLATFORM_CHIPS[platformOf(preset)]}</span>${active}${preset._dirty ? '<span class="dirty-mark">●</span>' : ''}
   </div>`;
 }
 function bindPresetItems(container) {
@@ -472,14 +473,14 @@ $('presetAccent').addEventListener('input', event => {
   preset.accent = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
   markDirty(-1); renderLibrary();
 });
-// 平台只影响修饰键文案显示，不进 150B 记录：保存本地但不标 dirty、不触发设备写入
+// 平台随 150B 记录落盘（byte 13，D23）：与主题色同等对待——标 dirty、应用时写入设备
 $('presetPlatform').addEventListener('change', event => {
   if (!booted) return;
   const platform = P.normalizePlatform(event.target.value);
   const preset = ensureUserCopy();
   if (platformOf(preset) === platform) return;
   preset.platform = platform;
-  saveLibrary(); renderSvg(); renderInspector();
+  markDirty(-1); renderSvg(); renderInspector();
 });
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { if (!booted) return; activeTab = tab.dataset.tab; renderInspector(); }));
 function nextPresetId() {

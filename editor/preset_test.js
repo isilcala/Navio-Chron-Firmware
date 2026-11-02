@@ -90,8 +90,17 @@ const macChord = { kind: P.Kind.KeyChord, mods: 8 | 2, code: 0x1D, wheelDy: 0 };
 equal(P.actionLabel(macChord, "mac"), "Shift+Cmd+Z", "mac labels use Cmd and Opt wording");
 equal(P.actionLabel(macChord, "ipad"), "Shift+Cmd+Z", "ipad labels match mac");
 equal(P.actionLabel(macChord), "Shift+Win+Z", "default platform stays win wording");
+// 平台随 150B 记录往返（byte 13，D23）：win=0 是历史记录的天然值
 const macSample = sample(); macSample.platform = "mac";
-sameBytes(P.encodePresetRecord(macSample), P.encodePresetRecord(sample()), "platform metadata does not change the 150B record");
+equal(P.encodePresetRecord(macSample)[13], 1, "platform mac encodes as 0x01 at byte 13");
+equal(P.decodePresetRecord(P.encodePresetRecord(macSample)).platform, "mac", "platform round trips through the record");
+equal(P.encodePresetRecord(sample())[13], 0, "platform win encodes as 0x00 at byte 13");
+const unknownPlatform = P.encodePresetRecord(sample()); unknownPlatform[13] = 3;
+unknownPlatform.set([P.crc16(unknownPlatform.subarray(0, 148)) & 255, P.crc16(unknownPlatform.subarray(0, 148)) >> 8], 148);
+throws(() => P.decodePresetRecord(unknownPlatform), "unknown platform code rejected");
+const badReserved12 = P.encodePresetRecord(sample()); badReserved12[12] = 1;
+badReserved12.set([P.crc16(badReserved12.subarray(0, 148)) & 255, P.crc16(badReserved12.subarray(0, 148)) >> 8], 148);
+throws(() => P.decodePresetRecord(badReserved12), "nonzero reserved byte 12 rejected");
 equal(P.createEmptyPreset().platform, "win", "new presets default to win platform");
 const exchanged = P.clonePresetData({ ...sample(), platform: "ipad", uuid: "x" });
 equal(exchanged.platform, "ipad", "exchange data keeps the platform tag");

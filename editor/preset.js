@@ -41,6 +41,9 @@
   // 同一物理修饰键位的平台文案：macOS/iPadOS 上左 GUI=Cmd、Alt=Option；ipad 与 mac 共用一套
   const MOD_LABELS_MAC = ["Ctrl", "Shift", "Opt", "Cmd", "RCtrl", "RShift", "ROpt", "RCmd"];
   const PLATFORMS = ["win", "mac", "ipad"];
+  // 150B 记录 byte 13 的平台码（D23）：0 是历史记录的天然值（旧数据零迁移）
+  const PLATFORM_CODES = { win: 0, mac: 1, ipad: 2 };
+  const PLATFORM_BY_CODE = ["win", "mac", "ipad"];
   const normalizePlatform = value => PLATFORMS.includes(value) ? value : "win";
   const modLabels = platform => normalizePlatform(platform) === "win" ? MOD_LABELS : MOD_LABELS_MAC;
 
@@ -126,6 +129,7 @@
     const out = new Uint8Array(RECORD_SIZE);
     out.set([0x4E, 0x50, 1, 0, ...le16(RECORD_SIZE), preset.id, utf8Length(preset.name)], 0);
     out.set(preset.accent, 8);
+    out[13] = PLATFORM_CODES[normalizePlatform(preset.platform)];
     const name = new TextEncoder().encode(preset.name);
     out.set(name, 14);
     preset.actions.forEach((action, index) => {
@@ -146,13 +150,14 @@
       throw error;
     }
     if (data[0] !== 0x4E || data[1] !== 0x50 || data[3] !== 0 || u16(data, 4) !== RECORD_SIZE ||
-        data[11] !== 0 || data[12] !== 0 || data[13] !== 0 || crc16(data.subarray(0, 148)) !== u16(data, 148))
+        data[11] !== 0 || data[12] !== 0 || data[13] > 2 ||
+        crc16(data.subarray(0, 148)) !== u16(data, 148))
       throw new Error("Invalid preset record header or CRC");
     const nameLength = data[7];
     if (!nameLength || nameLength > 23) throw new Error("Invalid preset name length");
     for (let i = 14 + nameLength; i < 38; ++i) if (data[i] !== 0) throw new Error("Invalid preset name padding");
     const preset = { id: data[6], name: new TextDecoder("utf-8", { fatal: true }).decode(data.subarray(14, 14 + nameLength)),
-      accent: Array.from(data.subarray(8, 11)), rgbMode: 0, platform: "win", actions: [] };
+      accent: Array.from(data.subarray(8, 11)), rgbMode: 0, platform: PLATFORM_BY_CODE[data[13]], actions: [] };
     for (let index = 0; index < ACTION_COUNT; ++index) {
       const offset = 38 + index * ACTION_SIZE;
       preset.actions.push({ kind: data[offset], mods: data[offset + 1], code: u16(data, offset + 2),
@@ -172,7 +177,7 @@
   }
 
   return { RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
-    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, normalizePlatform, modLabels,
+    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, PLATFORM_CODES, normalizePlatform, modLabels,
     crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
     utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel };
 });

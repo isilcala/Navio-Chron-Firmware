@@ -80,8 +80,10 @@ PresetRecordResult decodePresetRecord(const uint8_t* data, size_t len, Installed
   if (!data || len != PRESET_RECORD_SIZE) return PresetRecordResult::Invalid;
   if (data[0] != 'N' || data[1] != 'P') return PresetRecordResult::Invalid;
   if (data[2] != 1) return PresetRecordResult::UnsupportedVersion;
+  // byte 11 = rgbMode（v1 仅 0）、byte 12 = 保留 0；byte 13 = 平台元数据
+  // （0=win/1=mac/2=iPad，D23）：固件不校验其值、永不据此分支，仅原样存取。
   if (data[3] != 0 || readLe16(data + 4) != PRESET_RECORD_SIZE || data[6] == 0 ||
-      data[11] != 0 || data[12] != 0 || data[13] != 0 ||
+      data[11] != 0 || data[12] != 0 ||
       crc16(data, CRC_OFFSET) != readLe16(data + CRC_OFFSET)) {
     return PresetRecordResult::Invalid;
   }

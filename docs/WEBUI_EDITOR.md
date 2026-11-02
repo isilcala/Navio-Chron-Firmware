@@ -81,16 +81,16 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
   贡献流程：编辑器导出 `.navio.json` → 放入 `presets/` 补 metadata → 跑生成脚本 → 提 PR。
 - 编辑器启动异步拉取模板：单条损坏跳过并警示；索引或整库失败进入错误态提示刷新，不静默降级；
   官方文件的 `preset.platform` 严格校验（用户导入文件才做静默归一）。
-- 官方模板共 9 套：`JianYing Win` / `JianYing Mac`、`Resolve Win` / `Resolve Mac`、
-  `Premiere Win` / `Premiere Mac`、`Procreate`（iPad）、`Test`、`F13 Macro`。
+- 官方模板共 9 套：`JianYing`（Win/Mac）、`Resolve`（Win/Mac）、`Premiere`（Win/Mac）、
+  `Procreate`（iPad）、`Test`、`F13 Macro`。显示名不带平台词，平台由预设库列表的 chip 呈现。
   Mac 变体 Cmd=左 GUI（mods 位 3）、Option=Alt；快捷键按官方文档填写，以目标 App 实测为准微调。
 - 官方模板的身份是代码内固定的 `templateId` slug（如 `jianying-win`），与显示名解耦：模板改名、
   改文案不断链。用户副本以 `originTemplateId` 记 slug，`syncTemplates` 按 slug 匹配；
   模板 `uuid` 是运行时会话标识，不作持久身份。项目无存量用户，身份字段变更不做迁移。
-- 修饰键文案按预设的 `platform` 元数据显示（`win`/`mac`/`ipad`，默认 `win`，非法值加载时矫正为 `win`）：
+- 修饰键文案按预设的 `platform` 显示（`win`/`mac`/`ipad`，默认 `win`，本地库非法值加载时矫正为 `win`）：
   mac 与 iPad 共用 `Ctrl/Shift/Opt/Cmd` 短词，win 沿用 `Ctrl/Shift/Alt/Win`；设备图、动作面板、
-  详情卡与修饰键勾选框统一跟随。`platform` 只是编辑器与 `.navio.json` 的元数据，不进 150B 记录、
-  不触发设备写入；设备读回的预设不带平台信息，解码时固定为 `win`。
+  详情卡、修饰键勾选框与列表 chip 统一跟随。`platform` 随 150B 记录落盘（byte 13，D24）：
+  设备读回即有真实平台，chip 覆盖设备分区；平台改动与主题色同等对待——标 dirty、随应用写入设备。
 - 旧 `schemaVersion: 1` 库迁移时去除未修改的出厂示例，保留用户修改并记录来源模板。
   官方模板升级时逐套明确询问是否替换，保留本地 UUID、设备 presetId 和用户名称，不静默覆盖；
   接受或拒绝的决定立即写入 localStorage，后续启动不重复询问。合法旧库加载时会清除页面内部标志并保存清理结果。

@@ -110,5 +110,9 @@ for (const template of loaded.templates) {
     `arrow cluster of ${template.templateId}`);
 }
 ok("arrow cluster K10/K11/K12 consistent across app templates");
+// 显示名不得内嵌平台词：平台由 chip 呈现，名称只留应用名
+for (const template of loaded.templates)
+  assert(!/ (Win|Mac|iPad)$/.test(template.name), `name embeds platform: ${template.name}`);
+ok("template names do not embed platform labels");
 
 console.log(`\nAll ${passed} checks passed.`);

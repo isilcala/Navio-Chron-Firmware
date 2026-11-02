@@ -1,6 +1,7 @@
 # Navio 二进制预设 Schema v1
 
-> 状态：规范冻结（2026-10-27）；实现与实测状态见 `docs/PROJECT.md`。
+> 状态：规范冻结（2026-10-27）；2026-11-02 修订 byte 13 为平台元数据（D23），记录版本保持 1。
+> 实现与实测状态见 `docs/PROJECT.md`。
 > 线上协议见 `PROTOCOL.md`。多字节整数均为 little-endian，禁止直接序列化 C++ 对象或依赖 padding。
 
 ## 1. 身份与数量
@@ -21,8 +22,9 @@
 | 6 | 1 | `presetId` | 1..255 |
 | 7 | 1 | `nameLength` | 1..23B |
 | 8 | 3 | `accent` | RGB 三字节 |
-| 11 | 1 | `rgbMode` | v1 仅允许 `0=follow` |
-| 12 | 2 | `reserved` | 必须为 0 |
+| 11 | 1 | `rgbMode` | v1 仅允许 `0=follow`（灯光四模式的未来家） |
+| 12 | 1 | `reserved` | 必须为 0（应急保留） |
+| 13 | 1 | `platform` | D23：`0=win`（历史记录天然值）/ `1=mac` / `2=iPad`；编辑器拒绝未知值，固件不校验语义、不据此分支，仅原样存取（D13 精化：平台是记录携带的呈现元数据） |
 | 14 | 24 | `name` | UTF-8，前 nameLength 字节有效，其余补零 |
 | 38 | 110 | `actions` | 22 个 5B 动作，见下节 |
 | 148 | 2 | `recordCrc16` | 对前 148B 计算 CRC-16/CCITT-FALSE |
@@ -30,6 +32,10 @@
 运行时使用 `name[24]` 保存名称并保证 NUL 终止，`Preset.name` 必须指向该自有缓冲区。
 名称不能为空，前 nameLength 字节内不得出现 NUL；实现拒绝非法 UTF-8，不把 UTF-8
 字节数等同于显示字符数。
+
+扩展策略：`platform` 与 `rgbMode` 各占整字节；真需要更多字段时优先升级 record 版本
+（offset 2 已预留），其次才是把 byte 12 与相邻字段做位打包（如
+`[rgbMode:4][platform:4]`）——仅作为字节耗尽时的应急方案，不提前使用。
 
 ## 3. 动作（每个 5B）
 
