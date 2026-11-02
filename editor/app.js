@@ -1,11 +1,12 @@
-import { renderDevice } from './device_svg.js?v=20261102-2';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261102-9';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const key = (mods, code) => ({ kind: P.Kind.KeyChord, mods, code, wheelDy: 0 });
 const consumer = code => ({ kind: P.Kind.Consumer, mods: 0, code, wheelDy: 0 });
 const wheel = (mods, wheelDy) => ({ kind: P.Kind.Wheel, mods, code: 0, wheelDy });
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
-let activeTab = 'mapping', selectedInput = { type: 'btn', index: 0 }, toastTimer;
+let activeTab = 'mapping', selectedInput = { type: 'btn', index: 0 }, toastTimer, libraryLoadError = null, librarySaveError = null;
+let quarantinedPresets = [];
 
 function factoryLibrary() {
   const jianying = P.createEmptyPreset(1, 'JianYing');
@@ -51,14 +52,38 @@ function factoryLibrary() {
   }
   return [jianying, resolve, test, f13];
 }
+function persistLibrary(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(L.packageLibrary([...list, ...quarantinedPresets])));
+}
 function loadUserPresets() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    const userPresets = L.migrateLegacy(saved).userPresets;
-    L.syncTemplates(userPresets, factoryLibrary(), (preset, template) =>
+    const userPresets = [];
+    for (const preset of L.migrateLegacy(saved).userPresets) {
+      if (L.userPresetError(preset, P)) quarantinedPresets.push(preset);
+      else userPresets.push(preset);
+    }
+    let normalized = false;
+    for (const preset of userPresets) {
+      if (preset._readonly !== false) { preset._readonly = false; normalized = true; }
+      if (Object.hasOwn(preset, 'templateId')) {
+        if (!preset.originTemplateId && preset.templateId) preset.originTemplateId = preset.templateId;
+        delete preset.templateId; normalized = true;
+      }
+      if (Object.hasOwn(preset, '_device')) { delete preset._device; normalized = true; }
+      if (preset._installedId !== undefined && (!Number.isInteger(preset._installedId) ||
+          preset._installedId < 1 || preset._installedId > 255)) {
+        delete preset._installedId; normalized = true;
+      }
+    }
+    const synced = L.syncTemplates(userPresets, templates, (preset, template) =>
       confirm(`官方模板“${template.name}”已更新，是否用新版替换你的预设“${preset.name}”？`));
+    if (normalized || synced) {
+      try { persistLibrary(userPresets); }
+      catch (error) { librarySaveError = error; }
+    }
     return userPresets;
-  } catch (_) { return []; }
+  } catch (error) { libraryLoadError = error; return []; }
 }
 let templates = factoryLibrary(), userPresets = loadUserPresets(), selectedPresetId = templates[0].uuid;
 let deviceConnection = null, deviceClient = null, devicePresets = [], activeDeviceId = 0, deviceBusy = false;
@@ -73,7 +98,7 @@ function ensureUserCopy() {
   if (!preset._readonly) return preset;
   const copy = P.clonePreset(preset);
   copy.uuid = uuid(); copy._readonly = false; copy._dirty = true;
-  delete copy._device;
+  delete copy._device; delete copy.templateId;
   copy.originTemplateId = preset.templateId || null;
   copy.originTemplateVersion = preset.templateId ? L.TEMPLATE_VERSION : null;
   userPresets.push(copy); selectedPresetId = copy.uuid;
@@ -81,7 +106,23 @@ function ensureUserCopy() {
 }
 function dirtySlots() { return new Set(currentPreset()._dirtySlots || []); }
 function saveLibrary() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(L.packageLibrary(userPresets)));
+  if (libraryLoadError) return false;
+  try {
+    persistLibrary(userPresets);
+    librarySaveError = null;
+    return true;
+  } catch (error) {
+    librarySaveError = error;
+    toast(`本地保存失败：${error.message}`, true);
+    return false;
+  }
+}
+function downloadBlob(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob), link = document.createElement('a');
+  link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return blob;
 }
 function toast(message, error = false) {
   const element = $('toast');
@@ -104,12 +145,25 @@ function markDirty(slot) {
   renderDeviceState();
 }
 function renderSaveState() {
+  $('resetLibrary').textContent = libraryLoadError ? '备份并重建本地库' : '清空我的';
+  if (libraryLoadError) {
+    $('saveState').textContent = '本地库读取失败；原数据未改动，本次修改不会保存';
+    return;
+  }
+  if (quarantinedPresets.length) {
+    $('saveState').textContent = `${quarantinedPresets.length} 套预设无法读取已跳过${librarySaveError ? '；本地保存失败' : ''}`;
+    return;
+  }
+  if (librarySaveError) {
+    $('saveState').textContent = '本地保存失败；修改仅保留在当前页面';
+    return;
+  }
   const count = userPresets.filter(preset => preset._dirty).length;
   $('saveState').textContent = count ? `${count} 套本地修改尚未写入设备` : '本地修改尚未写入设备';
 }
 function presetItem(preset) {
   const active = preset._device && preset.id === activeDeviceId ? '<span class="device-active">使用中</span>' : '';
-  return `<div class="preset-item ${preset.uuid === selectedPresetId ? 'active' : ''}" data-uuid="${preset.uuid}" tabindex="0" role="button">
+  return `<div class="preset-item ${preset.uuid === selectedPresetId ? 'active' : ''}" data-uuid="${escapeHtml(preset.uuid)}" tabindex="0" role="button">
     <i class="swatch" style="background:rgb(${preset.accent.join(',')})"></i><span class="preset-name"></span>${active}${preset._dirty ? '<span class="dirty-mark">●</span>' : ''}
   </div>`;
 }
@@ -190,7 +244,7 @@ function actionForm(slot) {
   const source = action.kind === P.Kind.Consumer ? P.CONSUMER_OPTIONS : P.KEY_OPTIONS;
   const options = [...(action.kind === P.Kind.KeyChord ? [{ label: '仅修饰键', code: 0 }] : []), ...source]
     .map(option => `<option value="${option.code}" ${action.code === option.code ? 'selected' : ''}>${option.label}</option>`).join('');
-  const mods = ['Ctrl', 'Shift', 'Alt', 'Win', 'RCtrl', 'RShift', 'RAlt', 'RWin'].map((label, bit) =>
+  const mods = P.MOD_LABELS.map((label, bit) =>
     `<label class="mod"><input type="checkbox" data-bit="${1 << bit}" ${action.mods & (1 << bit) ? 'checked' : ''} ${action.kind === P.Kind.None || action.kind === P.Kind.Consumer ? 'disabled' : ''}>${label}</label>`).join('');
   const title = slot < 16 ? (slot === 15 ? 'SideKey' : `K${slot + 1}`) :
     slot < 18 ? '中央旋钮' : slot < 20 ? '大旋钮' : '滚轮';
@@ -239,13 +293,16 @@ async function refreshDevice(selectActive = false) {
     selectedPresetId = (devicePresets.find(preset => preset.id === selectedDeviceId) || devicePresets[0]).uuid;
   renderAll();
 }
-function deviceDisconnected(device) {
-  if (!deviceConnection || device !== deviceConnection.device) return;
-  const connection = deviceConnection;
-  ++deviceGeneration;
-  connection.abort();
+function resetDeviceConnection(connection) {
+  const closing = connection.abort();
   if (currentPreset()._device) selectedPresetId = templates[0].uuid;
   deviceConnection = null; deviceClient = null; devicePresets = []; activeDeviceId = 0; deviceBusy = false;
+  return closing;
+}
+function deviceDisconnected(device) {
+  if (!deviceConnection || device !== deviceConnection.device) return;
+  ++deviceGeneration;
+  resetDeviceConnection(deviceConnection);
   renderAll();
   toast('设备已断开，可以连接另一台设备', true);
 }
@@ -261,10 +318,16 @@ async function runDeviceAction(action) {
 }
 $('connectDevice').addEventListener('click', () => runDeviceAction(async () => {
   if (deviceClient) { await refreshDevice(false); toast('设备预设已重新读取'); return; }
-  deviceConnection = await D.connectHid(navigator.hid);
-  deviceClient = new D.DeviceClient(deviceConnection.session);
-  await deviceClient.hello();
-  await refreshDevice(true);
+  const connection = await D.connectHid(navigator.hid);
+  deviceConnection = connection;
+  deviceClient = new D.DeviceClient(connection.session);
+  try {
+    await deviceClient.hello();
+    await refreshDevice(true);
+  } catch (error) {
+    if (deviceConnection === connection) await resetDeviceConnection(connection);
+    throw error;
+  }
   toast('设备读取完成；编辑会创建本地副本，不会自动写入');
 }));
 navigator.hid?.addEventListener('disconnect', event => deviceDisconnected(event.device));
@@ -285,8 +348,9 @@ function chooseReplacement(preset) {
 async function installPreset(source) {
   const errors = P.presetErrors(source);
   if (errors.length) throw new Error(errors[0]);
-  const outgoing = P.clonePreset(source);
-  let installed = devicePresets.find(item => item.id === outgoing.id) || null;
+  const { preset: outgoing, installed: resolved } = D.resolveSlotTarget(P.clonePreset(source), devicePresets);
+  const local = userPresets.find(item => item.uuid === source.uuid);
+  let installed = resolved;
   if (!installed && devicePresets.length >= 6) {
     installed = await chooseReplacement(outgoing);
     if (!installed) return null;
@@ -296,8 +360,7 @@ async function installPreset(source) {
     `将把“${outgoing.name}”（ID ${outgoing.id}）安装到设备。`;
   if (!confirm(`${message}\n写入后会立即重读并逐字节验证。是否继续？`)) return null;
   await deviceClient.writeVerified(outgoing);
-  const local = userPresets.find(item => item.uuid === source.uuid);
-  if (local && local.id === outgoing.id) { local._dirty = false; local._dirtySlots = []; }
+  if (local) { local._dirty = false; local._dirtySlots = []; local._installedId = outgoing.id; }
   saveLibrary();
   return outgoing;
 }
@@ -312,20 +375,24 @@ $('applyAll').addEventListener('click', () => runDeviceAction(async () => {
   const dirty = userPresets.filter(preset => preset._dirty);
   if (!deviceClient || !dirty.length) return;
   const plans = D.planBatch(dirty.map(P.clonePreset), devicePresets);
-  plans.forEach((plan, index) => { plan.sourceUuid = dirty[index].uuid; });
+  plans.forEach((plan, index) => { plan.sourceUuid = dirty[index].uuid; plan.sourceId = dirty[index].id; });
   const replacements = plans.filter(plan => plan.installed).length;
-  if (!confirm(`将应用 ${plans.length} 套本地修改：${replacements} 套覆盖，${plans.length - replacements} 套新安装。\n逐条写入并验证，任何失败都会立即停止。是否继续？`)) return;
+  const mapping = plans.filter(plan => plan.installed && plan.preset.id !== plan.sourceId)
+    .map(plan => `“${plan.preset.name}” → 覆盖设备“${plan.installed.name}”（ID ${plan.preset.id}）`).join('\n');
+  const details = mapping ? `\n槽位覆盖映射：\n${mapping}` : '';
+  if (!confirm(`将应用 ${plans.length} 套本地修改：${replacements} 套覆盖，${plans.length - replacements} 套新安装。${details}\n逐条写入并验证，任何失败都会立即停止。是否继续？`)) return;
   let applied = 0;
   try {
     for (const plan of plans) {
       await deviceClient.writeVerified(plan.preset);
       const local = userPresets.find(preset => preset.uuid === plan.sourceUuid);
-      if (local) { local._dirty = false; local._dirtySlots = []; }
+      if (local) { local._dirty = false; local._dirtySlots = []; local._installedId = plan.preset.id; }
       ++applied; saveLibrary();
     }
   } catch (error) {
-    try { await refreshDevice(false); } catch (_) {}
-    throw new Error(`已应用 ${applied}/${plans.length} 套；${error.message}。已重新读取设备状态`);
+    let refreshed = true;
+    try { await refreshDevice(false); } catch (_) { refreshed = false; }
+    throw new Error(`已应用 ${applied}/${plans.length} 套；${error.message}。${refreshed ? '已重新读取设备状态' : '设备状态重读失败，请手动重新读取'}`);
   }
   await refreshDevice(false);
   toast(`已应用并验证 ${applied}/${plans.length} 套修改`);
@@ -362,15 +429,9 @@ function renderAll() {
 $('inspector').addEventListener('change', event => {
   const form = event.target.closest('.action-card');
   if (!form) return;
-  const slot = Number(form.dataset.slot), preset = ensureUserCopy(), action = { ...preset.actions[slot] };
+  const slot = Number(form.dataset.slot), preset = ensureUserCopy();
   if (event.target.dataset.field === 'kind') {
-    action.kind = Number(event.target.value);
-    if (action.kind === P.Kind.None) { action.mods = 0; action.code = 0; action.wheelDy = 0; }
-    else if (action.kind === P.Kind.KeyChord && action.code > 0xE7) action.code = 0x04;
-    else if (action.kind === P.Kind.Consumer) { action.mods = 0; action.code = 0xCD; action.wheelDy = 0; }
-    else if (action.kind === P.Kind.Wheel) { action.code = 0; action.wheelDy = 1; }
-    const issue = P.actionError(action, slot < 16);
-    if (issue) { toast(issue, true); return; }
+    const action = P.actionForKind(Number(event.target.value), preset.actions[slot]);
     preset.actions[slot] = action;
     markDirty(slot);
     renderSvg(); renderInspector();
@@ -390,13 +451,25 @@ $('inspector').addEventListener('input', event => {
   renderSvg();
   form.querySelector('h3').innerHTML = `<span>${form.querySelector('h3 span').textContent}</span> · ${P.actionLabel(action)}`;
 });
+function rejectPresetName(input, issue) {
+  input.value = currentPreset().name;
+  $('nameBytes').textContent = `${P.utf8Length(input.value)}/23B`;
+  $('nameBytes').style.color = '';
+  toast(`预设名称无效：${issue}`, true);
+}
 $('presetName').addEventListener('input', event => {
+  const name = event.target.value;
+  $('nameBytes').textContent = `${P.utf8Length(name)}/23B`;
+  $('nameBytes').style.color = P.nameError(name) ? 'var(--danger)' : '';
+  if (event.isComposing || P.nameError(name)) return;
   const preset = ensureUserCopy();
-  preset.name = event.target.value;
+  preset.name = name;
   preset._dirty = true;
-  $('nameBytes').textContent = `${P.utf8Length(preset.name)}/23B`;
-  $('nameBytes').style.color = P.nameError(preset.name) ? 'var(--danger)' : '';
-  saveLibrary(); renderLibrary(); renderTitle(); renderSaveState();
+  saveLibrary(); renderLibrary(); renderTitle(); renderSaveState(); renderDeviceState();
+});
+$('presetName').addEventListener('change', event => {
+  const issue = P.nameError(event.target.value);
+  if (issue) rejectPresetName(event.target, issue);
 });
 $('presetAccent').addEventListener('input', event => {
   const hex = event.target.value, preset = ensureUserCopy();
@@ -405,23 +478,31 @@ $('presetAccent').addEventListener('input', event => {
 });
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; renderInspector(); }));
 function nextPresetId() {
-  return Math.max(...templates.map(preset => preset.id), ...userPresets.map(preset => preset.id),
-    ...devicePresets.map(preset => preset.id), 0) + 1;
+  const ids = [...templates, ...userPresets, ...quarantinedPresets, ...devicePresets]
+    .map(preset => preset?.id).filter(id => Number.isInteger(id));
+  return Math.max(...ids, 0) + 1;
 }
 $('newPreset').addEventListener('click', () => {
   const nextId = nextPresetId();
   if (nextId > 255) { toast('本地 presetId 已用完', true); return; }
   const preset = P.createEmptyPreset(nextId, `自定义预设 ${nextId}`);
-  preset.uuid = uuid(); preset._dirty = true; preset.originTemplateId = null;
-  userPresets.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
+  preset.uuid = uuid(); preset._dirty = true; preset._readonly = false; preset.originTemplateId = null;
+  userPresets.push(preset); selectedPresetId = preset.uuid;
+  const saved = saveLibrary(); renderAll();
+  if (!saved) toast('新预设仅保留在当前页面，未能保存到浏览器', true);
 });
 $('duplicatePreset').addEventListener('click', () => {
   const source = currentPreset(), preset = P.clonePreset(source), nextId = nextPresetId();
   if (nextId > 255) { toast('本地 presetId 已用完', true); return; }
   preset.id = nextId; preset.uuid = uuid(); preset.name = `${preset.name} 副本`; preset._dirty = true;
-  preset._readonly = false; delete preset._device; preset.originTemplateId = source.templateId || null;
-  preset.originTemplateVersion = source.templateId ? L.TEMPLATE_VERSION : null;
-  userPresets.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
+  const issue = P.nameError(preset.name);
+  if (issue) { toast(`无法创建副本：${issue}，请先缩短预设名称`, true); return; }
+  preset._readonly = false; delete preset._device; delete preset.templateId; delete preset._installedId;
+  preset.originTemplateId = null;
+  preset.originTemplateVersion = null;
+  userPresets.push(preset); selectedPresetId = preset.uuid;
+  const saved = saveLibrary(); renderAll();
+  if (!saved) toast('副本仅保留在当前页面，未能保存到浏览器', true);
 });
 $('deletePreset').addEventListener('click', () => {
   const index = userPresets.findIndex(preset => preset.uuid === selectedPresetId);
@@ -430,23 +511,37 @@ $('deletePreset').addEventListener('click', () => {
   if (!confirm(`从“我的预设”删除“${preset.name}”？\n只删除浏览器本地副本，不会删除设备上的预设。`)) return;
   userPresets.splice(index, 1);
   selectedPresetId = (userPresets[Math.min(index, userPresets.length - 1)] || templates[0]).uuid;
-  selectedInput = { type: 'btn', index: 0 }; saveLibrary(); renderAll();
-  toast('本地预设已删除，设备内容未改变');
+  selectedInput = { type: 'btn', index: 0 };
+  const saved = saveLibrary(); renderAll();
+  toast(saved ? '本地预设已删除，设备内容未改变' : '删除仅保留在当前页面，未能保存到浏览器', !saved);
 });
 $('resetLibrary').addEventListener('click', () => {
-  if (!confirm('清空“我的预设”？官方模板会保留。')) return;
-  userPresets = []; selectedPresetId = templates[0].uuid;
-  selectedInput = { type: 'btn', index: 0 }; saveLibrary(); renderAll();
+  const recovering = Boolean(libraryLoadError);
+  if (recovering) {
+    if (!confirm('将先下载无法读取的原始本地库，再写入空库。原始数据会被替换，是否继续？')) return;
+    try {
+      downloadBlob(localStorage.getItem(STORAGE_KEY), 'navio-editor-library-backup.txt', 'text/plain');
+    } catch (error) {
+      toast(`原始库备份失败，恢复已取消：${error.message}`, true);
+      return;
+    }
+    libraryLoadError = null;
+  } else if (!confirm('清空“我的预设”？官方模板会保留。')) return;
+  userPresets = []; quarantinedPresets = []; selectedPresetId = templates[0].uuid;
+  selectedInput = { type: 'btn', index: 0 };
+  if (!saveLibrary()) {
+    if (recovering) { libraryLoadError = librarySaveError; librarySaveError = null; }
+    renderAll();
+    return;
+  }
+  renderAll();
+  if (recovering) toast('本地库已重建，原始数据已下载备份');
 });
 $('exportPreset').addEventListener('click', () => {
-  const preset = currentPreset();
+  const preset = P.clonePresetData(currentPreset());
   const content = { schemaVersion: 1, product: 'navio-chron', record: 1,
     metadata: { author: 'local', platform: 'custom' }, preset };
-  delete content.preset._dirty; delete content.preset._dirtySlots;
-  const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob), link = document.createElement('a');
-  link.href = url; link.download = `${preset.name || 'preset'}.navio.json`; link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadBlob(JSON.stringify(content, null, 2), `${preset.name || 'preset'}.navio.json`, 'application/json');
 });
 $('importPreset').addEventListener('change', async event => {
   const file = event.target.files[0];
@@ -457,12 +552,23 @@ $('importPreset').addEventListener('change', async event => {
       throw new Error('不支持的 .navio.json 格式或 record 版本');
     const errors = P.presetErrors(content.preset);
     if (errors.length) throw new Error(errors[0]);
-    const preset = content.preset;
-    preset.uuid = uuid(); preset._dirty = true; preset.originTemplateId = null;
-    userPresets.push(preset); selectedPresetId = preset.uuid; saveLibrary(); renderAll();
-    toast('已导入本地库，未写入设备');
+    const preset = P.clonePresetData(content.preset);
+    let idNote = '';
+    if ([...userPresets, ...quarantinedPresets].some(item => item?.id === preset.id)) {
+      const originalId = preset.id, nextId = nextPresetId();
+      if (nextId > 255) throw new Error('本地 presetId 已用完，无法导入冲突预设');
+      preset.id = nextId;
+      idNote = `；原 ID ${originalId} 冲突，已分配 ${nextId}`;
+    }
+    preset.uuid = uuid(); preset._dirty = true; preset._readonly = false; preset.originTemplateId = null;
+    userPresets.push(preset); selectedPresetId = preset.uuid;
+    const saved = saveLibrary(); renderAll();
+    toast((saved ? '已导入本地库，未写入设备' : '已导入当前页面，但未能保存到浏览器') + idNote, !saved);
   } catch (error) { toast(error.message, true); }
   event.target.value = '';
 });
 
 renderAll();
+if (libraryLoadError) toast(`本地预设库读取失败：${libraryLoadError.message}。原数据未改动，本次修改不会保存。`, true);
+else if (librarySaveError) toast(`本地库已读取，但启动清理或模板决定未能保存：${librarySaveError.message}`, true);
+else if (quarantinedPresets.length) toast(`${quarantinedPresets.length} 套预设无法读取已跳过，原始数据已保留`, true);

@@ -10,7 +10,7 @@ const ENCODERS = [
   { id: 'Large', name: '大旋钮', x: 859, y: 659, r: 110 },
   { id: 'Wheel', name: '滚轮', x: 862, y: 347, r: 60 },
 ];
-const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+export const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
 function buttonDef(index, action, selected, dirty) {
   const { x, y, w, h } = BUTTONS[index];
@@ -24,7 +24,7 @@ function buttonDef(index, action, selected, dirty) {
     ${dirty ? `<circle class="dirty-dot" cx="${x + w - 12}" cy="${y + 12}" r="5"/>` : ''}
   </g>`;
 }
-function encoderDef(encoder, action, selected, dirtySlots, press, cw, ccw) {
+function encoderDef(encoder, selected, dirtySlots, press, cw, ccw) {
   const { id, name, x, y, r } = encoder;
   const classes = ['slot', 'encoder', selected ? 'selected' : ''].filter(Boolean).join(' ');
   const dirty = dirtySlots.size > 0;
@@ -45,8 +45,7 @@ export function renderDevice(container, { actions, actionLabel, selected, dirtyS
   const encoderMarkup = ENCODERS.map((encoder, index) => {
     const base = 16 + index * 2;
     const dirty = new Set([base, base + 1, 12 + index].filter(slot => dirtySlots.has(slot)));
-    return encoderDef(encoder, actionLabel(actions[12 + index]),
-      selected.type === 'encoder' && selected.id === encoder.id, dirty,
+    return encoderDef(encoder, selected.type === 'encoder' && selected.id === encoder.id, dirty,
       actionLabel(actions[12 + index]), actionLabel(actions[base]), actionLabel(actions[base + 1]));
   }).join('');
   container.innerHTML = `<svg class="device-svg rendered" viewBox="650 40 1000 820" role="img" aria-label="Navio Chron 可编辑设备图">

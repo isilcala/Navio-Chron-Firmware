@@ -1,6 +1,9 @@
 // 运行：node editor/preset_test.js
 "use strict";
 const P = require("./preset.js");
+const Proto = require("../tools/probe/navio_proto.js");
+const fs = require("node:fs");
+const vm = require("node:vm");
 let passed = 0;
 function ok(name) { passed++; console.log("PASS", name); }
 function assert(cond, msg) { if (!cond) throw new Error(`assert: ${msg}`); }
@@ -75,5 +78,34 @@ throws(() => P.decodePresetRecord(badAction), "invalid action payload rejected")
 equal(P.actionLabel(sample().actions[0]), "Ctrl+C", "short action label");
 equal(P.actionLabel(sample().actions[16]), "Alt+滚轮+1", "encoder label includes direction");
 equal(P.actionLabel(sample().actions[18]), "Win", "modifier-only action omits zero usage code");
+equal(P.crc16(new TextEncoder().encode("123456789")), 0x29B1, "CRC16 standard reference vector");
+equal(P.crc16, Proto.crc16, "record and protocol share CRC16 implementation");
+equal(P.MOD_LABELS.join(","), "Ctrl,Shift,Alt,Win,RCtrl,RShift,RAlt,RWin", "shared modifier labels");
+const keyAction = P.actionForKind(P.Kind.KeyChord);
+equal(P.actionError(keyAction, false), null, "Wheel to KeyChord produces a valid reset action");
+equal(keyAction.wheelDy, 0, "KeyChord default clears wheel delta");
+equal(keyAction.code > 0 || keyAction.mods > 0, true, "KeyChord default is not empty");
+equal(P.actionError(P.actionForKind(P.Kind.None), false), null, "None default is valid");
+equal(P.actionError(P.actionForKind(P.Kind.Consumer), false), null, "Consumer default is valid");
+equal(P.actionError(P.actionForKind(P.Kind.Wheel), false), null, "Wheel default is valid");
+const changedWheel = P.actionForKind(P.Kind.Wheel);
+changedWheel.wheelDy = -1;
+equal(P.actionForKind(P.Kind.Wheel).wheelDy, 1, "kind defaults return independent actions");
+const modifiedKey = { kind: P.Kind.KeyChord, mods: 5, code: 0x06, wheelDy: 0 };
+equal(P.actionForKind(P.Kind.Wheel, modifiedKey).mods, 5, "KeyChord to Wheel preserves modifiers");
+equal(P.actionForKind(P.Kind.KeyChord, modifiedKey).mods, 5, "KeyChord reset preserves modifiers");
+equal(P.actionForKind(P.Kind.Consumer, modifiedKey).mods, 0, "Consumer reset clears modifiers");
+equal(P.actionForKind(P.Kind.None, modifiedKey).mods, 0, "None reset clears modifiers");
+const internal = Object.assign(sample(), { uuid: "local", _dirty: true, _dirtySlots: [0], _device: true,
+  _readonly: true, templateId: "Test", originTemplateId: "Test" });
+const exportData = P.clonePresetData(internal);
+equal(Object.keys(exportData).sort().join(","), "accent,actions,id,name,rgbMode", "exchange data excludes internal fields");
+equal(exportData.actions === internal.actions, false, "exchange data is deeply cloned");
+equal(internal._dirty, true, "exchange data cloning preserves source state");
+let dependencyError = null;
+try { vm.runInNewContext(fs.readFileSync(require.resolve("./preset.js"), "utf8"), { self: {} }); }
+catch (error) { dependencyError = error; }
+equal(dependencyError?.message, "NavioEditorPreset requires NavioProto; load navio_proto.js first",
+  "missing protocol dependency has an actionable error");
 
 console.log(`\nAll ${passed} checks passed.`);

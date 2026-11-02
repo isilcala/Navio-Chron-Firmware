@@ -47,6 +47,16 @@
     return { activeId, entries };
   }
 
+  function resolveSlotTarget(preset, installed) {
+    const planned = { ...preset };
+    let target = installed.find(item => item.id === planned.id) || null;
+    if (!target && planned._installedId) {
+      target = installed.find(item => item.id === planned._installedId) || null;
+      if (target) planned.id = target.id;
+    }
+    return { preset: planned, installed: target };
+  }
+
   function planBatch(presets, installed) {
     const ids = new Set();
     for (const preset of presets) {
@@ -55,11 +65,16 @@
       if (ids.has(preset.id)) throw new Error(`批量预设包含重复 ID ${preset.id}，请先整理本地库`);
       ids.add(preset.id);
     }
-    const installedIds = new Set(installed.map(preset => preset.id));
-    const newCount = presets.filter(preset => !installedIds.has(preset.id)).length;
+    const plans = presets.map(preset => resolveSlotTarget(preset, installed));
+    const targetIds = new Set();
+    for (const plan of plans) {
+      if (targetIds.has(plan.preset.id)) throw new Error(`批量预设映射到重复设备 ID ${plan.preset.id}，请单独安装`);
+      targetIds.add(plan.preset.id);
+    }
+    const newCount = plans.filter(plan => !plan.installed).length;
     if (installed.length + newCount > 6)
       throw new Error("批量应用将超过 6 套容量，请先单独选择要替换的设备预设");
-    return presets.map(preset => ({ preset, installed: installed.find(item => item.id === preset.id) || null }));
+    return plans;
   }
 
   function moveAnchor(entries, id, direction) {
@@ -111,23 +126,27 @@
     if (!device) throw new Error("未选择设备");
     if (!device.opened) await device.open();
     const reports = [], waiters = [];
-    let aborted = false;
-    const abort = () => {
-      if (aborted) return;
-      aborted = true; reports.length = 0;
-      for (const waiter of waiters.splice(0)) {
-        clearTimeout(waiter.timer);
-        waiter.reject(new Error("设备连接已中止"));
-      }
-    };
-    device.addEventListener("inputreport", event => {
+    let aborted = false, closePromise = null;
+    const onInputReport = event => {
       if (aborted || event.reportId !== 6) return;
       const report = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
       if (!waiters.length) { reports.push(report); return; }
       const waiter = waiters.shift();
       clearTimeout(waiter.timer);
       waiter.resolve(report);
-    });
+    };
+    device.addEventListener("inputreport", onInputReport);
+    const abort = () => {
+      if (closePromise) return closePromise;
+      aborted = true; reports.length = 0;
+      device.removeEventListener("inputreport", onInputReport);
+      for (const waiter of waiters.splice(0)) {
+        clearTimeout(waiter.timer);
+        waiter.reject(new Error("设备连接已中止"));
+      }
+      closePromise = device.opened ? device.close().catch(() => {}) : Promise.resolve();
+      return closePromise;
+    };
     const transport = {
       send: frame => aborted ? Promise.reject(new Error("设备连接已中止")) : device.sendReport(6, frame),
       receive: timeoutMs => new Promise((resolve, reject) => {
@@ -143,5 +162,5 @@
     return { device, session: new P.Session(transport), abort };
   }
 
-  return { HID_FILTER, sameBytes, parseInfo, parsePresetList, planBatch, moveAnchor, DeviceClient, connectHid };
+  return { HID_FILTER, sameBytes, parseInfo, parsePresetList, resolveSlotTarget, planBatch, moveAnchor, DeviceClient, connectHid };
 });

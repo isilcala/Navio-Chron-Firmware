@@ -48,6 +48,25 @@ test("batch plan rejects capacity overflow", () => {
   const added = { ...Preset.clonePreset(sample), id: 7 };
   assert.throws(() => D.planBatch([added], installed), /超过 6 套/);
 });
+test("batch plan reuses a recorded device slot without changing the local ID", () => {
+  const bound = { ...Preset.clonePreset(sample), id: 7, _installedId: 3 };
+  const installed = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `P${index}` }));
+  const plans = D.planBatch([bound], installed);
+  assert.equal(plans[0].preset.id, 3);
+  assert.equal(plans[0].installed.id, 3);
+  assert.equal(bound.id, 7);
+});
+test("slot resolution prefers a direct ID match over the hint", () => {
+  const bound = { ...Preset.clonePreset(sample), id: 7, _installedId: 3 };
+  const result = D.resolveSlotTarget(bound, [{ id: 3, name: "P3" }, { id: 7, name: "P7" }]);
+  assert.equal(result.preset.id, 7);
+  assert.equal(result.installed.name, "P7");
+});
+test("batch plan rejects multiple presets targeting the same hinted slot", () => {
+  const first = { ...Preset.clonePreset(sample), id: 7, _installedId: 3 };
+  const second = { ...Preset.clonePreset(sample), id: 8, _installedId: 3 };
+  assert.throws(() => D.planBatch([first, second], [{ id: 3, name: "P3" }]), /重复设备 ID 3/);
+});
 test("move up targets the previous entry", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }, { id: 3 }], 3, -1), 2));
 test("move down targets the entry after next", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }, { id: 3 }], 1, 1), 3));
 test("move to last uses zero anchor", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }], 1, 1), 0));
@@ -98,15 +117,23 @@ test("move boundaries are rejected", () => {
   });
   await asyncTest("abort rejects pending HID reads and blocks old-session sends", async () => {
     const device = new EventTarget();
+    let added = 0, removed = 0, closes = 0;
+    const add = device.addEventListener.bind(device), remove = device.removeEventListener.bind(device);
     Object.assign(device, { vendorId: D.HID_FILTER.vendorId, productId: D.HID_FILTER.productId,
-      opened: true, sendReport: async () => { throw new Error("old session sent a report"); } });
+      opened: true, sendReport: async () => { throw new Error("old session sent a report"); },
+      addEventListener: (...args) => { ++added; add(...args); },
+      removeEventListener: (...args) => { ++removed; remove(...args); },
+      close: async () => { ++closes; device.opened = false; } });
     const hid = { getDevices: async () => [device] };
     const connection = await D.connectHid(hid);
     const pending = connection.session.transport.receive(10000);
-    connection.abort(); connection.abort();
+    const firstClose = connection.abort(), secondClose = connection.abort();
+    assert.equal(firstClose, secondClose);
+    await firstClose;
     await assert.rejects(pending, /已中止/);
     await assert.rejects(connection.session.transport.send(new Uint8Array(63)), /已中止/);
     await assert.rejects(connection.session.transport.receive(1), /已中止/);
+    assert.deepEqual({ added, removed, closes, opened: device.opened }, { added: 1, removed: 1, closes: 1, opened: false });
   });
   await asyncTest("hello rejects protocol v1", async () => {
     const session = { request: async () => bytes('{"proto":1}') };

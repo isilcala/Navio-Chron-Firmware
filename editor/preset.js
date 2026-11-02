@@ -1,11 +1,13 @@
 // Navio 预设模型与 150B 编解码；浏览器挂到 NavioEditorPreset，Node 用 require。
 (function (root, factory) {
-  const api = factory();
+  const proto = root.NavioProto || (typeof require !== "undefined" ? require("../tools/probe/navio_proto.js") : null);
+  const api = factory(proto);
   root.NavioEditorPreset = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
-})(typeof self !== "undefined" ? self : globalThis, function () {
+})(typeof self !== "undefined" ? self : globalThis, function (Proto) {
   "use strict";
 
+  if (!Proto) throw new Error("NavioEditorPreset requires NavioProto; load navio_proto.js first");
   const RECORD_SIZE = 150, ACTION_SIZE = 5, ACTION_COUNT = 22, SIDE_KEY_SLOT = 15;
   const Kind = { None: 0, KeyChord: 1, Consumer: 2, Wheel: 3 };
   const BUTTON_LABELS = [
@@ -37,22 +39,27 @@
   const KEY_LABELS = Object.fromEntries([...KEY_OPTIONS, ...CONSUMER_OPTIONS].map(option => [option.code, option.label]));
   const MOD_LABELS = ["Ctrl", "Shift", "Alt", "Win", "RCtrl", "RShift", "RAlt", "RWin"];
 
-  function crc16(bytes) {
-    let crc = 0xFFFF;
-    for (const value of bytes) {
-      crc ^= value << 8;
-      for (let bit = 0; bit < 8; ++bit) crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
-    }
-    return crc;
-  }
-  function le16(value) { return [value & 0xFF, value >> 8 & 0xFF]; }
-  function u16(bytes, offset) { return bytes[offset] | bytes[offset + 1] << 8; }
+  const { crc16, le16, u16 } = Proto;
   function emptyAction() { return { kind: Kind.None, mods: 0, code: 0, wheelDy: 0 }; }
+  function actionForKind(kind, previous = null) {
+    const action = emptyAction();
+    action.kind = kind;
+    if ((kind === Kind.KeyChord || kind === Kind.Wheel) && previous && Number.isInteger(previous.mods))
+      action.mods = previous.mods;
+    if (kind === Kind.KeyChord) action.code = 0x04;
+    else if (kind === Kind.Consumer) action.code = 0xCD;
+    else if (kind === Kind.Wheel) action.wheelDy = 1;
+    return action;
+  }
   function createEmptyPreset(id = 1, name = "自定义预设") {
     return { id, name, accent: [255, 120, 40], rgbMode: 0,
       actions: Array.from({ length: ACTION_COUNT }, emptyAction) };
   }
   function clonePreset(preset) { return JSON.parse(JSON.stringify(preset)); }
+  function clonePresetData(preset) {
+    const { id, name, accent, rgbMode, actions } = preset;
+    return clonePreset({ id, name, accent, rgbMode, actions });
+  }
   function utf8Length(value) { return new TextEncoder().encode(value).length; }
   function hasUnpairedSurrogate(value) {
     for (let i = 0; i < value.length; ++i) {
@@ -159,6 +166,6 @@
   }
 
   return { RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
-    KEY_OPTIONS, CONSUMER_OPTIONS, crc16, emptyAction, createEmptyPreset, clonePreset,
+    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
     utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel };
 });
