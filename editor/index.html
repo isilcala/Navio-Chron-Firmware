@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Navio Chron 预设编辑器</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261101-1">
+  <link rel="stylesheet" href="styles.css?v=20261101-3">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>预设编辑器 · 本地交互原型</small></div></div>
+    <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>WebHID 预设编辑器</small></div></div>
     <div class="top-actions">
-      <span id="saveState" class="save-state">本地修改，不会写入设备</span>
+      <span id="saveState" class="save-state">本地修改尚未写入设备</span>
+      <span id="deviceStatus" class="device-status">未连接</span>
+      <button id="connectDevice" class="button secondary">连接设备</button>
+      <button id="applyPreset" class="button" disabled>写入并验证</button>
       <a href="../" class="button secondary">固件刷写</a>
     </div>
   </header>
@@ -20,9 +23,11 @@
     <aside class="panel library-panel">
       <div class="panel-heading"><div><span class="eyebrow">PRESET LIBRARY</span><h2>预设库</h2></div><button id="newPreset" class="icon-button" title="新建预设">＋</button></div>
       <div id="presetList" class="preset-list"></div>
+      <div id="deviceList" class="preset-list device-list"></div>
       <div class="library-actions">
         <button id="duplicatePreset" class="button secondary">复制当前</button>
-        <button id="resetLibrary" class="button ghost">恢复示例</button>
+        <button id="resetLibrary" class="button ghost">清空我的</button>
+        <button id="deletePreset" class="button ghost danger-button" disabled>删除当前自定义预设</button>
       </div>
       <div class="import-export">
         <button id="exportPreset" class="button secondary">导出 .navio.json</button>
@@ -49,8 +54,10 @@
     </aside>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="preset.js?v=20261101-1"></script>
+  <script src="preset.js?v=20261101-3"></script>
   <script src="library.js"></script>
-  <script type="module" src="app.js?v=20261101-1"></script>
+  <script src="../tools/probe/navio_proto.js"></script>
+  <script src="device.js"></script>
+  <script type="module" src="app.js?v=20261101-3"></script>
 </body>
 </html>

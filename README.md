@@ -16,7 +16,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] Dual-slot USB OTA with SHA-256, rollback and local self-confirm
 - [x] Unified Web flasher: OTA, demo migration and BOOT/ROM recovery,
       [deployed and verified online](https://isilcala.github.io/Navio-Chron-Firmware/)
-- [ ] Browser preset editor (static SVG prototype implemented; device connection pending)
+- [ ] Browser preset editor (device read/write/readback loop verified on hardware; full device management pending)
 - [ ] Premiere and macOS preset variants
 - [ ] Sleep/wake and battery-power validation
 
