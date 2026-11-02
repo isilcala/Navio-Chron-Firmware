@@ -18,7 +18,7 @@ function list(entries, activeId = entries[0].id) {
 }
 const sample = Preset.createEmptyPreset(1, "设备预设");
 sample.actions[0] = { kind: Preset.Kind.KeyChord, mods: 0, code: 4, wheelDy: 0 };
-const info = { record: 1, maxPresets: 6, cmds: [1, 2, 3, 4, 8, 9] };
+const info = { record: 1, maxPresets: 6, cmds: [1, 2, 3, 4, 5, 6, 7, 8, 9] };
 
 test("byte comparison accepts identical records", () => assert.equal(D.sameBytes(new Uint8Array([1, 2]), new Uint8Array([1, 2])), true));
 test("byte comparison rejects different records", () => assert.equal(D.sameBytes(new Uint8Array([1, 2]), new Uint8Array([1, 3])), false));
@@ -33,6 +33,29 @@ test("preset list rejects invalid UTF-8", () => assert.throws(() => D.parsePrese
 test("capability check accepts record v1 and required commands", () => assert.deepEqual(D.parseInfo(bytes(JSON.stringify(info))), info));
 test("capability check rejects unsupported record", () => assert.throws(() => D.parseInfo(bytes(JSON.stringify({ ...info, record: 2 }))), /不支持/));
 test("capability check rejects missing write", () => assert.throws(() => D.parseInfo(bytes(JSON.stringify({ ...info, cmds: [1, 2, 3, 8, 9] }))), /不支持/));
+test("batch plan distinguishes update and install", () => {
+  const added = { ...Preset.clonePreset(sample), id: 2, name: "New" };
+  const plans = D.planBatch([sample, added], [{ id: 1, name: "Old" }]);
+  assert.equal(plans[0].installed.id, 1); assert.equal(plans[1].installed, null);
+});
+test("batch plan rejects duplicate local IDs", () => assert.throws(() => D.planBatch([sample, sample], []), /重复 ID/));
+test("batch plan rejects invalid records before writes", () => {
+  const invalid = Preset.clonePreset(sample); invalid.name = "";
+  assert.throws(() => D.planBatch([invalid], []), /name is empty/);
+});
+test("batch plan rejects capacity overflow", () => {
+  const installed = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `P${index}` }));
+  const added = { ...Preset.clonePreset(sample), id: 7 };
+  assert.throws(() => D.planBatch([added], installed), /超过 6 套/);
+});
+test("move up targets the previous entry", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }, { id: 3 }], 3, -1), 2));
+test("move down targets the entry after next", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }, { id: 3 }], 1, 1), 3));
+test("move to last uses zero anchor", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }], 1, 1), 0));
+test("move boundaries are rejected", () => {
+  assert.equal(D.moveAnchor([{ id: 1 }], 1, -1), null);
+  assert.equal(D.moveAnchor([{ id: 1 }], 1, 1), null);
+  assert.equal(D.moveAnchor([{ id: 1 }], 2, 1), null);
+});
 
 (async () => {
   await asyncTest("readInstalled reads every listed record", async () => {
@@ -65,6 +88,25 @@ test("capability check rejects missing write", () => assert.throws(() => D.parse
     changed[40] = 5;
     const session = { request: async cmd => cmd === P.CMD.READ_PRESET ? changed : new Uint8Array() };
     await assert.rejects(() => new D.DeviceClient(session).writeVerified(sample), /重读不一致/);
+  });
+  await asyncTest("delete and move use stable-ID request bodies", async () => {
+    const calls = [];
+    const session = { request: async (cmd, body) => { calls.push([cmd, ...body]); return new Uint8Array(); } };
+    const client = new D.DeviceClient(session);
+    await client.remove(7); await client.move(3, 0);
+    assert.deepEqual(calls, [[P.CMD.DELETE, 7], [P.CMD.MOVE, 3, 0]]);
+  });
+  await asyncTest("abort rejects pending HID reads and blocks old-session sends", async () => {
+    const device = new EventTarget();
+    Object.assign(device, { vendorId: D.HID_FILTER.vendorId, productId: D.HID_FILTER.productId,
+      opened: true, sendReport: async () => { throw new Error("old session sent a report"); } });
+    const hid = { getDevices: async () => [device] };
+    const connection = await D.connectHid(hid);
+    const pending = connection.session.transport.receive(10000);
+    connection.abort(); connection.abort();
+    await assert.rejects(pending, /已中止/);
+    await assert.rejects(connection.session.transport.send(new Uint8Array(63)), /已中止/);
+    await assert.rejects(connection.session.transport.receive(1), /已中止/);
   });
   await asyncTest("hello rejects protocol v1", async () => {
     const session = { request: async () => bytes('{"proto":1}') };

@@ -1,4 +1,4 @@
-import { renderDevice } from './device_svg.js?v=20261101-3';
+import { renderDevice } from './device_svg.js?v=20261102-2';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const key = (mods, code) => ({ kind: P.Kind.KeyChord, mods, code, wheelDy: 0 });
@@ -62,6 +62,7 @@ function loadUserPresets() {
 }
 let templates = factoryLibrary(), userPresets = loadUserPresets(), selectedPresetId = templates[0].uuid;
 let deviceConnection = null, deviceClient = null, devicePresets = [], activeDeviceId = 0, deviceBusy = false;
+let deviceGeneration = 0;
 function currentPreset() {
   return userPresets.find(preset => preset.uuid === selectedPresetId) ||
     devicePresets.find(preset => preset.uuid === selectedPresetId) ||
@@ -130,19 +131,32 @@ function renderLibrary() {
   bindPresetItems($('presetList'));
   $('deletePreset').disabled = !userPresets.some(preset => preset.uuid === selectedPresetId);
 }
+function selectedDeviceIndex() { return devicePresets.findIndex(preset => preset.uuid === selectedPresetId); }
 function renderDeviceLibrary() {
   $('deviceList').innerHTML = `<h3 class="library-section">设备预设</h3>${deviceClient ?
-    devicePresets.map(presetItem).join('') : '<p class="hint">连接设备后读取真实配置</p>'}`;
+    devicePresets.map(presetItem).join('') : '<p class="hint">连接设备后读取真实配置</p>'}
+    <div class="device-actions"><button id="moveDeviceUp" class="button secondary">上移</button>
+    <button id="moveDeviceDown" class="button secondary">下移</button>
+    <button id="deleteDevicePreset" class="button ghost danger-button">从设备删除</button></div>`;
   bindPresetItems($('deviceList'));
+  const index = selectedDeviceIndex();
+  $('moveDeviceUp').disabled = deviceBusy || index <= 0;
+  $('moveDeviceDown').disabled = deviceBusy || index < 0 || index >= devicePresets.length - 1;
+  $('deleteDevicePreset').disabled = deviceBusy || index < 0 || devicePresets.length <= 1;
+  $('moveDeviceUp').onclick = () => moveSelectedDevice(-1);
+  $('moveDeviceDown').onclick = () => moveSelectedDevice(1);
+  $('deleteDevicePreset').onclick = deleteSelectedDevice;
 }
 function renderDeviceState() {
   const active = devicePresets.find(preset => preset.id === activeDeviceId);
+  const dirtyCount = userPresets.filter(preset => preset._dirty).length;
   $('deviceStatus').textContent = deviceBusy ? '正在与设备通信…' : deviceClient ?
     `已连接 · ${devicePresets.length}/6 套 · 使用中：${active?.name || '未知'}` : '未连接';
   $('connectDevice').textContent = deviceClient ? '重新读取' : '连接设备';
   $('connectDevice').disabled = deviceBusy;
-  $('applyPreset').disabled = deviceBusy || !deviceClient || currentPreset()._readonly ||
-    !devicePresets.some(preset => preset.id === currentPreset().id);
+  $('applyPreset').disabled = deviceBusy || !deviceClient || currentPreset()._device;
+  $('applyAll').disabled = deviceBusy || !deviceClient || !dirtyCount;
+  $('applyAll').textContent = dirtyCount ? `应用全部修改 (${dirtyCount})` : '应用全部修改';
 }
 function currentName(id) {
   return userPresets.find(preset => preset.uuid === id)?.name ||
@@ -215,7 +229,9 @@ function renderInspector() {
 }
 async function refreshDevice(selectActive = false) {
   const selectedDeviceId = currentPreset()._device ? currentPreset().id : null;
-  const result = await deviceClient.readInstalled();
+  const client = deviceClient, generation = deviceGeneration;
+  const result = await client.readInstalled();
+  if (client !== deviceClient || generation !== deviceGeneration) throw new Error('设备连接已更换');
   activeDeviceId = result.activeId;
   devicePresets = result.presets.map(preset => ({ ...preset, uuid: uuid(), _readonly: true, _device: true }));
   if (selectActive) selectedPresetId = devicePresets.find(preset => preset.id === activeDeviceId).uuid;
@@ -225,42 +241,116 @@ async function refreshDevice(selectActive = false) {
 }
 function deviceDisconnected(device) {
   if (!deviceConnection || device !== deviceConnection.device) return;
+  const connection = deviceConnection;
+  ++deviceGeneration;
+  connection.abort();
   if (currentPreset()._device) selectedPresetId = templates[0].uuid;
   deviceConnection = null; deviceClient = null; devicePresets = []; activeDeviceId = 0; deviceBusy = false;
   renderAll();
-  toast('设备已断开', true);
+  toast('设备已断开，可以连接另一台设备', true);
 }
 async function runDeviceAction(action) {
   if (deviceBusy) return;
+  const generation = deviceGeneration;
   deviceBusy = true; renderDeviceState();
   try { await action(); }
-  catch (error) { toast(error.message || String(error), true); }
-  finally { deviceBusy = false; renderAll(); }
+  catch (error) { if (generation === deviceGeneration) toast(error.message || String(error), true); }
+  finally {
+    if (generation === deviceGeneration) { deviceBusy = false; renderAll(); }
+  }
 }
 $('connectDevice').addEventListener('click', () => runDeviceAction(async () => {
   if (deviceClient) { await refreshDevice(false); toast('设备预设已重新读取'); return; }
   deviceConnection = await D.connectHid(navigator.hid);
-  deviceConnection.device.addEventListener('disconnect', () => deviceDisconnected(deviceConnection.device));
   deviceClient = new D.DeviceClient(deviceConnection.session);
   await deviceClient.hello();
   await refreshDevice(true);
   toast('设备读取完成；编辑会创建本地副本，不会自动写入');
 }));
-$('applyPreset').addEventListener('click', () => runDeviceAction(async () => {
-  const preset = currentPreset(), installed = devicePresets.find(item => item.id === preset.id);
-  if (!deviceClient || preset._readonly || !installed) {
-    toast('请先选择一套从设备预设创建的本地副本；新预设安装将在后续阶段开放', true);
-    return;
-  }
-  const errors = P.presetErrors(preset);
+navigator.hid?.addEventListener('disconnect', event => deviceDisconnected(event.device));
+function chooseReplacement(preset) {
+  const dialog = $('replaceDialog'), select = $('replaceTarget');
+  $('replaceDescription').textContent = `选择一套设备预设，用“${preset.name}”覆盖。本地预设和 ID 不会改变。`;
+  select.replaceChildren(...devicePresets.map(item => {
+    const option = document.createElement('option'); option.value = item.id; option.textContent = `${item.name}（ID ${item.id}）`; return option;
+  }));
+  dialog.returnValue = '';
+  return new Promise(resolve => {
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'default' ? devicePresets.find(item => item.id === Number(select.value)) : null);
+    }, { once: true });
+    dialog.showModal();
+  });
+}
+async function installPreset(source) {
+  const errors = P.presetErrors(source);
   if (errors.length) throw new Error(errors[0]);
-  if (!confirm(`将替换设备上的“${installed.name}”（ID ${preset.id}）。\n写入后会立即重读并逐字节验证。是否继续？`)) return;
-  await deviceClient.writeVerified(preset);
-  preset._dirty = false; preset._dirtySlots = [];
+  const outgoing = P.clonePreset(source);
+  let installed = devicePresets.find(item => item.id === outgoing.id) || null;
+  if (!installed && devicePresets.length >= 6) {
+    installed = await chooseReplacement(outgoing);
+    if (!installed) return null;
+    outgoing.id = installed.id;
+  }
+  const message = installed ? `将用“${outgoing.name}”替换设备上的“${installed.name}”（ID ${outgoing.id}）。` :
+    `将把“${outgoing.name}”（ID ${outgoing.id}）安装到设备。`;
+  if (!confirm(`${message}\n写入后会立即重读并逐字节验证。是否继续？`)) return null;
+  await deviceClient.writeVerified(outgoing);
+  const local = userPresets.find(item => item.uuid === source.uuid);
+  if (local && local.id === outgoing.id) { local._dirty = false; local._dirtySlots = []; }
   saveLibrary();
+  return outgoing;
+}
+$('applyPreset').addEventListener('click', () => runDeviceAction(async () => {
+  if (!deviceClient || currentPreset()._device) return;
+  const installed = await installPreset(currentPreset());
+  if (!installed) return;
   await refreshDevice(false);
-  toast(`“${preset.name}”已写入设备，重读验证通过`);
+  toast(`“${installed.name}”已写入设备，重读验证通过`);
 }));
+$('applyAll').addEventListener('click', () => runDeviceAction(async () => {
+  const dirty = userPresets.filter(preset => preset._dirty);
+  if (!deviceClient || !dirty.length) return;
+  const plans = D.planBatch(dirty.map(P.clonePreset), devicePresets);
+  plans.forEach((plan, index) => { plan.sourceUuid = dirty[index].uuid; });
+  const replacements = plans.filter(plan => plan.installed).length;
+  if (!confirm(`将应用 ${plans.length} 套本地修改：${replacements} 套覆盖，${plans.length - replacements} 套新安装。\n逐条写入并验证，任何失败都会立即停止。是否继续？`)) return;
+  let applied = 0;
+  try {
+    for (const plan of plans) {
+      await deviceClient.writeVerified(plan.preset);
+      const local = userPresets.find(preset => preset.uuid === plan.sourceUuid);
+      if (local) { local._dirty = false; local._dirtySlots = []; }
+      ++applied; saveLibrary();
+    }
+  } catch (error) {
+    try { await refreshDevice(false); } catch (_) {}
+    throw new Error(`已应用 ${applied}/${plans.length} 套；${error.message}。已重新读取设备状态`);
+  }
+  await refreshDevice(false);
+  toast(`已应用并验证 ${applied}/${plans.length} 套修改`);
+}));
+function moveSelectedDevice(direction) {
+  return runDeviceAction(async () => {
+    const preset = devicePresets[selectedDeviceIndex()];
+    const beforeId = preset && D.moveAnchor(devicePresets, preset.id, direction);
+    if (!preset || beforeId === null) return;
+    await deviceClient.move(preset.id, beforeId);
+    await refreshDevice(false);
+    toast(`“${preset.name}”已${direction < 0 ? '上移' : '下移'}，设备顺序已刷新`);
+  });
+}
+function deleteSelectedDevice() {
+  return runDeviceAction(async () => {
+    const preset = devicePresets[selectedDeviceIndex()];
+    if (!preset || devicePresets.length <= 1) return;
+    const activeNote = preset.id === activeDeviceId ? '\n这是当前使用中的预设，删除后设备会切换到列表第一套。' : '';
+    if (!confirm(`从设备删除“${preset.name}”（ID ${preset.id}）？${activeNote}\n浏览器中的本地副本会保留。`)) return;
+    await deviceClient.remove(preset.id);
+    await refreshDevice(false);
+    toast(`已从设备删除“${preset.name}”，本地副本未改变`);
+  });
+}
 window.addEventListener('focus', () => {
   if (!deviceClient || deviceBusy || !deviceConnection.device.opened) return;
   runDeviceAction(() => refreshDevice(false));

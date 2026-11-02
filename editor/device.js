@@ -18,7 +18,8 @@
 
   function parseInfo(data) {
     const info = JSON.parse(textDecoder().decode(data));
-    const required = [P.CMD.GET_PRESETS, P.CMD.WRITE_PRESET, P.CMD.READ_PRESET, P.CMD.READ_CHUNK];
+    const required = [P.CMD.GET_PRESETS, P.CMD.WRITE_PRESET, P.CMD.DELETE, P.CMD.MOVE,
+      P.CMD.READ_PRESET, P.CMD.READ_CHUNK];
     if (info.record !== 1 || info.maxPresets !== 6 || !Array.isArray(info.cmds) ||
         !required.every(cmd => info.cmds.includes(cmd)))
       throw new Error("设备不支持预设记录 v1 或完整的读取/写入命令");
@@ -44,6 +45,28 @@
     if (!count || count > 6 || offset !== data.length || !ids.has(activeId))
       throw new Error("设备预设清单数量或活动 ID 非法");
     return { activeId, entries };
+  }
+
+  function planBatch(presets, installed) {
+    const ids = new Set();
+    for (const preset of presets) {
+      const errors = Preset.presetErrors(preset);
+      if (errors.length) throw new Error(`“${preset.name}”：${errors[0]}`);
+      if (ids.has(preset.id)) throw new Error(`批量预设包含重复 ID ${preset.id}，请先整理本地库`);
+      ids.add(preset.id);
+    }
+    const installedIds = new Set(installed.map(preset => preset.id));
+    const newCount = presets.filter(preset => !installedIds.has(preset.id)).length;
+    if (installed.length + newCount > 6)
+      throw new Error("批量应用将超过 6 套容量，请先单独选择要替换的设备预设");
+    return presets.map(preset => ({ preset, installed: installed.find(item => item.id === preset.id) || null }));
+  }
+
+  function moveAnchor(entries, id, direction) {
+    const index = entries.findIndex(entry => entry.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= entries.length || Math.abs(direction) !== 1) return null;
+    return direction < 0 ? entries[target].id : (entries[target + 1]?.id || 0);
   }
 
   class DeviceClient {
@@ -72,6 +95,12 @@
       if (!sameBytes(encoded, actual)) throw new Error("写入后重读不一致，设备内容未通过验证");
       return Preset.decodePresetRecord(actual);
     }
+    async remove(id) {
+      await this.session.request(P.CMD.DELETE, new Uint8Array([id]));
+    }
+    async move(id, beforeId) {
+      await this.session.request(P.CMD.MOVE, new Uint8Array([id, beforeId]));
+    }
   }
 
   async function connectHid(hid) {
@@ -82,8 +111,17 @@
     if (!device) throw new Error("未选择设备");
     if (!device.opened) await device.open();
     const reports = [], waiters = [];
+    let aborted = false;
+    const abort = () => {
+      if (aborted) return;
+      aborted = true; reports.length = 0;
+      for (const waiter of waiters.splice(0)) {
+        clearTimeout(waiter.timer);
+        waiter.reject(new Error("设备连接已中止"));
+      }
+    };
     device.addEventListener("inputreport", event => {
-      if (event.reportId !== 6) return;
+      if (aborted || event.reportId !== 6) return;
       const report = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
       if (!waiters.length) { reports.push(report); return; }
       const waiter = waiters.shift();
@@ -91,18 +129,19 @@
       waiter.resolve(report);
     });
     const transport = {
-      send: frame => device.sendReport(6, frame),
+      send: frame => aborted ? Promise.reject(new Error("设备连接已中止")) : device.sendReport(6, frame),
       receive: timeoutMs => new Promise((resolve, reject) => {
+        if (aborted) return reject(new Error("设备连接已中止"));
         if (reports.length) return resolve(reports.shift());
-        const waiter = { resolve, timer: setTimeout(() => {
+        const waiter = { resolve, reject, timer: setTimeout(() => {
           waiters.splice(waiters.indexOf(waiter), 1);
           reject(new P.TimeoutError());
         }, timeoutMs) };
         waiters.push(waiter);
       }),
     };
-    return { device, session: new P.Session(transport) };
+    return { device, session: new P.Session(transport), abort };
   }
 
-  return { HID_FILTER, sameBytes, parseInfo, parsePresetList, DeviceClient, connectHid };
+  return { HID_FILTER, sameBytes, parseInfo, parsePresetList, planBatch, moveAnchor, DeviceClient, connectHid };
 });
