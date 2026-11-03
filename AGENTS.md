@@ -50,7 +50,7 @@ src/proto/      独立 Vendor HID（ID6 + 63B）+ ConfigProto v2；回调入队�
                 （线上协议单一事实源：docs/PROTOCOL.md；动态命令已实现）
 src/ota/        OtaManager：双槽应用写入、SHA-256、激活、回退状态与本地自检确认
 src/led/        WS2812：LedController（统一 Adafruit_NeoPixel 后端）
-src/power/      电池电压估算（GPIO3 实测 1:2.2 分压 + 放电曲线表，插线冻结，见 D25）
+src/power/      电池电压估算（GPIO3 实测 1:2.2 分压 + 放电曲线表，充电中读数偏高属接受，见 D25）
 tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+manifest）/
                 build_templates.js（官方模板索引生成，改 presets/ 后必跑）；
                 probe/ 含 hidapi、WebHID OTA、ROM 与统一入口探针、webflash_rules 纯规则及

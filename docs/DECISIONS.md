@@ -356,6 +356,10 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - **2026-11-03 修订（0.5.3）**：实测 3.8V 蓝牙连接显示 100% 定位为上报链缺陷，非测量问题——
   BAS 初始硬编码 100 + 上电 60s 上报空窗 + `setBatteryLevel` 默认 notify=false 静默写入，
   Windows 连接时读到占位值后不再轮询。修复：`updateBleBattery` 上电即首发 + notify=true。
+- **2026-11-03 二次修订（0.5.4）**：实测"插充电头显示 100%"根因＝充电头不触发 USB 枚举，
+  冻结逻辑（按 USB transport 判定充电）从未生效，采样持续读到被抬高的节点。按"简单优先"定案：
+  撤销冻结机制，充电中读数偏高甚至 100% 属接受行为（冻结会让用户误以为充电无效，比 100% 更糟）；
+  采样周期 30s→5s + BLE 值变化即报（无变化 60s 心跳），拔线后 ≤5s 恢复真值。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

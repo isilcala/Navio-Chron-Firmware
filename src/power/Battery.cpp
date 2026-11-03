@@ -29,7 +29,6 @@ static uint8_t curveToPercent(uint16_t mv) {
 }
 
 void Battery::tick() {
-  if (usbPowered_) return;  // 插线充电中节点被抬到 ~5V，读数无效（见 Config.h 标定注释）
   uint32_t now = millis();
   if (now - lastMs_ < BATTERY_CHECK_INTERVAL_MS) return;
   lastMs_ = now;

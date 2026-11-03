@@ -119,12 +119,15 @@ static void updateLinkMode() {
   }
 }
 
-// 蓝牙电量服务周期上报（上电即首发：首发前 BAS 是初始占位值，主机连接即读会拿到旧值）
+// 蓝牙电量上报：值变化立即推送（拔线/放电解锁 ≤5s 刷新），无变化 60s 心跳保底
 static void updateBleBattery() {
-  static uint32_t last = millis() - 60 * 1000;
-  if (millis() - last < 60 * 1000) return;
+  static uint32_t last = millis() - 60 * 1000;  // 上电即首发
+  static uint8_t lastPct = 255;
+  uint8_t pct = battery.percent();
+  if (pct == lastPct && millis() - last < 60 * 1000) return;
   last = millis();
-  bleTransport.updateBattery(battery.percent());
+  lastPct = pct;
+  bleTransport.updateBattery(pct);
 }
 
 static void dispatchButton(Btn id, bool pressed);
@@ -230,8 +233,6 @@ void loop() {
   // 低频任务
   vendorHid.poll();
   configProto.poll();
-  // 插线(USB 模式)=模块充电中，分压节点被抬到 ~5V，冻结电量读数（见 Config.h）
-  battery.setUsbPowered(transport == &usbTransport);
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();

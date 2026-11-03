@@ -16,9 +16,9 @@ constexpr int ENC_DETENT_DIVISOR[3] = {2, 2, 2};
 
 // —— 电源 ——
 // 分压比 2026-11-03 实测标定：电池 3.76V → GPIO3 1.713V（=2.195，非假设的 ÷2）。
-// 插线(USB)时分压上游节点被抬到 ~5.4V（实测 GPIO3 2.478V），读数无效 → 仅电池模式更新。
+// 充电中（含充电头：USB 不枚举）节点被充电电路抬高，读数偏高甚至 100%——接受，简单优先（D25）。
 constexpr float BATTERY_DIVIDER_RATIO = 2.195f;
-constexpr uint32_t BATTERY_CHECK_INTERVAL_MS = 30 * 1000;
+constexpr uint32_t BATTERY_CHECK_INTERVAL_MS = 5 * 1000;  // 5s：拔线后 ≤5s 恢复真值；采样功耗可忽略
 constexpr uint8_t BATTERY_LOW_PERCENT = 15;  // ≈3.58V，模块 LDO 欠压区(~3.6V)入口
 // 放电曲线 {毫伏, 电量%} 降序，分段线性插值替代线性折算（锂电平台期 S 形）。
 // 0% 锚 3.00V：实测力竭 2.865V，3.0-3.1V 为安全下限；满电 4.2V 对应 TP4054 CV。
