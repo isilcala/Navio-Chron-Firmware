@@ -267,7 +267,8 @@ bool BleTransport::reportReady_(uint8_t reportId) const {
 }
 
 void BleTransport::updateBattery(uint8_t pct) {
-  if (hid) hid->setBatteryLevel(pct);
+  // notify=true：Windows 等主机不主动轮询 BAS，静默写入永远到不了 UI
+  if (hid) hid->setBatteryLevel(pct, true);
 }
 
 // —— 报告发送 ——//

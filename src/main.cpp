@@ -119,9 +119,9 @@ static void updateLinkMode() {
   }
 }
 
-// 蓝牙电量服务周期上报
+// 蓝牙电量服务周期上报（上电即首发：首发前 BAS 是初始占位值，主机连接即读会拿到旧值）
 static void updateBleBattery() {
-  static uint32_t last = 0;
+  static uint32_t last = millis() - 60 * 1000;
   if (millis() - last < 60 * 1000) return;
   last = millis();
   bleTransport.updateBattery(battery.percent());

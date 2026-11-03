@@ -353,6 +353,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 插线（USB 模式）冻结电量更新，仅电池模式读数有效；采样 8 次去极值取平均。
 - 边界：电压法在 3.7-3.9V 平台期天然粗糙（±10% 量级），不追求库仑计精度；
   精确方案预留硬件电量计（U9 未贴片焊盘，SDA/SCL→IO41/16）。
+- **2026-11-03 修订（0.5.3）**：实测 3.8V 蓝牙连接显示 100% 定位为上报链缺陷，非测量问题——
+  BAS 初始硬编码 100 + 上电 60s 上报空窗 + `setBatteryLevel` 默认 notify=false 静默写入，
+  Windows 连接时读到占位值后不再轮询。修复：`updateBleBattery` 上电即首发 + notify=true。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
