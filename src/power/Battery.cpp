@@ -13,17 +13,37 @@ void Battery::begin() {
   tick();
 }
 
+// 电压→电量：查 BATTERY_CURVE 分段线性插值（表降序，低于末点=0%）
+static uint8_t curveToPercent(uint16_t mv) {
+  constexpr int N = sizeof(BATTERY_CURVE) / sizeof(BATTERY_CURVE[0]);
+  if (mv >= BATTERY_CURVE[0][0]) return BATTERY_CURVE[0][1];
+  for (int i = 1; i < N; ++i) {
+    if (mv >= BATTERY_CURVE[i][0]) {
+      uint32_t span = BATTERY_CURVE[i - 1][0] - BATTERY_CURVE[i][0];
+      uint32_t off = mv - BATTERY_CURVE[i][0];
+      return BATTERY_CURVE[i][1] +
+             (BATTERY_CURVE[i - 1][1] - BATTERY_CURVE[i][1]) * off / span;
+    }
+  }
+  return 0;
+}
+
 void Battery::tick() {
+  if (usbPowered_) return;  // 插线充电中节点被抬到 ~5V，读数无效（见 Config.h 标定注释）
   uint32_t now = millis();
   if (now - lastMs_ < BATTERY_CHECK_INTERVAL_MS) return;
   lastMs_ = now;
 
-  // 分压比 ÷2（两颗等值电阻），analogReadMilliVolts 自带出厂校准
-  float volts = analogReadMilliVolts(PIN_BATTERY_SENSE) * 2.0f / 1000.0f;
-  float ratio = (volts - BATTERY_MIN_VOLTAGE) / (BATTERY_FULL_VOLTAGE - BATTERY_MIN_VOLTAGE);
-  if (ratio < 0) ratio = 0;
-  if (ratio > 1) ratio = 1;
-  pct_ = static_cast<uint8_t>(ratio * 100 + 0.5f);
+  // 8 次采样去极值取平均，抑制 BLE 突发与 LED 纹波；analogReadMilliVolts 自带出厂校准
+  uint32_t sum = 0, mn = 4000, mx = 0;
+  for (int i = 0; i < 8; ++i) {
+    uint32_t v = analogReadMilliVolts(PIN_BATTERY_SENSE);
+    sum += v;
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  float pinMv = (sum - mn - mx) / 6.0f;
+  pct_ = curveToPercent(static_cast<uint16_t>(pinMv * BATTERY_DIVIDER_RATIO));
 }
 
 }  // namespace navio

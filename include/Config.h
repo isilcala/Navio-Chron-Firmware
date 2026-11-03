@@ -15,10 +15,18 @@ constexpr uint32_t ENCODER_PULSE_US = 3000;        // 编码器点触动作的�
 constexpr int ENC_DETENT_DIVISOR[3] = {2, 2, 2};
 
 // —— 电源 ——
-constexpr float BATTERY_MIN_VOLTAGE = 3.10;  // 电量 0% 参考
-constexpr float BATTERY_FULL_VOLTAGE = 4.19;
+// 分压比 2026-11-03 实测标定：电池 3.76V → GPIO3 1.713V（=2.195，非假设的 ÷2）。
+// 插线(USB)时分压上游节点被抬到 ~5.4V（实测 GPIO3 2.478V），读数无效 → 仅电池模式更新。
+constexpr float BATTERY_DIVIDER_RATIO = 2.195f;
 constexpr uint32_t BATTERY_CHECK_INTERVAL_MS = 30 * 1000;
-constexpr uint8_t BATTERY_LOW_PERCENT = 15;
+constexpr uint8_t BATTERY_LOW_PERCENT = 15;  // ≈3.58V，模块 LDO 欠压区(~3.6V)入口
+// 放电曲线 {毫伏, 电量%} 降序，分段线性插值替代线性折算（锂电平台期 S 形）。
+// 0% 锚 3.00V：实测力竭 2.865V，3.0-3.1V 为安全下限；满电 4.2V 对应 TP4054 CV。
+constexpr uint16_t BATTERY_CURVE[][2] = {
+    {4200, 100}, {4100, 92}, {4000, 83}, {3900, 72}, {3800, 55}, {3750, 45},
+    {3700, 35},  {3650, 25}, {3600, 17}, {3500, 8},  {3400, 4},  {3300, 2},
+    {3200, 1},   {3000, 0},
+};
 
 // —— LED ——
 constexpr uint8_t LED_BRIGHTNESS = 48;      // 0-255，电池模式考虑功耗

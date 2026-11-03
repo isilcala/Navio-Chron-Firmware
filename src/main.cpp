@@ -230,6 +230,8 @@ void loop() {
   // 低频任务
   vendorHid.poll();
   configProto.poll();
+  // 插线(USB 模式)=模块充电中，分压节点被抬到 ~5V，冻结电量读数（见 Config.h）
+  battery.setUsbPowered(transport == &usbTransport);
   battery.tick();
   leds.setBatteryLow(battery.low());
   leds.tick();
