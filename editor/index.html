@@ -5,20 +5,24 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Navio Chron 预设编辑器</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261102-12">
+  <link rel="stylesheet" href="styles.css?v=20261105-16">
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>WebHID 预设编辑器</small></div></div>
     <div class="top-actions">
       <span id="saveState" class="save-state">本地修改尚未写入设备</span>
+      <span id="deviceFirmware" class="device-firmware" hidden></span>
       <span id="deviceStatus" class="device-status">未连接</span>
       <button id="connectDevice" class="button secondary">连接设备</button>
       <button id="applyAll" class="button secondary" disabled>应用全部修改</button>
       <button id="applyPreset" class="button" disabled>安装 / 写入</button>
-      <a href="../" class="button secondary">固件刷写</a>
+      <a id="flashLink" href="../" class="button secondary">固件刷写</a>
     </div>
   </header>
+  <div id="firmwareNotice" class="firmware-notice" role="status" hidden>
+    <span id="firmwareNoticeText"></span><a id="firmwareFlashLink" href="../" class="button">刷写固件</a>
+  </div>
 
   <main class="workspace">
     <aside class="panel library-panel">
@@ -68,11 +72,12 @@
       <div class="dialog-actions"><button value="cancel" class="button secondary">取消</button><button id="confirmReplacement" value="default" class="button">确认替换</button></div>
     </form>
   </dialog>
-  <script src="../tools/probe/navio_proto.js?v=20261102-12"></script>
-  <script src="preset.js?v=20261102-12"></script>
-  <script src="templates.js?v=20261102-12"></script>
-  <script src="library.js?v=20261102-12"></script>
-  <script src="device.js?v=20261102-12"></script>
-  <script type="module" src="app.js?v=20261102-12"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261105-16"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261105-16"></script>
+  <script src="preset.js?v=20261105-16"></script>
+  <script src="templates.js?v=20261105-16"></script>
+  <script src="library.js?v=20261105-16"></script>
+  <script src="device.js?v=20261105-16"></script>
+  <script type="module" src="app.js?v=20261105-16"></script>
 </body>
 </html>

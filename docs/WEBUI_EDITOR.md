@@ -107,6 +107,11 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 
 - B 阶段通过 WebHID 执行 HELLO、GET_INFO、GET_PRESETS 和逐套 READ_PRESET；设备预设单独分区、只读，
   首次编辑时创建同 presetId 的本地副本。窗口聚焦和手动“重新读取”会刷新设备清单与 activeId。
+- 每次新连接取得 `HELLO.fw` 后在页头以独立标签显示当前设备固件版本，并主动读取发布清单
+  （线上为站点根目录 `manifest.json`，本地为当前 `release/navio_chron_0.5.4/manifest.json`），
+  复用刷写规则的完整 SemVer 比较；仅设备版本严格低于发布版本时显示顶部更新条
+  与刷写入口，同版或更新版本不提示。检查异步执行，清单加载或版本解析失败只记录诊断，不阻断
+  设备读取与预设编辑；断开后隐藏版本标签并清除更新提示。
 - B 阶段仅开放已有同 ID 的覆盖：写入前校验并明确确认，WRITE_PRESET 后立即 READ_PRESET，
   150B 逐字节一致才显示成功并清除本地 dirty；新 ID 安装、删除和换序留到 C 阶段。
 - `WRITE_PRESET` 是同 ID upsert：存在则原位替换，不存在则追加；满 6 套新 ID 被拒绝。

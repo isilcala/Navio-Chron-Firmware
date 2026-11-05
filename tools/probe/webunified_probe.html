@@ -1,43 +1,40 @@
 <!doctype html>
-<meta charset="utf-8">
-<title>Navio Unified Web Flash Probe</title>
-<style>
-  body{font:16px/1.5 sans-serif;max-width:70em;margin:2em}
-  input,button{font-size:1em;margin:.4em .4em .4em 0}
-  input[type=text]{width:46em;max-width:90%}
-  button{padding:.45em .8em}
-  #status{font-weight:600;margin:1em 0;white-space:pre-wrap}
-  #confirm{border:1px solid #999;padding:1em;margin:1em 0;white-space:pre-wrap}
-  #eraseWarning{color:#a00000;font-weight:700}
-  #preserveNotice{color:#075f20;font-weight:700}
-  progress{width:100%;height:1.4em}
-  pre{white-space:pre-wrap;background:#eee;padding:1em;min-height:16em}
-  [hidden]{display:none!important}
-</style>
-<h1>Navio Web 刷写</h1>
-<p><a id="editorLink" href="/editor/">打开预设编辑器</a></p>
-<!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
-<input id="manifest" type="text" value="/release/navio_chron_0.4.0-dev/manifest.json">
-<div>
-  <button id="connect">连接并升级</button>
-  <button id="verify" hidden>重新连接并验证</button>
-  <button id="diagnose" hidden>OTA 诊断</button>
-</div>
-<div id="status">正在加载发布包…</div>
-<progress id="progress" value="0" max="100"></progress>
-<div id="confirm" hidden>
-  <div id="confirmText"></div>
-  <div id="eraseWarning" hidden>将擦除设备数据，包括已有预设。</div>
-  <div id="preserveNotice" hidden>已确认 Navio 身份，将保留你的预设。</div>
-  <button id="confirmWrite">确认升级</button>
-  <button id="cancelWrite">取消</button>
-</div>
-<details>
-  <summary>诊断日志</summary>
-  <pre id="out"></pre>
-</details>
-<script src="navio_proto.js"></script>
-<script src="webflash_rules.js"></script>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Navio Chron 固件刷写</title>
+  <link rel="stylesheet" href="../../editor/styles.css">
+  <style>
+    .flash-shell{max-width:860px;margin:auto;padding:52px 24px 64px}.flash-hero{margin-bottom:26px}.flash-hero h1{margin:6px 0 10px;font-size:32px;letter-spacing:-.5px}.flash-hero p{margin:0;color:var(--muted);font-size:15px}.flash-card{padding:26px}.release-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.release-heading h2{margin-top:3px}.release-version{flex:none;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--accent);background:#ff9c430c;font-size:12px}.manifest-label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:11px}.manifest-label input{font-size:12px}.flash-actions{display:flex;gap:10px;margin:22px 0 18px}.flash-actions .button{padding:11px 20px}.flash-status{min-height:48px;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:#0b1926;color:var(--text);white-space:pre-wrap}progress{display:block;width:100%;height:8px;margin:14px 0 0;border:0;border-radius:999px;overflow:hidden;background:#1b3042;accent-color:var(--accent)}progress::-webkit-progress-bar{background:#1b3042}progress::-webkit-progress-value{background:linear-gradient(90deg,var(--accent-2),var(--accent));border-radius:999px}progress::-moz-progress-bar{background:var(--accent)}#confirm{margin-top:20px;padding:18px;border:1px solid #6b4c32;border-radius:12px;background:#2a211b;white-space:pre-wrap}#confirmText{line-height:1.8}#eraseWarning{margin-top:10px;color:var(--danger);font-weight:700}#preserveNotice{margin-top:10px;color:var(--ok);font-weight:700}.confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.diagnostics{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#0d1a28}.diagnostics summary{padding:13px 16px;color:var(--muted);cursor:pointer}.diagnostics pre{min-height:120px;max-height:360px;margin:0;padding:16px;overflow:auto;border-top:1px solid var(--line);color:#a9bdcc;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}.flash-footer{text-align:center;color:var(--muted);font-size:12px}[hidden]{display:none!important}@media(max-width:720px){.flash-shell{padding:30px 14px 44px}.flash-hero h1{font-size:27px}.flash-card{padding:18px}.release-heading{align-items:flex-start}.topbar .device-status{display:none}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>固件刷写</small></div></div>
+    <div class="top-actions"><span class="device-status">桌面 Chrome / Edge</span><a id="editorLink" class="button secondary" href="/editor/">打开预设编辑器</a></div>
+  </header>
+  <main class="flash-shell">
+    <section class="flash-hero"><span class="eyebrow">FIRMWARE UPDATE</span><h1>让键盘保持最新</h1><p>连接 Navio Chron，确认版本后即可升级。刷写期间请保持 USB 连接。</p></section>
+    <section class="panel flash-card">
+      <div class="release-heading"><div><span class="eyebrow">RELEASE</span><h2>可用固件</h2></div><span id="releaseVersion" class="release-version">正在加载…</span></div>
+      <!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
+      <label class="manifest-label">发布清单<input id="manifest" type="text" value="/release/navio_chron_0.5.4/manifest.json"></label>
+      <div class="flash-actions"><button id="connect" class="button">连接并升级</button></div>
+      <div id="status" class="flash-status" role="status" aria-live="polite">正在加载发布包…</div>
+      <progress id="progress" value="0" max="100" aria-label="刷写进度"></progress>
+      <div id="confirm" hidden>
+        <div id="confirmText"></div>
+        <div id="eraseWarning" hidden>将擦除设备数据，包括已有预设。</div>
+        <div id="preserveNotice" hidden>已确认 Navio 身份，将保留你的预设。</div>
+        <div class="confirm-actions"><button id="cancelWrite" class="button secondary">取消</button><button id="confirmWrite" class="button">确认升级</button></div>
+      </div>
+    </section>
+    <details class="diagnostics"><summary>诊断日志</summary><pre id="out"></pre></details>
+    <p class="flash-footer">写入完成后设备会自动重启，无需在网页中重新连接。</p>
+  </main>
+  <script src="navio_proto.js"></script>
+  <script src="webflash_rules.js"></script>
 <script type="module">
 import { ESPLoader, Transport } from './esptool-js.bundle.js';
 
@@ -50,8 +47,8 @@ const $ = id => document.getElementById(id);
 $('editorLink').href = location.pathname.includes('/tools/probe/') ? '/editor/' : './editor/';
 const out = $('out'), waiters = [], reports = [];
 let manifest, releaseBase, device, session, navioConfirmed = false;
-let pendingConfirmation = null, pendingVerification = null, romConnection = null;
-let helloCache = null, presetsBefore = null, serialMode = null;
+let pendingConfirmation = null, romConnection = null;
+let helloCache = null, serialMode = null;
 
 function log(value) {
   out.textContent += `${typeof value === 'string' ? value : JSON.stringify(value)}\n`;
@@ -69,11 +66,8 @@ function u32(data, offset = 0) {
 function le32(value) {
   return new Uint8Array([value & 255, value >> 8 & 255, value >> 16 & 255, value >> 24 & 255]);
 }
-function sameBytes(a, b) {
-  return a && b && a.length === b.length && a.every((value, index) => value === b[index]);
-}
 function setBusy(busy) {
-  for (const id of ['connect', 'verify', 'diagnose', 'manifest', 'confirmWrite', 'cancelWrite'])
+  for (const id of ['connect', 'manifest', 'confirmWrite', 'cancelWrite'])
     $(id).disabled = busy;
 }
 async function run(fn) {
@@ -82,7 +76,6 @@ async function run(fn) {
   catch (error) {
     log(error.stack || String(error));
     status(error.message || String(error));
-    if (pendingVerification) $('verify').hidden = false;
   }
   finally { setBusy(false); }
 }
@@ -95,6 +88,7 @@ async function loadRelease() {
   R.validateManifest(parsed);
   manifest = parsed;
   releaseBase = new URL(url, location.href);
+  $('releaseVersion').textContent = `${manifest.version} · ${manifest.channel}`;
   status(`发布包 ${manifest.version}（${manifest.channel}）已就绪`);
   log(`MANIFEST ${manifest.version} ${manifest.flash.mode}/${manifest.flash.freq}/${manifest.flash.size}`);
 }
@@ -215,23 +209,17 @@ function showConfirmation(plan) {
 }
 function showRescue(reason) {
   pendingConfirmation = null;
-  pendingVerification = null;
   serialMode = 'no_reset';
   $('confirm').hidden = true;
-  $('verify').hidden = true;
   status(`${reason}\n请按住 BOOT 插入 USB，松开后点击“连接并升级”。`);
 }
-function showSuccess(message, otaDiagnostic = true) {
-  pendingVerification = null;
+function showSuccess(message) {
   pendingConfirmation = null;
   romConnection = null;
   navioConfirmed = false;
-  presetsBefore = null;
   helloCache = null;
   serialMode = null;
-  $('verify').hidden = true;
   $('confirm').hidden = true;
-  $('diagnose').hidden = !otaDiagnostic;
   $('progress').value = 100;
   status(message);
 }
@@ -244,14 +232,11 @@ async function startOta() {
     return;
   }
   const images = await downloadImages(true);
-  presetsBefore = await session.request(CMD.GET_PRESETS);
-  if (!presetsBefore.length || presetsBefore[0] === 0) throw new Error('Preset manifest is empty');
-  showConfirmation({ ...decision, images, beforePresets: presetsBefore });
+  showConfirmation({ ...decision, images });
 }
 
 async function runOta(plan) {
   const firmware = plan.images[0].data;
-  const started = performance.now();
   let initial = await otaStatus();
   log({ hello: helloCache, initial });
   if (initial.session === 2) {
@@ -291,48 +276,7 @@ async function runOta(plan) {
   if (finish.length !== 1 || finish[0] !== target) throw new Error('Malformed OTA_FINISH response');
   await session.request(CMD.OTA_REBOOT);
   await device.close();
-  plan.target = target;
-  pendingVerification = plan;
-  status('正在重新连接…');
-  if (!await reconnect()) {
-    $('verify').hidden = false;
-    status('设备已重启；浏览器需要重新授权，请点击“重新连接并验证”');
-    return;
-  }
-  await verifyOta(plan, started);
-}
-
-async function verifyOta(plan, started = performance.now()) {
-  const updatedHello = await readHello();
-  if (updatedHello.fw !== manifest.version)
-    throw new Error(`版本不符：${updatedHello.fw} != ${manifest.version}`);
-  const updated = await otaStatus();
-  log({ updatedHello, updated });
-  if (updated.runningSlot !== plan.target) throw new Error('Booted slot does not match OTA target');
-  if (![1, 2].includes(updated.imageState)) throw new Error('New image is not valid or pending');
-  const afterPresets = await session.request(CMD.GET_PRESETS);
-  if (!sameBytes(plan.beforePresets, afterPresets)) throw new Error('Preset manifest changed during OTA');
-  const confirmed = await session.request(CMD.OTA_CONFIRM);
-  if (confirmed.length !== 1 || confirmed[0] !== 1) throw new Error('Image did not reach VALID');
-  const finalStatus = await otaStatus();
-  if (finalStatus.imageState !== 1 || finalStatus.runningSlot !== plan.target)
-    throw new Error('Final OTA state is not VALID on the target slot');
-  showSuccess(`升级完成：${updatedHello.fw}，预设已保留（${((performance.now() - started) / 1000).toFixed(1)}s）`);
-}
-
-async function verifyRom(plan) {
-  const updatedHello = await readHello();
-  if (updatedHello.fw !== manifest.version)
-    throw new Error(`版本不符：${updatedHello.fw} != ${manifest.version}`);
-  const afterPresets = await session.request(CMD.GET_PRESETS);
-  if (!afterPresets.length || afterPresets[0] === 0) throw new Error('Preset manifest is empty');
-  if (plan.beforePresets && !sameBytes(plan.beforePresets, afterPresets))
-    throw new Error('Preset manifest changed during ROM flash');
-  const current = await otaStatus();
-  log({ updatedHello, current });
-  if (current.runningSlot !== 0 || current.imageState !== 6)
-    throw new Error(`ROM state mismatch: app${current.runningSlot}, state=${current.imageState}`);
-  showSuccess(`刷写完成：${updatedHello.fw}，app0 / UNDEFINED`, false);
+  showSuccess(`升级完成：${manifest.version}，设备正在自动重启`);
 }
 
 async function runRomWrite(plan) {
@@ -368,13 +312,11 @@ async function runRomWrite(plan) {
       await sleep(500);
       log('Hard reset pulse sent');
     }
-    pendingVerification = plan;
-    $('verify').hidden = false;
-    status('刷写完成，等待验证；若 Navio 未出现，请按 RST 或断电重插后点击“重新连接并验证”');
   } finally {
     try { await transport.disconnect(); } catch (_) {}
     romConnection = null;
   }
+  showSuccess(`刷写完成：${manifest.version}，设备正在自动重启`);
 }
 
 $('connect').onclick = () => run(async () => {
@@ -389,9 +331,6 @@ $('connect').onclick = () => run(async () => {
     status('再次点击“连接并升级”，选择设备串口');
     return;
   }
-  pendingVerification = null;
-  $('verify').hidden = true;
-  $('diagnose').hidden = true;
   $('progress').value = 0;
   const selected = await chooseHid();
   if (!selected) {
@@ -430,9 +369,6 @@ async function startSerial(resetMode) {
     try { await romConnection.transport.disconnect(); } catch (_) {}
     romConnection = null;
   }
-  $('diagnose').hidden = true;
-  $('verify').hidden = true;
-  pendingVerification = null;
   $('progress').value = 0;
   let port;
   try { port = await navigator.serial.requestPort(); }
@@ -446,7 +382,6 @@ async function startSerial(resetMode) {
   if (demoProfile) {
     navioConfirmed = false;
     helloCache = null;
-    presetsBefore = null;
     log('DEMO PROFILE 303A:1001 USB-Serial/JTAG');
   }
   const transport = new Transport(port, true);
@@ -476,7 +411,7 @@ async function startSerial(resetMode) {
     throw error;
   }
   const decision = R.decide({ navioConfirmed, serialOnly: true, romSyncOk: true });
-  showConfirmation({ ...decision, images, beforePresets: presetsBefore });
+  showConfirmation({ ...decision, images });
 }
 
 $('confirmWrite').onclick = () => run(async () => {
@@ -491,7 +426,6 @@ $('confirmWrite').onclick = () => run(async () => {
 $('cancelWrite').onclick = () => run(async () => {
   pendingConfirmation = null;
   navioConfirmed = false;
-  presetsBefore = null;
   helloCache = null;
   serialMode = null;
   $('confirm').hidden = true;
@@ -502,28 +436,13 @@ $('cancelWrite').onclick = () => run(async () => {
   status('已取消，未写入设备');
 });
 
-$('verify').onclick = () => run(async () => {
-  const plan = pendingVerification;
-  if (!plan) return;
-  const selected = await chooseHid();
-  if (!selected) { status('未选择设备，验证尚未完成'); return; }
-  navioConfirmed = true;
-  if (plan.path === 'ota') await verifyOta(plan);
-  else await verifyRom(plan);
-});
-
-$('diagnose').onclick = () => run(async () => {
-  if (!device || !device.opened) throw new Error('设备未连接');
-  const current = await otaStatus();
-  const confirmed = await session.request(CMD.OTA_CONFIRM);
-  log({ current, confirmed: Array.from(confirmed) });
-  status(`OTA 诊断：app${current.runningSlot}，state=${current.imageState}`);
-});
-
 $('manifest').addEventListener('input', () => {
   manifest = null;
   releaseBase = null;
+  $('releaseVersion').textContent = '等待加载';
   status('发布包已变更，点击连接或救援以重新加载');
 });
 window.addEventListener('load', () => run(loadRelease));
 </script>
+</body>
+</html>

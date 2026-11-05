@@ -293,8 +293,10 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   同版本仅允许显式重装；SemVer 遵循 pre-release 规则。OTA 验证目标槽与 VALID，ROM 直刷验证
   app0 与 UNDEFINED(6)，不得混用断言。演示固件自动复位仍须实测 profile，不作提前承诺。
 - 统一 OTA 实机发现 Chrome 重枚举后可持续 `getDevices()=[]`（60 秒仍为 authorized=0），
-  属授权未恢复，延长轮询无效。自动重连窗口定为 10 秒，随后转用户手动重新授权验证；
-  这与 D21 的重新选择许可一致，不再把手动授权显示为超时错误。
+  属授权未恢复，延长轮询无效。初版自动重连 10 秒后转用户手动重新授权验证。
+- 2026-11-05 UX 修订：正常 OTA/ROM 写入完成并发出重启后，网页直接显示完成，不再自动重连、
+  重新授权或复查版本与预设；OTA 由设备本地自检自动 VALID，无需主机 CONFIRM。只有恢复上次
+  中断的 OTA 会话时才保留重连，以便继续新的写入。完成态不宣称网页已验证重启后的运行状态。
 - 首个演示固件 profile 实测通过（2026-10-29）：SuperMini FastLED 演示应用（Arduino 3.3.7）
   使用 303A:1001 USB-Serial/JTAG；运行中 no_reset 失败且 RGB 不受影响，default_reset 可进入
   ROM。自动复位与写入必须保持同一串口会话，不能断开后再 no_reset。统一页仅对该实测 VID/PID

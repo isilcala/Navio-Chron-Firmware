@@ -1,5 +1,6 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261102-12';
-const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates, $ = id => document.getElementById(id);
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261105-16';
+const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
+  R = NavioWebflashRules, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const platformOf = preset => P.normalizePlatform(preset?.platform);
 const PLATFORM_CHIPS = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
@@ -9,11 +10,27 @@ let quarantinedPresets = [];
 
 // 官方模板库：presets/index.json（tools/build_templates.js 构建期生成）→ 逐文件拉取 → 校验装配；
 // 单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-const ASSET_VERSION = '20261102-12';
+const ASSET_VERSION = '20261105-16';
+const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.4/manifest.json' : '../manifest.json';
+const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : '../';
+for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`HTTP ${response.status}：${url}`);
   return response.json();
+}
+async function checkFirmwareUpdate(currentVersion) {
+  const generation = deviceGeneration;
+  try {
+    const release = await fetchJson(RELEASE_MANIFEST_URL);
+    R.validateManifest(release);
+    if (generation !== deviceGeneration || R.compareSemver(currentVersion, release.version) >= 0) return;
+    $('firmwareNoticeText').textContent = `当前固件 ${currentVersion}，最新版本 ${release.version}。请先刷写固件。`;
+    $('firmwareNotice').hidden = false;
+  } catch (error) {
+    console.warn('Firmware update check failed:', error);
+  }
 }
 async function loadOfficialTemplates() {
   const index = await fetchJson(`presets/index.json?v=${ASSET_VERSION}`);
@@ -78,7 +95,7 @@ function loadUserPresets() {
 }
 let templates = [], userPresets = [], selectedPresetId = null, booted = false;
 let deviceConnection = null, deviceClient = null, devicePresets = [], activeDeviceId = 0, deviceBusy = false;
-let deviceGeneration = 0;
+let deviceGeneration = 0, deviceFirmware = null;
 function currentPreset() {
   return userPresets.find(preset => preset.uuid === selectedPresetId) ||
     devicePresets.find(preset => preset.uuid === selectedPresetId) ||
@@ -195,6 +212,8 @@ function renderDeviceLibrary() {
 function renderDeviceState() {
   const active = devicePresets.find(preset => preset.id === activeDeviceId);
   const dirtyCount = userPresets.filter(preset => preset._dirty).length;
+  $('deviceFirmware').hidden = !deviceClient || !deviceFirmware;
+  $('deviceFirmware').textContent = deviceFirmware ? `固件 ${deviceFirmware}` : '';
   $('deviceStatus').textContent = deviceBusy ? '正在与设备通信…' : deviceClient ?
     `已连接 · ${devicePresets.length}/6 套 · 使用中：${active?.name || '未知'}` : '未连接';
   $('connectDevice').textContent = deviceClient ? '重新读取' : '连接设备';
@@ -291,6 +310,8 @@ function resetDeviceConnection(connection) {
   const closing = connection.abort();
   if (currentPreset()._device) selectedPresetId = templates[0].uuid;
   deviceConnection = null; deviceClient = null; devicePresets = []; activeDeviceId = 0; deviceBusy = false;
+  deviceFirmware = null;
+  $('firmwareNotice').hidden = true;
   return closing;
 }
 function deviceDisconnected(device) {
@@ -315,13 +336,16 @@ $('connectDevice').addEventListener('click', () => runDeviceAction(async () => {
   const connection = await D.connectHid(navigator.hid);
   deviceConnection = connection;
   deviceClient = new D.DeviceClient(connection.session);
+  let hello;
   try {
-    await deviceClient.hello();
+    hello = await deviceClient.hello();
+    deviceFirmware = hello.fw;
     await refreshDevice(true);
   } catch (error) {
     if (deviceConnection === connection) await resetDeviceConnection(connection);
     throw error;
   }
+  checkFirmwareUpdate(hello.fw);
   toast('设备读取完成；编辑会创建本地副本，不会自动写入');
 }));
 navigator.hid?.addEventListener('disconnect', event => deviceDisconnected(event.device));

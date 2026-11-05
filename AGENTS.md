@@ -94,7 +94,8 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
 1. Phase 2：协议、动态预设与 USB OTA 核心验收完成（D19/D20/D21）；
    Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），单入口、三条核心路径及
    中断/负向验收及 GitHub Pages 线上 OTA 验收已完成；Web 编辑器 A 原型与模板分离已完成，
-   B/C 均已通过真机验收，双键盘断开与换机重连已验证；下一步 D 体验收尾
+   B/C 均已通过真机验收，双键盘断开与换机重连已验证；刷写完成重启后不再重连验证，
+   编辑器页头显示设备固件版本，新连接主动检查固件更新；下一步 D 体验收尾
 2. 预设扩展：Premiere Win/Mac、Resolve/剪映 Mac、Procreate(iPad) 已入编辑器官方模板库
    （共 9 套，presets/ 一预设一 JSON；平台入 150B 记录 byte 13（D24），显示名不带平台词、
    chip 呈现，Cmd=GUI 修饰；快捷键按官方文档填写，待目标 App 实测微调；
