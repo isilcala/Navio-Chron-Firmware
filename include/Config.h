@@ -23,7 +23,7 @@ constexpr uint32_t BATTERY_CHECK_INTERVAL_MS = 5 * 1000;  // 5s：拔线后 ≤5
 // 尾段 1% 仅 ≈25mV，边界 5/6/5 抖动会让 Windows 低电提示反复弹出
 constexpr float BATTERY_EMA_ALPHA = 0.35f;
 constexpr uint8_t BATTERY_CONFIRM_SAMPLES = 2;
-constexpr uint8_t BATTERY_LOW_PERCENT = 15;  // ≈3.58V，模块 LDO 欠压区(~3.6V)入口
+constexpr uint8_t BATTERY_LOW_PERCENT = 5;  // ≈3.43V；与 Windows 5% 低电提示一致（D25 四修）
 // 放电曲线 {毫伏, 电量%} 降序，分段线性插值替代线性折算（锂电平台期 S 形）。
 // 0% 锚 3.00V：实测力竭 2.865V，3.0-3.1V 为安全下限；满电 4.2V 对应 TP4054 CV。
 constexpr uint16_t BATTERY_CURVE[][2] = {
