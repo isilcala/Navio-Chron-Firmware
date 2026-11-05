@@ -51,6 +51,17 @@ equal(P.nameError("a\0b") !== null, true, "NUL in name rejected");
 const encoded = P.encodePresetRecord(sample());
 equal(encoded.length, 150, "encoded record is 150 bytes");
 equal(encoded[2], 1, "record version");
+equal(P.createEmptyPreset().rgbMode, 0, "new presets default to reactive lighting");
+equal(P.RGB_MODES.map(mode => mode.id).join(","), "reactive,breath,follow", "lighting mode values are stable");
+for (const mode of P.RGB_MODES) {
+  const preset = sample(); preset.rgbMode = mode.value;
+  const record = P.encodePresetRecord(preset);
+  equal(record[11], mode.value, `${mode.id} encodes at byte 11`);
+  equal(P.decodePresetRecord(record).rgbMode, mode.value, `${mode.id} round trips through the record`);
+}
+const badRgbMode = encoded.slice(); badRgbMode[11] = 3;
+badRgbMode.set([P.crc16(badRgbMode.subarray(0, 148)) & 255, P.crc16(badRgbMode.subarray(0, 148)) >> 8], 148);
+throws(() => P.decodePresetRecord(badRgbMode), "unknown lighting mode rejected");
 equal(encoded[6], 42, "preset ID");
 equal(encoded[7], 6, "UTF-8 name length in bytes");
 equal(encoded[148] | encoded[149] << 8, P.crc16(encoded.subarray(0, 148)), "CRC stored at offset 148");

@@ -1,6 +1,7 @@
 # Navio 二进制预设 Schema v1
 
-> 状态：规范冻结（2026-10-27）；2026-11-02 修订 byte 13 为平台元数据（D23），记录版本保持 1。
+> 状态：规范冻结（2026-10-27）；2026-11-02 修订 byte 13 为平台元数据（D24）；
+> 2026-11-05 启用 byte 11 三种灯效（D26），记录版本保持 1。
 > 实现与实测状态见 `docs/PROJECT.md`。
 > 线上协议见 `PROTOCOL.md`。多字节整数均为 little-endian，禁止直接序列化 C++ 对象或依赖 padding。
 
@@ -22,9 +23,9 @@
 | 6 | 1 | `presetId` | 1..255 |
 | 7 | 1 | `nameLength` | 1..23B |
 | 8 | 3 | `accent` | RGB 三字节 |
-| 11 | 1 | `rgbMode` | v1 仅允许 `0=follow`（灯光四模式的未来家） |
+| 11 | 1 | `rgbMode` | D26：`0=reactive`（默认，按下保持、松开渐隐）/ `1=breath` / `2=follow`（常亮）；其他值非法 |
 | 12 | 1 | `reserved` | 必须为 0（应急保留） |
-| 13 | 1 | `platform` | D23：`0=win`（历史记录天然值）/ `1=mac` / `2=iPad`；编辑器拒绝未知值，固件不校验语义、不据此分支，仅原样存取（D13 精化：平台是记录携带的呈现元数据） |
+| 13 | 1 | `platform` | D24：`0=win`（历史记录天然值）/ `1=mac` / `2=iPad`；编辑器拒绝未知值，固件不校验语义、不据此分支，仅原样存取（D13 精化：平台是记录携带的呈现元数据） |
 | 14 | 24 | `name` | UTF-8，前 nameLength 字节有效，其余补零 |
 | 38 | 110 | `actions` | 22 个 5B 动作，见下节 |
 | 148 | 2 | `recordCrc16` | 对前 148B 计算 CRC-16/CCITT-FALSE |
@@ -69,7 +70,7 @@
 - `DELETE`：请求 `[id]`。
 - `MOVE`：请求 `[id][beforeId]`；把 id 移到 beforeId 前，`beforeId=0` 表示末尾。
 - `LED_PREVIEW`：请求 `[accentR][accentG][accentB][rgbMode]`，仅改灯不落盘；
-  v1 仅允许 `rgbMode=0=follow`。该命令保留，当前固件返回 `ERR_NOT_IMPLEMENTED`。
+  该命令保留，当前固件始终返回 `ERR_NOT_IMPLEMENTED`，与预设记录已支持的 rgbMode 无关。
 
 大小响应、分片与错误恢复沿用 `PROTOCOL.md`。错误归属固定为：
 

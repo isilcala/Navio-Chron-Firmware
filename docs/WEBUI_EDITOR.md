@@ -108,7 +108,7 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 - B 阶段通过 WebHID 执行 HELLO、GET_INFO、GET_PRESETS 和逐套 READ_PRESET；设备预设单独分区、只读，
   首次编辑时创建同 presetId 的本地副本。窗口聚焦和手动“重新读取”会刷新设备清单与 activeId。
 - 每次新连接取得 `HELLO.fw` 后在页头以独立标签显示当前设备固件版本，并主动读取发布清单
-  （线上为站点根目录 `manifest.json`，本地为当前 `release/navio_chron_0.5.4/manifest.json`），
+  （线上为站点根目录 `manifest.json`，本地为当前 `release/navio_chron_0.5.12/manifest.json`），
   复用刷写规则的完整 SemVer 比较；仅设备版本严格低于发布版本时显示顶部更新条
   与刷写入口，同版或更新版本不提示。检查异步执行，清单加载或版本解析失败只记录诊断，不阻断
   设备读取与预设编辑；断开后隐藏版本标签并清除更新提示。
@@ -143,8 +143,10 @@ WRITE_PRESET / MOVE 各自原子，但批量序列不是事务：
 ## 8. 灯光与后续 UX 预留
 
 Preset 数据分为 identity / metadata、actions、lighting，动作和灯光不混用字段。
-设备图分为映射文字、灯光预览和交互状态三层。灯光页签未来承载 accent、模式与按键选项；
-当前仅 accent + rgbMode=follow，LED_PREVIEW 未实现，不承诺实时设备灯效。
+设备图分为映射文字、灯光预览和交互状态三层。灯光页签提供 `reactive`（默认，按下保持、
+松开 500ms 渐隐）/ `breath`（8 秒 smoothstep 变化 + 最亮/最暗端各 500ms 保持，共 9 秒）/ `follow`（常亮）三选一，均使用预设 accent，
+随预设保存并在安装或应用修改后生效。LED0–LED2 状态灯不受模式影响，不按 USB/BLE 切换。
+LED_PREVIEW 未实现，不承诺实时设备灯效。
 
 ## 9. 阶段交付
 
@@ -164,4 +166,5 @@ Preset 数据分为 identity / metadata、actions、lighting，动作和灯光�
 - 删除活动预设后设备切到第一套并刷新；最后一套不可删除。
 - 批量失败显示 X/Y 且支持重读对账；非法输入和导入均零设备写入。
 - 6 套满配的大响应读取通过；focus/重连后 activeId 正确。
+- rgbMode 0/1/2 逐字节往返；默认 reactive 按住常亮、松开渐隐，breath/follow 与状态灯互不干扰。
 - Chrome/Edge 中热点、键盘可达性、缩放、错误提示和本地库迁移可用。

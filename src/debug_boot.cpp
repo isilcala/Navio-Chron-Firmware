@@ -42,7 +42,7 @@ void setup() {
   step("encoders");
   presets.begin();
   step("presets(NVS)");
-  leds.showPreset(presets.active().accent, presets.active().name);
+  leds.showPreset(presets.active().accent, presets.active().rgbMode);
   Serial.printf("[done] preset=%s battery=%d%%\n", presets.active().name,
                 battery.percent());
   Serial.println(">>> 按任意键/转动编码器，事件将打印到此处 <<<");

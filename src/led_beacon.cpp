@@ -34,7 +34,7 @@ void setup() {
   beacon(0, 0, 80);  // 蓝：电池检测 OK
 
   leds.begin();
-  leds.showPreset(kPresets[0].accent, kPresets[0].name);
+  leds.showPreset(kPresets[0].accent, kPresets[0].rgbMode);
   beacon(80, 80, 0);  // 黄：WS2812 链驱动 OK
 
   matrix.begin();

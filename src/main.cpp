@@ -52,6 +52,7 @@ static EncoderPulse s_encoderPulses[8];
 
 static void releaseAllActions() {
   transport->releaseAll();
+  leds.releaseKeys();
   for (Action& action : s_buttonActions) action = Action{};
   for (EncoderPulse& pulse : s_encoderPulses) pulse.active = false;
 }
@@ -174,7 +175,7 @@ void setup() {
   vendorReady = vendorHid.begin();
   if (vendorReady) {
     configProto.begin(&vendorHid, &presets, &otaManager, releaseAllActions, [] {
-      leds.showPreset(presets.active().accent, presets.active().name);
+      leds.showPreset(presets.active().accent, presets.active().rgbMode);
     });
   } else {
     Serial.println("[Navio] Vendor HID interface registration failed");
@@ -192,7 +193,7 @@ void setup() {
       Serial.println("[Navio] OTA self-test failed, image left pending");
     }
   }
-  leds.showPreset(presets.active().accent, presets.active().name);
+  leds.showPreset(presets.active().accent, presets.active().rgbMode);
   // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
   for (int i = 0; i < 3; ++i) {
     neopixelWrite(PIN_BOARD_RGB, 0, 60, 60);
@@ -337,7 +338,7 @@ static void switchPreset() {
   // 切预设前清空按键状态，避免旧和弦残留
   releaseAllActions();
   presets.cycle();
-  leds.showPreset(presets.active().accent, presets.active().name);
+  leds.showPreset(presets.active().accent, presets.active().rgbMode);
   Serial.printf("[Navio] preset -> %s\n", presets.active().name);
 }
 
@@ -348,6 +349,7 @@ static void dispatchButton(Btn id, bool pressed) {
   return;
 #endif
   if (id == Btn::SideKey) return;  // 短按/长按统一由 checkLongPressActions 裁决
+  if (id <= Btn::K12) leds.setKeyPressed(static_cast<uint8_t>(id), pressed);
   const size_t index = static_cast<size_t>(id);
   if (pressed) {
     if (s_buttonActions[index]) return;

@@ -80,10 +80,10 @@ PresetRecordResult decodePresetRecord(const uint8_t* data, size_t len, Installed
   if (!data || len != PRESET_RECORD_SIZE) return PresetRecordResult::Invalid;
   if (data[0] != 'N' || data[1] != 'P') return PresetRecordResult::Invalid;
   if (data[2] != 1) return PresetRecordResult::UnsupportedVersion;
-  // byte 11 = rgbMode（v1 仅 0）、byte 12 = 保留 0；byte 13 = 平台元数据
-  // （0=win/1=mac/2=iPad，D23）：固件不校验其值、永不据此分支，仅原样存取。
+  // byte 11 = rgbMode（0=reactive/1=breath/2=follow）、byte 12 = 保留 0；
+  // byte 13 = 平台元数据（0=win/1=mac/2=iPad，D24）：固件不据此分支，仅原样存取。
   if (data[3] != 0 || readLe16(data + 4) != PRESET_RECORD_SIZE || data[6] == 0 ||
-      data[11] != 0 || data[12] != 0 ||
+      data[11] > 2 || data[12] != 0 ||
       crc16(data, CRC_OFFSET) != readLe16(data + CRC_OFFSET)) {
     return PresetRecordResult::Invalid;
   }
@@ -104,6 +104,7 @@ PresetRecordResult decodePresetRecord(const uint8_t* data, size_t len, Installed
   decoded.name[nameLength] = 0;
   decoded.preset.name = decoded.name;
   memcpy(decoded.preset.accent, data + 8, 3);
+  decoded.preset.rgbMode = data[11];
 
   for (size_t i = 0; i < BTN_COUNT; ++i) {
     if (!decodeAction(data + ACTION_OFFSET + i * ACTION_SIZE, decoded.preset.btn[i], true)) {
@@ -132,6 +133,7 @@ void encodePresetRecord(const InstalledPreset& preset, uint8_t* out) {
   out[2] = 1;
   writeLe16(out + 4, PRESET_RECORD_SIZE);
   out[6] = preset.id;
+  out[11] = preset.preset.rgbMode;
   out[13] = preset.platform;
   size_t nameLength = strnlen(preset.name, PRESET_NAME_MAX - 1);
   out[7] = static_cast<uint8_t>(nameLength);

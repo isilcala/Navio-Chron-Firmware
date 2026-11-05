@@ -41,6 +41,11 @@
   // 同一物理修饰键位的平台文案：macOS/iPadOS 上左 GUI=Cmd、Alt=Option；ipad 与 mac 共用一套
   const MOD_LABELS_MAC = ["Ctrl", "Shift", "Opt", "Cmd", "RCtrl", "RShift", "ROpt", "RCmd"];
   const PLATFORMS = ["win", "mac", "ipad"];
+  const RGB_MODES = [
+    { value: 0, id: "reactive", label: "按键响应", description: "按下保持亮起，松开后渐隐；无输入时按键灯熄灭" },
+    { value: 1, id: "breath", label: "柔和呼吸", description: "全部按键灯跟随主题色缓慢呼吸" },
+    { value: 2, id: "follow", label: "常亮", description: "全部按键灯持续显示主题色" },
+  ];
   // 150B 记录 byte 13 的平台码（D23）：0 是历史记录的天然值（旧数据零迁移）
   const PLATFORM_CODES = { win: 0, mac: 1, ipad: 2 };
   const PLATFORM_BY_CODE = ["win", "mac", "ipad"];
@@ -60,13 +65,15 @@
     return action;
   }
   function createEmptyPreset(id = 1, name = "自定义预设") {
-    return { id, name, accent: [255, 120, 40], rgbMode: 0, platform: "win",
-      actions: Array.from({ length: ACTION_COUNT }, emptyAction) };
+    return {
+      id, name, accent: [255, 120, 40], rgbMode: 0, platform: "win",
+      actions: Array.from({ length: ACTION_COUNT }, emptyAction)
+    };
   }
   function clonePreset(preset) { return JSON.parse(JSON.stringify(preset)); }
   function clonePresetData(preset) {
     const { id, name, accent, rgbMode, actions } = preset;
-    // platform 是编辑器侧元数据：不进 150B 记录（encodePresetRecord 不读它），随导出/副本携带
+    // platform 同时随记录 byte 13 与导出/副本携带；固件只存取，不据此分支
     return clonePreset({ id, name, accent, rgbMode, platform: normalizePlatform(preset.platform), actions });
   }
   function utf8Length(value) { return new TextEncoder().encode(value).length; }
@@ -89,9 +96,9 @@
   }
   function actionError(action, button) {
     if (!action || !Object.values(Kind).includes(action.kind) ||
-        !Number.isInteger(action.mods) || action.mods < 0 || action.mods > 255 ||
-        !Number.isInteger(action.code) || action.code < 0 || action.code > 0xFFFF ||
-        !Number.isInteger(action.wheelDy) || action.wheelDy < -128 || action.wheelDy > 127)
+      !Number.isInteger(action.mods) || action.mods < 0 || action.mods > 255 ||
+      !Number.isInteger(action.code) || action.code < 0 || action.code > 0xFFFF ||
+      !Number.isInteger(action.wheelDy) || action.wheelDy < -128 || action.wheelDy > 127)
       return "Malformed action fields";
     if (action.kind === Kind.None)
       return action.mods === 0 && action.code === 0 && action.wheelDy === 0 ? null : "None requires zero fields";
@@ -111,8 +118,8 @@
     const nameIssue = preset ? nameError(preset.name) : "Missing preset";
     if (nameIssue) errors.push(nameIssue);
     if (!preset || !Array.isArray(preset.accent) || preset.accent.length !== 3 ||
-        preset.accent.some(value => !Number.isInteger(value) || value < 0 || value > 255)) errors.push("Invalid accent");
-    if (!preset || preset.rgbMode !== 0) errors.push("Unsupported rgbMode");
+      preset.accent.some(value => !Number.isInteger(value) || value < 0 || value > 255)) errors.push("Invalid accent");
+    if (!preset || !RGB_MODES.some(mode => mode.value === preset.rgbMode)) errors.push("Unsupported rgbMode");
     if (!preset || !Array.isArray(preset.actions) || preset.actions.length !== ACTION_COUNT) {
       errors.push("Expected 22 actions");
       return errors;
@@ -129,6 +136,7 @@
     const out = new Uint8Array(RECORD_SIZE);
     out.set([0x4E, 0x50, 1, 0, ...le16(RECORD_SIZE), preset.id, utf8Length(preset.name)], 0);
     out.set(preset.accent, 8);
+    out[11] = preset.rgbMode;
     out[13] = PLATFORM_CODES[normalizePlatform(preset.platform)];
     const name = new TextEncoder().encode(preset.name);
     out.set(name, 14);
@@ -150,18 +158,22 @@
       throw error;
     }
     if (data[0] !== 0x4E || data[1] !== 0x50 || data[3] !== 0 || u16(data, 4) !== RECORD_SIZE ||
-        data[11] !== 0 || data[12] !== 0 || data[13] > 2 ||
-        crc16(data.subarray(0, 148)) !== u16(data, 148))
+      data[11] >= RGB_MODES.length || data[12] !== 0 || data[13] > 2 ||
+      crc16(data.subarray(0, 148)) !== u16(data, 148))
       throw new Error("Invalid preset record header or CRC");
     const nameLength = data[7];
     if (!nameLength || nameLength > 23) throw new Error("Invalid preset name length");
     for (let i = 14 + nameLength; i < 38; ++i) if (data[i] !== 0) throw new Error("Invalid preset name padding");
-    const preset = { id: data[6], name: new TextDecoder("utf-8", { fatal: true }).decode(data.subarray(14, 14 + nameLength)),
-      accent: Array.from(data.subarray(8, 11)), rgbMode: 0, platform: PLATFORM_BY_CODE[data[13]], actions: [] };
+    const preset = {
+      id: data[6], name: new TextDecoder("utf-8", { fatal: true }).decode(data.subarray(14, 14 + nameLength)),
+      accent: Array.from(data.subarray(8, 11)), rgbMode: data[11], platform: PLATFORM_BY_CODE[data[13]], actions: []
+    };
     for (let index = 0; index < ACTION_COUNT; ++index) {
       const offset = 38 + index * ACTION_SIZE;
-      preset.actions.push({ kind: data[offset], mods: data[offset + 1], code: u16(data, offset + 2),
-        wheelDy: data[offset + 4] << 24 >> 24 });
+      preset.actions.push({
+        kind: data[offset], mods: data[offset + 1], code: u16(data, offset + 2),
+        wheelDy: data[offset + 4] << 24 >> 24
+      });
     }
     const errors = presetErrors(preset);
     if (errors.length) throw new Error(errors[0]);
@@ -176,8 +188,10 @@
     return [...mods, code].join("+");
   }
 
-  return { RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
-    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, PLATFORM_CODES, normalizePlatform, modLabels,
+  return {
+    RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
+    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, RGB_MODES, PLATFORM_CODES, normalizePlatform, modLabels,
     crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
-    utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel };
+    utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel
+  };
 });

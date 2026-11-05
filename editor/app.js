@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261105-16';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261105-22';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
@@ -10,9 +10,9 @@ let quarantinedPresets = [];
 
 // 官方模板库：presets/index.json（tools/build_templates.js 构建期生成）→ 逐文件拉取 → 校验装配；
 // 单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-const ASSET_VERSION = '20261105-16';
+const ASSET_VERSION = '20261105-22';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
-const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.4/manifest.json' : '../manifest.json';
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.12/manifest.json' : '../manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : '../';
 for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
 async function fetchJson(url) {
@@ -280,7 +280,13 @@ function renderInspector() {
   $('selectionTitle').textContent = activeTab === 'lighting' ? '灯光效果' :
     selectedInput.type === 'btn' && selectedInput.index === 15 ? '全局保留键' : '键位设置';
   if (activeTab === 'lighting') {
-    $('inspector').innerHTML = `<div class="lighting-placeholder">主题色由上方设置<br><br>灯光模式、按键颜色和实时预览将在后续协议阶段开放。<br>此布局已为静态、呼吸、按下响应等效果预留。</div>`;
+    const options = P.RGB_MODES.map(mode => `<label class="lighting-option">
+      <input type="radio" name="rgbMode" value="${mode.value}" ${preset.rgbMode === mode.value ? 'checked' : ''}>
+      <span><strong>${mode.label}${mode.value === 0 ? '<em>默认 · 省电</em>' : ''}</strong><small>${mode.description}</small></span>
+    </label>`).join('');
+    $('inspector').innerHTML = `<div class="lighting-settings"><p class="field-help">按键灯使用上方设置的预设主题色，LED0–LED2 状态灯不受影响。</p>
+      <div class="lighting-options">${options}</div>
+      <p class="hint">按键响应仅作用于 K1–K12：按住保持亮起，松开后 500ms 渐隐。模式随预设保存，安装或应用修改后生效。</p></div>`;
     return;
   }
   if (selectedInput.type === 'btn' && selectedInput.index === 15) {
@@ -445,6 +451,13 @@ function renderAll() {
 }
 
 $('inspector').addEventListener('change', event => {
+  if (event.target.name === 'rgbMode') {
+    const preset = ensureUserCopy();
+    preset.rgbMode = Number(event.target.value);
+    markDirty(-1);
+    renderInspector();
+    return;
+  }
   const form = event.target.closest('.action-card');
   if (!form) return;
   const slot = Number(form.dataset.slot), preset = ensureUserCopy();
