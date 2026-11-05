@@ -20,15 +20,17 @@ class LedController {
  private:
   static constexpr uint8_t KEY_COUNT = LED_COUNT - LED_KEY_FIRST;
   static_assert(KEY_COUNT == 12);
-  enum Mode : uint8_t { Reactive = 0, Breath = 1, Follow = 2 };
+  enum Mode : uint8_t { Reactive = 0, Breath = 1, Follow = 2, ColorCycle = 3, RainbowFlow = 4 };
 
   void setKeyColor_(uint8_t key, uint8_t level);
+  void setKeyRgb_(uint8_t key, const uint8_t rgb[3]);
   void updateEffects_(uint32_t now);
 
   Adafruit_NeoPixel chain_{LED_COUNT, PIN_LED_DATA, NEO_GRB + NEO_KHZ800};
   uint8_t accent_[3] = {};
   uint8_t rgbMode_ = Reactive;
   bool keyHeld_[KEY_COUNT] = {};
+  uint32_t confirmAt_[KEY_COUNT] = {};
   uint32_t fadeStartedAt_[KEY_COUNT] = {};
   uint32_t effectStartedAt_ = 0;
   bool lowBattery_ = false;

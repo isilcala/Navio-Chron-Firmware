@@ -45,6 +45,8 @@
     { value: 0, id: "reactive", label: "按键响应", description: "按下保持亮起，松开后渐隐；无输入时按键灯熄灭" },
     { value: 1, id: "breath", label: "柔和呼吸", description: "全部按键灯跟随主题色缓慢呼吸" },
     { value: 2, id: "follow", label: "常亮", description: "全部按键灯持续显示主题色" },
+    { value: 3, id: "colorCycle", label: "循环变色", description: "全部按键同步平滑循环 RGB 色相，不使用主题色" },
+    { value: 4, id: "rainbowFlow", label: "彩虹流动", description: "彩虹沿键盘外缘流动，不使用主题色" },
   ];
   // 150B 记录 byte 13 的平台码（D23）：0 是历史记录的天然值（旧数据零迁移）
   const PLATFORM_CODES = { win: 0, mac: 1, ipad: 2 };

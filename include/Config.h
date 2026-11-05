@@ -36,9 +36,11 @@ constexpr uint16_t BATTERY_CURVE[][2] = {
 constexpr uint8_t LED_BRIGHTNESS = 48;      // 0-255，电池模式考虑功耗
 constexpr uint32_t LED_TICK_INTERVAL_MS = 20;
 constexpr uint32_t LED_REACTIVE_FADE_MS = 500;
+constexpr uint32_t LED_REACTIVE_CONFIRM_MS = 50;
 constexpr uint32_t LED_BREATH_PERIOD_MS = 8000;
 constexpr uint32_t LED_BREATH_PEAK_HOLD_MS = 500;
 constexpr uint32_t LED_BREATH_DARK_HOLD_MS = 500;
+constexpr uint32_t LED_COLOR_CYCLE_PERIOD_MS = 16000;
 
 // —— 预设 ——
 constexpr const char* PREFS_NAMESPACE = "navio";
