@@ -16,6 +16,10 @@ class Battery {
 
  private:
   uint8_t pct_ = 100;
+  bool seeded_ = false;      // 开机首测：EMA 播种 + 直接采纳，不走确认
+  float mvEma_ = 0;          // 电压 EMA 平滑（噪声衰减后再进曲线）
+  uint8_t lastRawPct_ = 0;   // 上次原始电量（连续一致计数用）
+  uint8_t confirm_ = 0;
   uint32_t lastMs_ = 0;
 };
 

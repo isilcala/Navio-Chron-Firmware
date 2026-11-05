@@ -41,8 +41,25 @@ void Battery::tick() {
     if (v < mn) mn = v;
     if (v > mx) mx = v;
   }
-  float pinMv = (sum - mn - mx) / 6.0f;
-  pct_ = curveToPercent(static_cast<uint16_t>(pinMv * BATTERY_DIVIDER_RATIO));
+  float mv = (sum - mn - mx) / 6.0f * BATTERY_DIVIDER_RATIO;
+
+  // EMA 平滑 + 连续一致才提交（同按键消抖习惯）：尾段 1% 仅 ≈25mV，
+  // 边界 5/6/5 抖动会让 Windows 低电提示反复弹出（D25）
+  if (!seeded_) {
+    seeded_ = true;
+    mvEma_ = mv;
+    lastRawPct_ = pct_ = curveToPercent(static_cast<uint16_t>(mv + 0.5f));
+    confirm_ = BATTERY_CONFIRM_SAMPLES;
+    return;
+  }
+  mvEma_ += (mv - mvEma_) * BATTERY_EMA_ALPHA;
+  uint8_t raw = curveToPercent(static_cast<uint16_t>(mvEma_ + 0.5f));
+  if (raw != lastRawPct_) {
+    lastRawPct_ = raw;  // 新值挂起，等下一次采样确认
+    confirm_ = 1;
+    return;
+  }
+  if (++confirm_ >= BATTERY_CONFIRM_SAMPLES && pct_ != raw) pct_ = raw;
 }
 
 }  // namespace navio
