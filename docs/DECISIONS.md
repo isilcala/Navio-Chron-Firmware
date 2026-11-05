@@ -399,6 +399,8 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   `4=rainbowFlow`（彩虹流动），两者忽略 accent。共用 16 秒色相周期；彩虹按物理外缘
   K1→K2→K3→K4→K5→K6→K7→K12→K11→K10→K8→K9 分布偏移，再映射实际 LED，
   不改变 Btn 枚举或灯链地址。LED_PREVIEW 仍不实现。
+- 2026-11-05 修订（0.5.15）：实机观察原 rainbowFlow 为逆时针，将物理位置偏移由加改为减，
+  反转为顺时针流动；顺序表、16 秒周期与 colorCycle 不变。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

@@ -130,7 +130,7 @@ void LedController::updateEffects_(uint32_t now) {
       for (uint8_t key = 0; key < KEY_COUNT; ++key) setKeyRgb_(key, rgb);
     } else {
       for (uint8_t position = 0; position < KEY_COUNT; ++position) {
-        const uint8_t hue = (baseHue + position * 256 / KEY_COUNT) & 0xFF;
+        const uint8_t hue = static_cast<uint8_t>(baseHue - position * 256 / KEY_COUNT);
         hsvToRgb(hue, rgb);
         setKeyRgb_(RAINBOW_KEY_ORDER[position], rgb);
       }
