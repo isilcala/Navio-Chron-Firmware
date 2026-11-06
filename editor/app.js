@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261105-25';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261105-33';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
@@ -10,9 +10,9 @@ let quarantinedPresets = [];
 
 // 官方模板库：presets/index.json（tools/build_templates.js 构建期生成）→ 逐文件拉取 → 校验装配；
 // 单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-const ASSET_VERSION = '20261105-25';
+const ASSET_VERSION = '20261105-33';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
-const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.15/manifest.json' : '../manifest.json';
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : '../manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : '../';
 for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
 async function fetchJson(url) {
@@ -284,7 +284,7 @@ function renderInspector() {
       <input type="radio" name="rgbMode" value="${mode.value}" ${preset.rgbMode === mode.value ? 'checked' : ''}>
       <span><strong>${mode.label}${mode.value === 0 ? '<em>默认 · 省电</em>' : ''}</strong><small>${mode.description}</small></span>
     </label>`).join('');
-    const colorHelp = preset.rgbMode >= 3 ? '此模式自动循环 RGB 色相，不使用主题色。' : '按键灯使用上方设置的预设主题色。';
+    const colorHelp = preset.rgbMode >= 3 && preset.rgbMode !== 7 ? '此模式自动变化或随机选择 RGB 色相，不使用主题色。' : '按键灯使用上方设置的预设主题色。';
     const behavior = preset.rgbMode === 0 ? '按键响应仅作用于 K1–K12：按住保持亮起，松开后 500ms 渐隐。' : '';
     $('inspector').innerHTML = `<div class="lighting-settings"><p class="field-help">${colorHelp}LED0–LED2 状态灯不受影响。</p>
       <div class="lighting-options">${options}</div>

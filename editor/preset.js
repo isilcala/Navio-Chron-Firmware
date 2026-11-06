@@ -47,6 +47,10 @@
     { value: 2, id: "follow", label: "常亮", description: "全部按键灯持续显示主题色" },
     { value: 3, id: "colorCycle", label: "循环变色", description: "全部按键同步平滑循环 RGB 色相，不使用主题色" },
     { value: 4, id: "rainbowFlow", label: "彩虹流动", description: "彩虹沿键盘外缘流动，不使用主题色" },
+    { value: 5, id: "reactiveRandom", label: "随机按键响应", description: "每键独立随机颜色，按住保持、松开渐隐" },
+    { value: 6, id: "breathRandom", label: "随机呼吸", description: "每轮呼吸使用新的随机颜色，不使用主题色" },
+    { value: 7, id: "marquee", label: "主题走马灯", description: "主题色亮斑带拖尾，沿键盘外缘顺时针流动" },
+    { value: 8, id: "rainbowMarquee", label: "彩虹走马灯", description: "亮斑与拖尾持续变换颜色，沿键盘外缘顺时针流动" },
   ];
   // 150B 记录 byte 13 的平台码（D23）：0 是历史记录的天然值（旧数据零迁移）
   const PLATFORM_CODES = { win: 0, mac: 1, ipad: 2 };

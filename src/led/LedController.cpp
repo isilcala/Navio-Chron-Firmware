@@ -24,6 +24,12 @@ void hsvToRgb(uint8_t hue, uint8_t out[3]) {
   }
 }
 
+uint8_t nextRandomHue(uint8_t previous) {
+  uint8_t hue = previous;
+  for (uint8_t attempt = 0; attempt < 4 && hue == previous; ++attempt) hue = esp_random() & 0xFF;
+  return hue == previous ? previous + 1 : hue;
+}
+
 constexpr uint8_t RAINBOW_KEY_ORDER[12] = {
   0, 1, 2, 3, 4, 5, 6, 11, 10, 9, 7, 8,
 };
@@ -38,12 +44,13 @@ void LedController::showPreset(const uint8_t accent[3], uint8_t rgbMode) {
   for (uint8_t i = 0; i < 3; ++i) accent_[i] = accent[i];
   rgbMode_ = rgbMode;
   effectStartedAt_ = millis();
+  breathCycle_ = 0xFFFFFFFF;
   chain_.setPixelColor(0, scale(accent_[0]), scale(accent_[1]), scale(accent_[2]));
   for (uint8_t key = 0; key < KEY_COUNT; ++key) {
     keyHeld_[key] = false;
     confirmAt_[key] = 0;
     fadeStartedAt_[key] = 0;
-    setKeyColor_(key, rgbMode_ == Follow ? 255 : rgbMode_ == Breath ? 32 : 0);
+    setKeyColor_(key, rgbMode_ == Follow ? 255 : 0);
   }
   dirty_ = true;
   flush();
@@ -58,6 +65,13 @@ void LedController::setKeyColor_(uint8_t key, uint8_t level) {
   setKeyRgb_(key, rgb);
 }
 
+void LedController::setKeyHueLevel_(uint8_t key, uint8_t hue, uint8_t level) {
+  uint8_t rgb[3];
+  hsvToRgb(hue, rgb);
+  for (uint8_t channel = 0; channel < 3; ++channel) rgb[channel] = rgb[channel] * level / 255;
+  setKeyRgb_(key, rgb);
+}
+
 void LedController::setKeyRgb_(uint8_t key, const uint8_t rgb[3]) {
   if (key >= KEY_COUNT) return;
   const uint32_t color = chain_.Color(scale(rgb[0]), scale(rgb[1]), scale(rgb[2]));
@@ -67,12 +81,17 @@ void LedController::setKeyRgb_(uint8_t key, const uint8_t rgb[3]) {
 }
 
 void LedController::setKeyPressed(uint8_t key, bool pressed) {
-  if (rgbMode_ != Reactive || key >= KEY_COUNT) return;
+  if ((rgbMode_ != Reactive && rgbMode_ != ReactiveRandom) || key >= KEY_COUNT) return;
   if (pressed) {
     keyHeld_[key] = true;
     confirmAt_[key] = millis() + LED_REACTIVE_CONFIRM_MS;
     fadeStartedAt_[key] = 0;
-    setKeyColor_(key, 255);
+    if (rgbMode_ == ReactiveRandom) {
+      keyHue_[key] = nextRandomHue(keyHue_[key]);
+      setKeyHueLevel_(key, keyHue_[key], 255);
+    } else {
+      setKeyColor_(key, 255);
+    }
     return;
   }
   if (!keyHeld_[key]) return;
@@ -82,7 +101,7 @@ void LedController::setKeyPressed(uint8_t key, bool pressed) {
 }
 
 void LedController::releaseKeys() {
-  if (rgbMode_ != Reactive) return;
+  if (rgbMode_ != Reactive && rgbMode_ != ReactiveRandom) return;
   const uint32_t now = millis();
   for (uint8_t key = 0; key < KEY_COUNT; ++key) {
     confirmAt_[key] = 0;
@@ -93,7 +112,7 @@ void LedController::releaseKeys() {
 }
 
 void LedController::updateEffects_(uint32_t now) {
-  if (rgbMode_ == Reactive) {
+  if (rgbMode_ == Reactive || rgbMode_ == ReactiveRandom) {
     for (uint8_t key = 0; key < KEY_COUNT; ++key) {
       if (keyHeld_[key]) {
         if (confirmAt_[key] && static_cast<int32_t>(now - confirmAt_[key]) >= 0) {
@@ -106,21 +125,30 @@ void LedController::updateEffects_(uint32_t now) {
       const uint32_t elapsed = now - fadeStartedAt_[key];
       const uint8_t level = elapsed >= LED_REACTIVE_FADE_MS
         ? 0 : 255 - (uint32_t)elapsed * 255 / LED_REACTIVE_FADE_MS;
-      setKeyColor_(key, level);
+      if (rgbMode_ == ReactiveRandom) setKeyHueLevel_(key, keyHue_[key], level);
+      else setKeyColor_(key, level);
       if (elapsed >= LED_REACTIVE_FADE_MS) fadeStartedAt_[key] = 0;
     }
-  } else if (rgbMode_ == Breath) {
+  } else if (rgbMode_ == Breath || rgbMode_ == BreathRandom) {
     const uint32_t cycle = LED_BREATH_PERIOD_MS + LED_BREATH_PEAK_HOLD_MS + LED_BREATH_DARK_HOLD_MS;
-    const uint32_t phase = (now - effectStartedAt_) % cycle;
+    const uint32_t elapsed = now - effectStartedAt_;
+    const uint32_t phase = elapsed % cycle;
+    if (rgbMode_ == BreathRandom && elapsed / cycle != breathCycle_) {
+      breathCycle_ = elapsed / cycle;
+      breathHue_ = nextRandomHue(breathHue_);
+    }
     const uint32_t half = LED_BREATH_PERIOD_MS / 2;
-    uint8_t level = 32;
+    uint8_t level = 0;
     if (phase < LED_BREATH_PERIOD_MS + LED_BREATH_PEAK_HOLD_MS) {
       const uint32_t linear = phase < half ? phase * 255 / half : phase < half + LED_BREATH_PEAK_HOLD_MS
         ? 255 : (LED_BREATH_PERIOD_MS + LED_BREATH_PEAK_HOLD_MS - phase) * 255 / half;
       const uint32_t eased = linear * linear * (3 * 255 - 2 * linear) / (255 * 255);
-      level = 32 + eased * 223 / 255;
+      level = eased;
     }
-    for (uint8_t key = 0; key < KEY_COUNT; ++key) setKeyColor_(key, level);
+    for (uint8_t key = 0; key < KEY_COUNT; ++key) {
+      if (rgbMode_ == BreathRandom) setKeyHueLevel_(key, breathHue_, level);
+      else setKeyColor_(key, level);
+    }
   } else if (rgbMode_ == ColorCycle || rgbMode_ == RainbowFlow) {
     const uint32_t phase = (now - effectStartedAt_) % LED_COLOR_CYCLE_PERIOD_MS;
     const uint8_t baseHue = phase * 256 / LED_COLOR_CYCLE_PERIOD_MS;
@@ -134,6 +162,27 @@ void LedController::updateEffects_(uint32_t now) {
         hsvToRgb(hue, rgb);
         setKeyRgb_(RAINBOW_KEY_ORDER[position], rgb);
       }
+    }
+  } else if (rgbMode_ == Marquee || rgbMode_ == RainbowMarquee) {
+    const uint32_t elapsed = now - effectStartedAt_;
+    const uint32_t phase = elapsed % (LED_MARQUEE_STEP_MS * KEY_COUNT);
+    const uint8_t baseHue = (elapsed % LED_COLOR_CYCLE_PERIOD_MS) * 256 / LED_COLOR_CYCLE_PERIOD_MS;
+    const uint32_t head = phase * 256 / LED_MARQUEE_STEP_MS;
+    for (uint8_t position = 0; position < KEY_COUNT; ++position) {
+      const uint32_t ahead = (position * 256 + KEY_COUNT * 256 - head) % (KEY_COUNT * 256);
+      uint8_t level = 0;
+      if (ahead < 256) {
+        const uint32_t rise = 256 - ahead;
+        level = rise == 256 ? 255 : rise * rise / 256;
+      }
+      const uint32_t distance = (head + KEY_COUNT * 256 - position * 256) % (KEY_COUNT * 256);
+      if (distance < 4 * 256) {
+        const uint32_t remaining = 4 * 256 - distance;
+        const uint32_t tail = 255 * remaining * remaining / (16 * 65536);
+        if (tail > level) level = tail;
+      }
+      if (rgbMode_ == RainbowMarquee) setKeyHueLevel_(RAINBOW_KEY_ORDER[position], baseHue, level);
+      else setKeyColor_(RAINBOW_KEY_ORDER[position], level);
     }
   }
 }

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "ByteOrder.h"
+#include "Version.h"
 #include "proto/Crc.h"
 
 namespace navio {

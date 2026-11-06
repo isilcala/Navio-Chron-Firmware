@@ -20,7 +20,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
       firmware version label and update notices use HELLO and the deployed release manifest
 - [x] Official preset templates as per-preset JSON data files with a generated index and CI validation
 - [x] Official template library at 9 presets: Premiere Win/Mac, Resolve Win/Mac, JianYing Win/Mac, Procreate (iPad), Test, F13 Macro (Mac/iPad variants pending on-app tuning)
-- [ ] Hardware and power validation for five preset lighting modes (implemented in 0.5.15)
+- [ ] Hardware and power validation for nine preset lighting modes (implemented in 0.5.23)
 - [ ] Sleep/wake and battery-power validation
 
 See `docs/PROJECT.md` for the roadmap and `docs/DECISIONS.md` for technical decisions.
@@ -33,7 +33,9 @@ GitHub Actions builds the firmware, manifest and four ROM images and publishes t
 
 ## Build locally
 
-Use VS Code + PlatformIO (or the `pio` CLI), environment `navio_chron`:
+Use VS Code + PlatformIO (or the `pio` CLI), environment `navio_chron`.
+The firmware and release-manifest version is maintained in `src/Version.h`; changing it only
+recompiles `ConfigProto.cpp` and relinks instead of rebuilding all dependencies.
 
 ```bash
 pio run

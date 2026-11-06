@@ -108,7 +108,7 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 - B 阶段通过 WebHID 执行 HELLO、GET_INFO、GET_PRESETS 和逐套 READ_PRESET；设备预设单独分区、只读，
   首次编辑时创建同 presetId 的本地副本。窗口聚焦和手动“重新读取”会刷新设备清单与 activeId。
 - 每次新连接取得 `HELLO.fw` 后在页头以独立标签显示当前设备固件版本，并主动读取发布清单
-  （线上为站点根目录 `manifest.json`，本地为当前 `release/navio_chron_0.5.15/manifest.json`），
+  （线上为站点根目录 `manifest.json`，本地为当前 `release/navio_chron_0.5.23/manifest.json`），
   复用刷写规则的完整 SemVer 比较；仅设备版本严格低于发布版本时显示顶部更新条
   与刷写入口，同版或更新版本不提示。检查异步执行，清单加载或版本解析失败只记录诊断，不阻断
   设备读取与预设编辑；断开后隐藏版本标签并清除更新提示。
@@ -148,6 +148,10 @@ Preset 数据分为 identity / metadata、actions、lighting，动作和灯光�
 随预设保存并在安装或应用修改后生效。LED0–LED2 状态灯不受模式影响，不按 USB/BLE 切换。
 另提供 `colorCycle`（全体同步循环色相）与 `rainbowFlow`（沿物理外缘彩虹流动），
 两者忽略 accent，共用 16 秒色相周期；彩虹沿 K1/K2/K3/K4/K5/K6/K7/K12/K11/K10/K8/K9 顺时针流动。
+`reactiveRandom` 为每键独立随机色，`breathRandom` 每轮随机色，均忽略 accent；
+`marquee` 使用 accent 的亮头与三级拖尾沿外缘顺时针流动，其余熄灭，每键 1200ms，亮度按连续位置渐入并二次衰减。
+`rainbowMarquee` 使用相同的暗底亮斑与拖尾，同时 16 秒连续循环色相，同一键每圈颜色不同。
+breath/breathRandom 最低亮度为 0，暗端完全熄灭后再开始下一轮。
 LED_PREVIEW 未实现，不承诺实时设备灯效。
 
 ## 9. 阶段交付

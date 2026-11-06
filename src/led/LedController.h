@@ -20,9 +20,13 @@ class LedController {
  private:
   static constexpr uint8_t KEY_COUNT = LED_COUNT - LED_KEY_FIRST;
   static_assert(KEY_COUNT == 12);
-  enum Mode : uint8_t { Reactive = 0, Breath = 1, Follow = 2, ColorCycle = 3, RainbowFlow = 4 };
+  enum Mode : uint8_t {
+    Reactive = 0, Breath = 1, Follow = 2, ColorCycle = 3, RainbowFlow = 4,
+    ReactiveRandom = 5, BreathRandom = 6, Marquee = 7, RainbowMarquee = 8,
+  };
 
   void setKeyColor_(uint8_t key, uint8_t level);
+  void setKeyHueLevel_(uint8_t key, uint8_t hue, uint8_t level);
   void setKeyRgb_(uint8_t key, const uint8_t rgb[3]);
   void updateEffects_(uint32_t now);
 
@@ -30,6 +34,9 @@ class LedController {
   uint8_t accent_[3] = {};
   uint8_t rgbMode_ = Reactive;
   bool keyHeld_[KEY_COUNT] = {};
+  uint8_t keyHue_[KEY_COUNT] = {};
+  uint8_t breathHue_ = 0;
+  uint32_t breathCycle_ = 0xFFFFFFFF;
   uint32_t confirmAt_[KEY_COUNT] = {};
   uint32_t fadeStartedAt_[KEY_COUNT] = {};
   uint32_t effectStartedAt_ = 0;

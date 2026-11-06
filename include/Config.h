@@ -41,6 +41,7 @@ constexpr uint32_t LED_BREATH_PERIOD_MS = 8000;
 constexpr uint32_t LED_BREATH_PEAK_HOLD_MS = 500;
 constexpr uint32_t LED_BREATH_DARK_HOLD_MS = 500;
 constexpr uint32_t LED_COLOR_CYCLE_PERIOD_MS = 16000;
+constexpr uint32_t LED_MARQUEE_STEP_MS = 1200;
 
 // —— 预设 ——
 constexpr const char* PREFS_NAMESPACE = "navio";

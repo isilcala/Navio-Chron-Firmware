@@ -23,7 +23,7 @@
 | 6 | 1 | `presetId` | 1..255 |
 | 7 | 1 | `nameLength` | 1..23B |
 | 8 | 3 | `accent` | RGB 三字节 |
-| 11 | 1 | `rgbMode` | D26：`0=reactive`（默认，按下保持、松开渐隐）/ `1=breath` / `2=follow`（常亮）/ `3=colorCycle` / `4=rainbowFlow`；其他值非法 |
+| 11 | 1 | `rgbMode` | D26：`0=reactive`（默认）/ `1=breath` / `2=follow` / `3=colorCycle` / `4=rainbowFlow` / `5=reactiveRandom` / `6=breathRandom` / `7=marquee` / `8=rainbowMarquee`；其他值非法 |
 | 12 | 1 | `reserved` | 必须为 0（应急保留） |
 | 13 | 1 | `platform` | D24：`0=win`（历史记录天然值）/ `1=mac` / `2=iPad`；编辑器拒绝未知值，固件不校验语义、不据此分支，仅原样存取（D13 精化：平台是记录携带的呈现元数据） |
 | 14 | 24 | `name` | UTF-8，前 nameLength 字节有效，其余补零 |

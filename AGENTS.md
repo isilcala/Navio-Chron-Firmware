@@ -80,7 +80,7 @@ release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 | 构建环境（platformio.ini）、烧录流程、目录结构 | 本文件"构建环境/构建与烧录/代码地图" + `README.md` Build/Layout |
 | Web 编辑器交互、视觉资产、预设 CRUD 与本地库语义 | `docs/WEBUI_EDITOR.md` + `docs/PROJECT.md` 阶段状态 |
 | 升级/降级依赖版本 | `docs/DECISIONS.md`（版本策略 D8：锁定已验证组合） |
-| 固件行为、协议命令集或记录格式变化 | `platformio.ini` 的 `NAVIO_CHRON_FW_VERSION` 必须同提交递增（线上刷写器靠它区分新旧，见 D24 教训） |
+| 固件行为、协议命令集或记录格式变化 | `src/Version.h` 的 `NAVIO_CHRON_FW_VERSION` 必须同提交递增（线上刷写器靠它区分新旧，见 D24 教训） |
 
 原则：**文档陈述的状态永远不得超前于代码**（写"已完成"必须先实测）；
 小 bug fix 不在表内、无需动文档。
@@ -95,8 +95,7 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），单入口、三条核心路径及
    中断/负向验收及 GitHub Pages 线上 OTA 验收已完成；Web 编辑器 A 原型与模板分离已完成，
    B/C 均已通过真机验收，双键盘断开与换机重连已验证；刷写完成重启后不再重连验证，
-   编辑器页头显示设备固件版本，新连接主动检查固件更新；RGB reactive/breath/follow/colorCycle/rainbowFlow 五模式
-   与编辑器选择已实现（D26，0.5.15），真机灯效与功耗待验收；下一步 D 体验收尾
+   编辑器页头显示设备固件版本，新连接主动检查固件更新；RGB 九种灯效模式与编辑器选择已实现（D26，0.5.23），真机灯效与功耗待验收；下一步 D 体验收尾
 2. 预设扩展：Premiere Win/Mac、Resolve/剪映 Mac、Procreate(iPad) 已入编辑器官方模板库
    （共 9 套，presets/ 一预设一 JSON；平台入 150B 记录 byte 13（D24），显示名不带平台词、
    chip 呈现，Cmd=GUI 修饰；快捷键按官方文档填写，待目标 App 实测微调；

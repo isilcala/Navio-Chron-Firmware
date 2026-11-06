@@ -15,8 +15,8 @@ BUILD = os.path.join(ROOT, ".pio", "build", ENV)
 OUT = os.path.join(ROOT, "release")
 
 def main():
-    ini = open(os.path.join(ROOT, "platformio.ini"), encoding="utf-8").read()
-    m = re.search(r"NAVIO_CHRON_FW_VERSION=\\\"([^\\]+)\\\"", ini)
+    version_header = open(os.path.join(ROOT, "src", "Version.h"), encoding="utf-8").read()
+    m = re.search(r'#define NAVIO_CHRON_FW_VERSION "([^"]+)"', version_header)
     version = m.group(1) if m else "unknown"
     outdir = os.path.join(OUT, f"{ENV}_{version}")
     if os.path.exists(outdir):
