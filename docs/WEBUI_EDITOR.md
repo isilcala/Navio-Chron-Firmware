@@ -63,7 +63,13 @@ SVG 使用统一 `viewBox`：背景图（可选）→ 控件热点 → 映射文
 
 - None：其余字段全 0；KeyChord：允许仅修饰键，空修饰+空键码非法；
 - Consumer：code 1..0x03FF，mods=0；Wheel：仅非按钮槽，code=0，dy 为有符号非零格数；
-- 键码选择采用常用子集 + 搜索 + 高级 Usage ID，KeyChord code≤0xE7，旋转格数 1..127。
+- 键码选择采用常用 HID Usage 子集，KeyChord code≤0xE7，旋转格数 1..127；
+  键盘选项按“字母 / 主键盘数字 / 主键盘符号 / 控制与编辑 / 导航 / 功能键 / 小键盘”分组，
+  “仅修饰键”位于分组之外，分组元数据由 `preset.js` 统一维护。
+- 小键盘包含 0–9、`+ - * / .`、Enter 与 Num Lock / Clear；下拉项在组内使用短标签，
+  设备图、动作标题与编码器详情保留“小键盘”前缀，避免与主键盘数字混淆。
+  选中小键盘数字或小数点时提示其行为可能受系统 Num Lock 状态影响。
+- 控制与编辑组另含 Caps Lock、Print Screen、Scroll Lock、Pause 和 Menu。
 
 ## 5. 名称、身份与本地库
 

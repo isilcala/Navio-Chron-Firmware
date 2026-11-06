@@ -19,18 +19,37 @@
     { id: "Large", name: "大旋钮", pressSlot: 13, cwSlot: 18, ccwSlot: 19 },
     { id: "Wheel", name: "滚轮", pressSlot: 14, cwSlot: 20, ccwSlot: 21 },
   ];
+  const KEY_GROUPS = [
+    { id: "letters", label: "字母" }, { id: "digits", label: "主键盘数字" },
+    { id: "symbols", label: "主键盘符号" }, { id: "editing", label: "控制与编辑" },
+    { id: "navigation", label: "导航" }, { id: "function", label: "功能键" },
+    { id: "keypad", label: "小键盘" },
+  ];
   const KEY_OPTIONS = [];
-  const key = (label, code) => KEY_OPTIONS.push({ label, code });
-  for (let i = 0; i < 26; ++i) key(String.fromCharCode(65 + i), 0x04 + i);
-  for (let i = 1; i <= 9; ++i) key(String(i), 0x1E + i - 1);
-  key("0", 0x27);
-  key("Enter", 0x28); key("Esc", 0x29); key("Backspace", 0x2A); key("Tab", 0x2B); key("Space", 0x2C);
-  key("-", 0x2D); key("=", 0x2E); key("[", 0x2F); key("]", 0x30); key("\\", 0x31);
-  key(";", 0x33); key("'", 0x34); key("`", 0x35); key(",", 0x36); key(".", 0x37); key("/", 0x38);
-  for (let i = 1; i <= 12; ++i) key(`F${i}`, 0x3A + i - 1);
-  for (let i = 13; i <= 24; ++i) key(`F${i}`, 0x68 + i - 13);
-  key("Insert", 0x49); key("Home", 0x4A); key("Page Up", 0x4B); key("Delete", 0x4C);
-  key("End", 0x4D); key("Page Down", 0x4E); key("→", 0x4F); key("←", 0x50); key("↓", 0x51); key("↑", 0x52);
+  const key = (group, label, code, optionLabel = label) => KEY_OPTIONS.push({ group, label, code, optionLabel });
+  for (let i = 0; i < 26; ++i) key("letters", String.fromCharCode(65 + i), 0x04 + i);
+  for (let i = 1; i <= 9; ++i) key("digits", String(i), 0x1E + i - 1);
+  key("digits", "0", 0x27);
+  key("symbols", "-", 0x2D); key("symbols", "=", 0x2E); key("symbols", "[", 0x2F);
+  key("symbols", "]", 0x30); key("symbols", "\\", 0x31); key("symbols", ";", 0x33);
+  key("symbols", "'", 0x34); key("symbols", "`", 0x35); key("symbols", ",", 0x36);
+  key("symbols", ".", 0x37); key("symbols", "/", 0x38);
+  key("editing", "Enter", 0x28); key("editing", "Esc", 0x29); key("editing", "Backspace", 0x2A);
+  key("editing", "Tab", 0x2B); key("editing", "Space", 0x2C); key("editing", "Caps Lock", 0x39);
+  key("editing", "Print Screen", 0x46); key("editing", "Scroll Lock", 0x47);
+  key("editing", "Pause", 0x48); key("editing", "Menu", 0x65);
+  key("navigation", "Insert", 0x49); key("navigation", "Home", 0x4A); key("navigation", "Page Up", 0x4B);
+  key("navigation", "Delete", 0x4C); key("navigation", "End", 0x4D); key("navigation", "Page Down", 0x4E);
+  key("navigation", "→", 0x4F); key("navigation", "←", 0x50);
+  key("navigation", "↓", 0x51); key("navigation", "↑", 0x52);
+  for (let i = 1; i <= 12; ++i) key("function", `F${i}`, 0x3A + i - 1);
+  for (let i = 13; i <= 24; ++i) key("function", `F${i}`, 0x68 + i - 13);
+  for (let i = 1; i <= 9; ++i) key("keypad", `小键盘 ${i}`, 0x59 + i - 1, String(i));
+  key("keypad", "小键盘 0", 0x62, "0");
+  key("keypad", "小键盘 +", 0x57, "+"); key("keypad", "小键盘 -", 0x56, "-");
+  key("keypad", "小键盘 *", 0x55, "*"); key("keypad", "小键盘 /", 0x54, "/");
+  key("keypad", "小键盘 .", 0x63, "."); key("keypad", "小键盘 Enter", 0x58, "Enter");
+  key("keypad", "Num Lock / Clear", 0x53);
   const CONSUMER_OPTIONS = [
     { label: "播放/暂停", code: 0x00CD }, { label: "停止", code: 0x00B7 },
     { label: "下一曲", code: 0x00B5 }, { label: "上一曲", code: 0x00B6 },
@@ -196,7 +215,7 @@
 
   return {
     RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
-    KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, RGB_MODES, PLATFORM_CODES, normalizePlatform, modLabels,
+    KEY_GROUPS, KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, RGB_MODES, PLATFORM_CODES, normalizePlatform, modLabels,
     crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
     utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel
   };

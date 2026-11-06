@@ -25,6 +25,17 @@ equal(P.ENCODERS.length, 3, "three encoder groups");
 equal(P.ENCODERS[0].cwSlot, 16, "center CW slot");
 equal(P.ENCODERS[0].ccwSlot, 17, "center CCW slot");
 equal(P.ENCODERS[2].pressSlot, 14, "wheel press is a button slot");
+equal(P.KEY_GROUPS.map(group => group.id).join(","), "letters,digits,symbols,editing,navigation,function,keypad",
+  "key groups have stable order");
+equal(P.KEY_OPTIONS.every(option => P.KEY_GROUPS.some(group => group.id === option.group)), true,
+  "every key option belongs to a declared group");
+equal(new Set(P.KEY_OPTIONS.map(option => option.code)).size, P.KEY_OPTIONS.length, "key option usages are unique");
+equal([0x39, 0x46, 0x47, 0x48, 0x65].every(code => P.KEY_OPTIONS.some(option => option.code === code)), true,
+  "common control keys are available");
+equal(P.KEY_OPTIONS.filter(option => option.group === "keypad").map(option => option.code).join(","),
+  "89,90,91,92,93,94,95,96,97,98,87,86,85,84,99,88,83", "keypad options use standard HID usages");
+equal(P.KEY_OPTIONS.find(option => option.code === 0x59).label, "小键盘 1", "keypad summary label is explicit");
+equal(P.KEY_OPTIONS.find(option => option.code === 0x59).optionLabel, "1", "keypad option uses a short grouped label");
 equal(P.presetErrors(sample()).length, 0, "sample preset is valid");
 equal(P.actionError({ kind: P.Kind.KeyChord, mods: 0, code: 0, wheelDy: 0 }, true) !== null, true,
   "empty KeyChord rejected");
@@ -89,6 +100,18 @@ throws(() => P.decodePresetRecord(badAction), "invalid action payload rejected")
 equal(P.actionLabel(sample().actions[0]), "Ctrl+C", "short action label");
 equal(P.actionLabel(sample().actions[16]), "Alt+滚轮+1", "encoder label includes direction");
 equal(P.actionLabel(sample().actions[18]), "Win", "modifier-only action omits zero usage code");
+equal(P.actionLabel({ kind: P.Kind.KeyChord, mods: 1, code: 0x1E, wheelDy: 0 }), "Ctrl+1",
+  "main keyboard digit keeps its concise label");
+equal(P.actionLabel({ kind: P.Kind.KeyChord, mods: 1, code: 0x59, wheelDy: 0 }), "Ctrl+小键盘 1",
+  "keypad digit is distinct in action summaries");
+equal(P.actionLabel({ kind: P.Kind.KeyChord, mods: 0, code: 0x57, wheelDy: 0 }), "小键盘 +",
+  "keypad operator has an explicit label");
+equal(P.actionLabel({ kind: P.Kind.KeyChord, mods: 0, code: 0x53, wheelDy: 0 }), "Num Lock / Clear",
+  "Num Lock and Clear share the standard usage label");
+const keypadPreset = sample();
+keypadPreset.actions[0] = { kind: P.Kind.KeyChord, mods: 0, code: 0x59, wheelDy: 0 };
+equal(P.decodePresetRecord(P.encodePresetRecord(keypadPreset)).actions[0].code, 0x59,
+  "keypad usage round trips through the preset record");
 equal(P.crc16(new TextEncoder().encode("123456789")), 0x29B1, "CRC16 standard reference vector");
 equal(P.crc16, Proto.crc16, "record and protocol share CRC16 implementation");
 equal(P.MOD_LABELS.join(","), "Ctrl,Shift,Alt,Win,RCtrl,RShift,RAlt,RWin", "shared modifier labels");

@@ -254,10 +254,14 @@ function actionForm(slot) {
     ...(isButton ? [] : [[P.Kind.Wheel, '滚轮']]),
   ].map(([value, label]) => `<option value="${value}" ${action.kind === value ? 'selected' : ''}>${label}</option>`).join('');
   const source = action.kind === P.Kind.Consumer ? P.CONSUMER_OPTIONS : P.KEY_OPTIONS;
-  const options = [...(action.kind === P.Kind.KeyChord ? [{ label: '仅修饰键', code: 0 }] : []), ...source]
-    .map(option => `<option value="${option.code}" ${action.code === option.code ? 'selected' : ''}>${option.label}</option>`).join('');
+  const renderOption = option => `<option value="${option.code}" ${action.code === option.code ? 'selected' : ''}>${option.optionLabel || option.label}</option>`;
+  const options = action.kind === P.Kind.Consumer ? source.map(renderOption).join('') :
+    (action.kind === P.Kind.KeyChord ? renderOption({ label: '仅修饰键', code: 0 }) : '') +
+    P.KEY_GROUPS.map(group => `<optgroup label="${group.label}">${source.filter(option => option.group === group.id).map(renderOption).join('')}</optgroup>`).join('');
   const mods = P.modLabels(platformOf(currentPreset())).map((label, bit) =>
     `<label class="mod"><input type="checkbox" data-bit="${1 << bit}" ${action.mods & (1 << bit) ? 'checked' : ''} ${action.kind === P.Kind.None || action.kind === P.Kind.Consumer ? 'disabled' : ''}>${label}</label>`).join('');
+  const keypadHint = action.kind === P.Kind.KeyChord && action.code >= 0x59 && action.code <= 0x63
+    ? '<p class="hint full">小键盘数字与小数点的行为可能受系统 Num Lock 状态影响。</p>' : '';
   const title = slot < 16 ? (slot === 15 ? 'SideKey' : `K${slot + 1}`) :
     slot < 18 ? '中央旋钮' : slot < 20 ? '大旋钮' : '滚轮';
   const direction = slot < 16 ? '' : slot % 2 === 0 ? ' · 顺时针' : ' · 逆时针';
@@ -267,6 +271,7 @@ function actionForm(slot) {
       ${action.kind !== P.Kind.Wheel ? `<label class="action-field full">键码 / 功能<select data-field="code" ${action.kind === P.Kind.None ? 'disabled' : ''}>${options}</select></label>` : ''}
       ${action.kind === P.Kind.Wheel ? `<label class="action-field">滚动格数<input data-field="wheelDy" type="number" min="-127" max="127" step="1" value="${action.wheelDy}"></label>` : ''}
       ${action.kind !== P.Kind.None && action.kind !== P.Kind.Consumer ? `<div class="full"><span class="field-help">修饰键</span><div class="mods">${mods}</div></div>` : ''}
+      ${keypadHint}
     </div></div>`;
 }
 function renderInspector() {
