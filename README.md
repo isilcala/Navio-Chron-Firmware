@@ -27,7 +27,8 @@ See `docs/PROJECT.md` for the roadmap and `docs/DECISIONS.md` for technical deci
 
 ## Flash online
 
-Open **https://isilcala.github.io/Navio-Chron-Firmware/** in desktop Chrome or Edge.
+Open **https://isilcala.github.io/Navio-Chron-Firmware/** to edit presets in desktop Chrome or Edge.
+Firmware updates are available at **https://isilcala.github.io/Navio-Chron-Firmware/firmware/**.
 GitHub Actions builds the firmware, manifest and four ROM images and publishes them with
 `.github/workflows/pages.yml` on `main` and manual runs.
 

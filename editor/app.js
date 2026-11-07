@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261105-33';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261106-01';
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
@@ -10,10 +10,10 @@ let quarantinedPresets = [];
 
 // 官方模板库：presets/index.json（tools/build_templates.js 构建期生成）→ 逐文件拉取 → 校验装配；
 // 单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-const ASSET_VERSION = '20261105-33';
+const ASSET_VERSION = '20261106-01';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
-const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : '../manifest.json';
-const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : '../';
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : './manifest.json';
+const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
 for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
 async function fetchJson(url) {
   const response = await fetch(url);

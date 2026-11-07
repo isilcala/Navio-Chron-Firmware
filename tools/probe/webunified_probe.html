@@ -3,35 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Navio Chron 固件刷写</title>
+  <title>Navio Chron 固件更新</title>
   <link rel="stylesheet" href="../../editor/styles.css">
-  <style>
-    .flash-shell{max-width:860px;margin:auto;padding:52px 24px 64px}.flash-hero{margin-bottom:26px}.flash-hero h1{margin:6px 0 10px;font-size:32px;letter-spacing:-.5px}.flash-hero p{margin:0;color:var(--muted);font-size:15px}.flash-card{padding:26px}.release-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.release-heading h2{margin-top:3px}.release-version{flex:none;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--accent);background:#ff9c430c;font-size:12px}.manifest-label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:11px}.manifest-label input{font-size:12px}.flash-actions{display:flex;gap:10px;margin:22px 0 18px}.flash-actions .button{padding:11px 20px}.flash-status{min-height:48px;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:#0b1926;color:var(--text);white-space:pre-wrap}progress{display:block;width:100%;height:8px;margin:14px 0 0;border:0;border-radius:999px;overflow:hidden;background:#1b3042;accent-color:var(--accent)}progress::-webkit-progress-bar{background:#1b3042}progress::-webkit-progress-value{background:linear-gradient(90deg,var(--accent-2),var(--accent));border-radius:999px}progress::-moz-progress-bar{background:var(--accent)}#confirm{margin-top:20px;padding:18px;border:1px solid #6b4c32;border-radius:12px;background:#2a211b;white-space:pre-wrap}#confirmText{line-height:1.8}#eraseWarning{margin-top:10px;color:var(--danger);font-weight:700}#preserveNotice{margin-top:10px;color:var(--ok);font-weight:700}.confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.diagnostics{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#0d1a28}.diagnostics summary{padding:13px 16px;color:var(--muted);cursor:pointer}.diagnostics pre{min-height:120px;max-height:360px;margin:0;padding:16px;overflow:auto;border-top:1px solid var(--line);color:#a9bdcc;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}.flash-footer{text-align:center;color:var(--muted);font-size:12px}[hidden]{display:none!important}@media(max-width:720px){.flash-shell{padding:30px 14px 44px}.flash-hero h1{font-size:27px}.flash-card{padding:18px}.release-heading{align-items:flex-start}.topbar .device-status{display:none}}
-  </style>
+
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>固件刷写</small></div></div>
-    <div class="top-actions"><span class="device-status">桌面 Chrome / Edge</span><a id="editorLink" class="button secondary" href="/editor/">打开预设编辑器</a></div>
+  <header class="topbar app-header">
+    <div class="brand"><span class="brand-mark">N</span><div class="brand-copy"><strong>Navio Chron</strong><small>预设与设备管理</small></div></div>
+    <nav class="main-nav" aria-label="工作区">
+      <a id="editorLink" class="nav-item" href="/editor/">预设</a>
+      <a class="nav-item active" href="./" aria-current="page">固件更新</a>
+    </nav>
+    <div class="top-actions header-actions"><span class="device-status">桌面 Chrome / Edge</span></div>
   </header>
-  <main class="flash-shell">
-    <section class="flash-hero"><span class="eyebrow">FIRMWARE UPDATE</span><h1>让键盘保持最新</h1><p>连接 Navio Chron，确认版本后即可升级。刷写期间请保持 USB 连接。</p></section>
-    <section class="panel flash-card">
+  <main class="flash-shell firmware-view view">
+    <section class="flash-hero firmware-hero"><span class="product-kicker">NAVIO CHRON</span><h1>固件更新</h1><p>连接 Navio Chron，确认版本后即可升级。刷写期间请保持 USB 连接。</p></section>
+    <section class="panel flash-card firmware-card">
       <div class="release-heading"><div><span class="eyebrow">RELEASE</span><h2>可用固件</h2></div><span id="releaseVersion" class="release-version">正在加载…</span></div>
       <!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
       <label class="manifest-label">发布清单<input id="manifest" type="text" value="/release/navio_chron_0.5.23/manifest.json"></label>
-      <div class="flash-actions"><button id="connect" class="button">连接并升级</button></div>
+      <div class="flash-actions"><button id="connect" class="button primary">连接并升级</button></div>
       <div id="status" class="flash-status" role="status" aria-live="polite">正在加载发布包…</div>
       <progress id="progress" value="0" max="100" aria-label="刷写进度"></progress>
       <div id="confirm" hidden>
         <div id="confirmText"></div>
         <div id="eraseWarning" hidden>将擦除设备数据，包括已有预设。</div>
         <div id="preserveNotice" hidden>已确认 Navio 身份，将保留你的预设。</div>
-        <div class="confirm-actions"><button id="cancelWrite" class="button secondary">取消</button><button id="confirmWrite" class="button">确认升级</button></div>
+        <div class="confirm-actions"><button id="cancelWrite" class="button secondary">取消</button><button id="confirmWrite" class="button primary">确认升级</button></div>
       </div>
     </section>
-    <details class="diagnostics"><summary>诊断日志</summary><pre id="out"></pre></details>
-    <p class="flash-footer">写入完成后设备会自动重启，无需在网页中重新连接。</p>
+    <details class="diagnostics advanced-panel"><summary>诊断日志</summary><pre id="out"></pre></details>
+    <p class="flash-footer firmware-note">写入完成后设备会自动重启，无需在网页中重新连接。</p>
   </main>
   <script src="navio_proto.js"></script>
   <script src="webflash_rules.js"></script>
@@ -44,7 +46,7 @@ const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
   OTA_REBOOT: 15, OTA_CONFIRM: 16 };
 const LONG = { timeoutMs: 10000, maxRetries: 2 };
 const $ = id => document.getElementById(id);
-$('editorLink').href = location.pathname.includes('/tools/probe/') ? '/editor/' : './editor/';
+$('editorLink').href = location.pathname.includes('/tools/probe/') ? '/editor/' : '../';
 const out = $('out'), waiters = [], reports = [];
 let manifest, releaseBase, device, session, navioConfirmed = false;
 let pendingConfirmation = null, romConnection = null;

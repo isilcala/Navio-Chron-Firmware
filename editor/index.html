@@ -5,26 +5,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Navio Chron 预设编辑器</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261105-33">
+  <link rel="stylesheet" href="styles.css?v=20261106-01">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">N</span><div><strong>Navio Chron</strong><small>WebHID 预设编辑器</small></div></div>
-    <div class="top-actions">
+  <header class="topbar app-header">
+    <div class="brand"><span class="brand-mark">N</span><div class="brand-copy"><strong>Navio Chron</strong><small>预设与设备管理</small></div></div>
+    <nav class="main-nav" aria-label="工作区">
+      <a class="nav-item active" href="./" aria-current="page">预设</a>
+      <a id="flashLink" class="nav-item" href="../">固件更新</a>
+    </nav>
+    <div class="top-actions header-actions">
       <span id="saveState" class="save-state">本地修改尚未写入设备</span>
       <span id="deviceFirmware" class="device-firmware" hidden></span>
       <span id="deviceStatus" class="device-status">未连接</span>
       <button id="connectDevice" class="button secondary">连接设备</button>
       <button id="applyAll" class="button secondary" disabled>应用全部修改</button>
-      <button id="applyPreset" class="button" disabled>安装 / 写入</button>
-      <a id="flashLink" href="../" class="button secondary">固件刷写</a>
+      <button id="applyPreset" class="button primary" disabled>安装 / 写入</button>
     </div>
   </header>
-  <div id="firmwareNotice" class="firmware-notice" role="status" hidden>
-    <span id="firmwareNoticeText"></span><a id="firmwareFlashLink" href="../" class="button">刷写固件</a>
+  <div id="firmwareNotice" class="firmware-notice update-banner" role="status" hidden>
+    <span id="firmwareNoticeText"></span><a id="firmwareFlashLink" href="../" class="button primary">更新固件</a>
   </div>
 
-  <main class="workspace">
+  <main class="workspace editor-workspace view">
     <aside class="panel library-panel">
       <div class="panel-heading"><div><span class="eyebrow">PRESET LIBRARY</span><h2>预设库</h2></div><button id="newPreset" class="icon-button" title="新建预设">＋</button></div>
       <div id="presetList" class="preset-list"></div>
@@ -41,7 +44,7 @@
       <p class="hint">导入只会进入本地库，不会覆盖设备配置。本地库支持 schemaVersion 迁移。</p>
     </aside>
 
-    <section class="device-panel">
+    <section class="device-panel canvas-panel">
       <div class="device-heading"><div><span class="eyebrow">DEVICE MAP</span><h2 id="currentPresetTitle">当前预设</h2></div><span class="device-caption">点击键位或旋钮开始编辑</span></div>
       <div id="device" class="device-stage"></div>
       <div id="encoderDetail" class="encoder-detail" hidden></div>
@@ -59,12 +62,12 @@
           <option value="ipad">iPadOS · Ctrl/Opt/Cmd</option>
         </select></label>
       </div>
-      <div class="tabs" role="tablist"><button class="tab active" data-tab="mapping" role="tab">键位映射</button><button class="tab" data-tab="lighting" role="tab">灯光效果</button></div>
+      <div class="tabs segmented" role="tablist"><button class="tab active" data-tab="mapping" role="tab">键位映射</button><button class="tab" data-tab="lighting" role="tab">灯光效果</button></div>
       <div id="inspector"></div>
     </aside>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <dialog id="replaceDialog" class="replace-dialog">
+  <dialog id="replaceDialog" class="replace-dialog dialog">
     <form method="dialog">
       <h2>设备已满 6 套</h2>
       <p id="replaceDescription"></p>
@@ -72,12 +75,12 @@
       <div class="dialog-actions"><button value="cancel" class="button secondary">取消</button><button id="confirmReplacement" value="default" class="button">确认替换</button></div>
     </form>
   </dialog>
-  <script src="../tools/probe/navio_proto.js?v=20261105-33"></script>
-  <script src="../tools/probe/webflash_rules.js?v=20261105-33"></script>
-  <script src="preset.js?v=20261105-33"></script>
-  <script src="templates.js?v=20261105-33"></script>
-  <script src="library.js?v=20261105-33"></script>
-  <script src="device.js?v=20261105-33"></script>
-  <script type="module" src="app.js?v=20261105-33"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261106-01"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261106-01"></script>
+  <script src="preset.js?v=20261106-01"></script>
+  <script src="templates.js?v=20261106-01"></script>
+  <script src="library.js?v=20261106-01"></script>
+  <script src="device.js?v=20261106-01"></script>
+  <script type="module" src="app.js?v=20261106-01"></script>
 </body>
 </html>

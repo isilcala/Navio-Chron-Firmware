@@ -1,4 +1,4 @@
-name: Build and deploy Navio Web flasher
+name: Build and deploy Navio Web apps
 
 on:
   push:
@@ -43,16 +43,17 @@ jobs:
         run: |
           release_dir=$(find release -mindepth 1 -maxdepth 1 -type d -name 'navio_chron_*' -print -quit)
           test -n "$release_dir"
-          mkdir _site
-          cp tools/probe/webunified_probe.html _site/index.html
+          mkdir -p _site/editor _site/firmware
+          cp -r editor/. _site/
+          rm _site/redirect.html
+          cp editor/redirect.html _site/editor/index.html
+          cp tools/probe/webunified_probe.html _site/firmware/index.html
           cp tools/probe/navio_proto.js tools/probe/webflash_rules.js _site/
-          cp tools/probe/esptool-js.bundle.js tools/probe/esptool-js.LICENSE _site/
-          cp -r editor _site/editor
-          cp tools/probe/navio_proto.js tools/probe/webflash_rules.js _site/editor/
-          sed -i 's#\.\./tools/probe/navio_proto\.js#navio_proto.js#; s#\.\./tools/probe/webflash_rules\.js#webflash_rules.js#' _site/editor/index.html
+          cp tools/probe/navio_proto.js tools/probe/webflash_rules.js tools/probe/esptool-js.bundle.js tools/probe/esptool-js.LICENSE _site/firmware/
+          sed -i 's#\.\./tools/probe/navio_proto\.js#navio_proto.js#; s#\.\./tools/probe/webflash_rules\.js#webflash_rules.js#' _site/index.html
           cp "$release_dir/manifest.json" _site/
           cp "$release_dir"/*.bin _site/
-          sed -i 's#value="/release/[^"]*/manifest.json"#value="./manifest.json"#; s#\.\./\.\./editor/styles\.css#editor/styles.css#' _site/index.html
+          sed -i 's#value="/release/[^"]*/manifest.json"#value="../manifest.json"#; s#\.\./\.\./editor/styles\.css#../styles.css#' _site/firmware/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

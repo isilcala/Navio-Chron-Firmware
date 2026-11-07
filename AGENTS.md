@@ -38,7 +38,7 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 ## 代码地图与核心约定
 
 ```
-.github/workflows/pages.yml  GitHub Pages：构建统一页、manifest 与四件套并部署
+.github/workflows/pages.yml  GitHub Pages：编辑器首页 / + /firmware/ 更新页、manifest 与四件套
 editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
                 presets/ 官方模板库（一预设一 JSON + 生成索引 index.json）
 prototype/      独立 UX/UI 交互原型：模拟数据与关键场景，不接设备、不入公开部署

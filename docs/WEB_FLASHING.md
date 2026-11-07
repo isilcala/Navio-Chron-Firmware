@@ -149,8 +149,8 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
 - 不要求 PIO、Python、esptool、驱动安装说明或本地 Node 服务。
 - 首版不支持 Firefox/Safari、BLE OTA、在线升级 bootloader/分区表或任意芯片型号；
   除上述身份规则外，不提供用户可选的整片擦除功能。
-- GitHub Pages 由 `.github/workflows/pages.yml` 从同一次构建发布根目录统一页、manifest 与四件套；
-  release 产物不入库，部署时默认 manifest 为 `./manifest.json`，兼容 project Pages 子路径。
+- GitHub Pages 由 `.github/workflows/pages.yml` 从同一次构建发布根目录编辑器、`/firmware/` 更新页、manifest 与四件套；
+  release 产物不入库，更新页默认 manifest 为 `../manifest.json`，兼容 project Pages 子路径。
 
 ## 6. 错误与恢复规则
 
