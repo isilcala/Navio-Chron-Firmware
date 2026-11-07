@@ -3,8 +3,8 @@
 Independent, from-scratch firmware for the [Navio Chron](https://github.com/Cityforest2000/Navio-Chron)
 open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 
-> **Work in progress.** Core input, presets, USB/BLE HID, OTA and Web flashing are working;
-> the browser-based preset editor and additional presets are still being built.
+> **Work in progress.** Core input, presets, USB/BLE HID, OTA, Web flashing and the
+> browser-based preset editor are working; power management and app-specific preset tuning remain.
 
 ## Current status
 
@@ -20,8 +20,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
       firmware version label and update notices use HELLO and the deployed release manifest
 - [x] Official preset templates as per-preset JSON data files with a generated index and CI validation
 - [x] Official template library at 9 presets: Premiere Win/Mac, Resolve Win/Mac, JianYing Win/Mac, Procreate (iPad), Test, F13 Macro (Mac/iPad variants pending on-app tuning)
-- [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery; verified in Chrome with mock HID
-- [ ] Final cross-page, accessibility, online and hardware UX regression
+- [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery
+- [x] Cross-page, accessibility, responsive, online and hardware WebHID UX regression
 - [ ] Hardware and power validation for nine preset lighting modes (implemented in 0.5.23)
 - [ ] Sleep/wake and battery-power validation
 
