@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-05';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-06';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-05';
+const ASSET_VERSION = '20261107-06';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -603,11 +603,11 @@ $('connectButton').addEventListener('click', () => runDeviceAction(async () => {
     const hello = await deviceClient.hello();
     deviceFirmware = hello.fw;
     await refreshDevice(!editSession);
+    checkFirmwareUpdate(hello.fw);
   } catch (error) {
     if (deviceConnection === connection) await resetDeviceConnection(connection);
     throw error;
   }
-  checkFirmwareUpdate(hello.fw);
   operationMessage = { text: '键盘读取完成；修改只会在明确保存后写入', error: false };
 }));
 navigator.hid?.addEventListener('disconnect', event => deviceDisconnected(event.device));
