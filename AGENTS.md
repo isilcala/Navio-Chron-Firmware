@@ -41,6 +41,7 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 .github/workflows/pages.yml  GitHub Pages：构建统一页、manifest 与四件套并部署
 editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
                 presets/ 官方模板库（一预设一 JSON + 生成索引 index.json）
+prototype/      独立 UX/UI 交互原型：模拟数据与关键场景，不接设备、不入公开部署
 include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
 src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
 src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）
