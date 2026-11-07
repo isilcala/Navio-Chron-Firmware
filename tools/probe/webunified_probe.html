@@ -18,21 +18,40 @@
   </header>
   <main class="flash-shell firmware-view view">
     <section class="flash-hero firmware-hero"><span class="product-kicker">NAVIO CHRON</span><h1>固件更新</h1><p>连接 Navio Chron，确认版本后即可升级。刷写期间请保持 USB 连接。</p></section>
+    <ol id="firmwareSteps" class="firmware-steps" aria-label="更新进度">
+      <li data-step="connect"><span>1</span>连接</li>
+      <li data-step="confirm"><span>2</span>确认</li>
+      <li data-step="update"><span>3</span>更新</li>
+      <li data-step="done"><span>4</span>完成</li>
+    </ol>
     <section class="panel flash-card firmware-card">
       <div class="release-heading"><div><span class="eyebrow">RELEASE</span><h2>可用固件</h2></div><span id="releaseVersion" class="release-version">正在加载…</span></div>
-      <!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
-      <label class="manifest-label">发布清单<input id="manifest" type="text" value="/release/navio_chron_0.5.23/manifest.json"></label>
-      <div class="flash-actions"><button id="connect" class="button primary">连接并升级</button></div>
+      <div class="flash-actions"><button id="connect" class="button primary">连接设备</button></div>
       <div id="status" class="flash-status" role="status" aria-live="polite">正在加载发布包…</div>
-      <progress id="progress" value="0" max="100" aria-label="刷写进度"></progress>
+      <progress id="progress" value="0" max="100" aria-label="刷写进度" hidden></progress>
       <div id="confirm" hidden>
         <div id="confirmText"></div>
         <div id="eraseWarning" hidden>将擦除设备数据，包括已有预设。</div>
         <div id="preserveNotice" hidden>已确认 Navio 身份，将保留你的预设。</div>
         <div class="confirm-actions"><button id="cancelWrite" class="button secondary">取消</button><button id="confirmWrite" class="button primary">确认升级</button></div>
       </div>
+      <div id="rescueGuide" class="rescue-card" hidden>
+        <h2>需要一次手动连接</h2>
+        <p>这是正常的恢复方式。完成以下步骤后，再点击上方的继续连接按钮。</p>
+        <div class="rescue-steps">
+          <div class="rescue-step"><span>1</span><div><strong>拔下 USB</strong><p>让设备完全断电。</p></div></div>
+          <div class="rescue-step"><span>2</span><div><strong>按住 BOOT 键</strong><p>保持按住，不要松开。</p></div></div>
+          <div class="rescue-step"><span>3</span><div><strong>插入 USB 后松开</strong><p>设备进入手动连接状态。</p></div></div>
+          <div class="rescue-step"><span>4</span><div><strong>继续连接</strong><p>下一步会请求选择设备串口。</p></div></div>
+        </div>
+      </div>
+      <div id="successActions" class="firmware-actions success-next" hidden><a id="successEditorLink" class="button primary" href="../">配置预设</a></div>
     </section>
-    <details class="diagnostics advanced-panel"><summary>诊断日志</summary><pre id="out"></pre></details>
+    <details class="diagnostics advanced-panel"><summary>高级选项与诊断信息</summary><div class="advanced-content">
+      <!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
+      <label class="manifest-label">发布清单<input id="manifest" type="text" value="/release/navio_chron_0.5.23/manifest.json"></label>
+      <pre id="out"></pre>
+    </div></details>
     <p class="flash-footer firmware-note">写入完成后设备会自动重启，无需在网页中重新连接。</p>
   </main>
   <script src="navio_proto.js"></script>
@@ -46,17 +65,37 @@ const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
   OTA_REBOOT: 15, OTA_CONFIRM: 16 };
 const LONG = { timeoutMs: 10000, maxRetries: 2 };
 const $ = id => document.getElementById(id);
-$('editorLink').href = location.pathname.includes('/tools/probe/') ? '/editor/' : '../';
+const editorUrl = location.pathname.includes('/tools/probe/') ? '/editor/' : '../';
+$('editorLink').href = editorUrl;
+$('successEditorLink').href = editorUrl;
 const out = $('out'), waiters = [], reports = [];
 let manifest, releaseBase, device, session, navioConfirmed = false;
 let pendingConfirmation = null, romConnection = null;
-let helloCache = null, serialMode = null;
+let helloCache = null, serialMode = null, writingActive = false;
 
 function log(value) {
   out.textContent += `${typeof value === 'string' ? value : JSON.stringify(value)}\n`;
   out.scrollTop = out.scrollHeight;
 }
-function status(value) { $('status').textContent = value; }
+function status(value, stage) { $('status').textContent = value; if (stage) setStage(stage); }
+function setStage(stage) {
+  const active = { connect: 0, confirm: 1, update: 2, done: 3 }[stage];
+  document.querySelectorAll('#firmwareSteps li').forEach(item => {
+    const index = ['connect', 'confirm', 'update', 'done'].indexOf(item.dataset.step);
+    item.classList.toggle('active', index === active);
+    item.classList.toggle('complete', index < active);
+    item.querySelector('span').textContent = index < active ? '✓' : index + 1;
+  });
+  $('progress').hidden = stage !== 'update' && stage !== 'done';
+  $('successActions').hidden = stage !== 'done';
+  $('connect').parentElement.hidden = stage !== 'connect';
+  if (stage === 'connect' && $('rescueGuide').hidden) $('connect').textContent = '连接设备';
+  document.body.dataset.firmwareStage = stage;
+}
+function setWriting(active) {
+  writingActive = active;
+  document.body.classList.toggle('is-writing', active);
+}
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function hex(data) { return [...data].map(v => v.toString(16).padStart(2, '0')).join(''); }
 async function sha256(data) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', data))); }
@@ -79,7 +118,7 @@ async function run(fn) {
     log(error.stack || String(error));
     status(error.message || String(error));
   }
-  finally { setBusy(false); }
+  finally { setBusy(false); setWriting(false); }
 }
 
 async function loadRelease() {
@@ -207,13 +246,18 @@ function showConfirmation(plan) {
   $('confirmWrite').textContent = plan.versionPermission?.kind === 'downgrade' ? '确认降级' :
     plan.versionPermission?.kind === 'reinstall' ? '重新安装' : '确认升级';
   $('confirm').hidden = false;
-  status('请确认写入操作');
+  $('rescueGuide').hidden = true;
+  status('请确认写入操作', 'confirm');
 }
 function showRescue(reason) {
   pendingConfirmation = null;
   serialMode = 'no_reset';
   $('confirm').hidden = true;
-  status(`${reason}\n请按住 BOOT 插入 USB，松开后点击“连接并升级”。`);
+  $('successActions').hidden = true;
+  setStage('connect');
+  $('rescueGuide').hidden = false;
+  $('connect').textContent = '我已准备好，继续连接';
+  status(reason);
 }
 function showSuccess(message) {
   pendingConfirmation = null;
@@ -222,15 +266,16 @@ function showSuccess(message) {
   helloCache = null;
   serialMode = null;
   $('confirm').hidden = true;
+  $('rescueGuide').hidden = true;
   $('progress').value = 100;
-  status(message);
+  status(message, 'done');
 }
 
 async function startOta() {
   const decision = R.decide({ hidVisible: true, helloOk: true, hasOtaCmds: true,
     currentVersion: helloCache.fw, targetVersion: manifest.version, channel: manifest.channel });
   if (decision.path === 'latest') {
-    status('已是最新版本');
+    status('你的设备已是最新版本，无需更新。', 'done');
     return;
   }
   const images = await downloadImages(true);
@@ -238,6 +283,7 @@ async function startOta() {
 }
 
 async function runOta(plan) {
+  setStage('update');
   const firmware = plan.images[0].data;
   let initial = await otaStatus();
   log({ hello: helloCache, initial });
@@ -245,7 +291,9 @@ async function runOta(plan) {
     await session.request(CMD.OTA_REBOOT);
     await device.close();
     if (!await reconnect()) {
-      status('设备已重启，请点击“连接并升级”重新授权后继续');
+      setStage('connect');
+      $('connect').textContent = '重新授权并继续';
+      status('设备已重启，请重新授权后继续');
       return;
     }
     initial = await otaStatus();
@@ -282,6 +330,7 @@ async function runOta(plan) {
 }
 
 async function runRomWrite(plan) {
+  setStage('update');
   const { loader, transport } = romConnection;
   try {
     await loader.writeFlash({
@@ -322,6 +371,9 @@ async function runRomWrite(plan) {
 }
 
 $('connect').onclick = () => run(async () => {
+  $('rescueGuide').hidden = true;
+  setStage('connect');
+  status('正在检查设备…');
   if (!manifest) await loadRelease();
   if (serialMode) {
     const mode = serialMode;
@@ -330,16 +382,18 @@ $('connect').onclick = () => run(async () => {
   }
   if (!navigator.hid) {
     serialMode = navioConfirmed ? 'no_reset' : 'auto';
-    status('再次点击“连接并升级”，选择设备串口');
+    $('connect').textContent = '选择设备串口';
+    status('当前浏览器未提供 HID 连接。请点击“选择设备串口”继续。');
     return;
   }
   $('progress').value = 0;
   const selected = await chooseHid();
   if (!selected) {
     serialMode = navioConfirmed ? 'no_reset' : 'auto';
+    $('connect').textContent = '选择设备串口';
     status(navioConfirmed
-      ? '未检测到 Navio HID；再次点击“连接并升级”选择串口，预设保留决策不变'
-      : '未选择 Navio；再次点击“连接并升级”以选择串口');
+      ? '未检测到 Navio HID；请选择设备串口，预设保留决策不变'
+      : '未选择 Navio；请点击“选择设备串口”继续');
     return;
   }
   navioConfirmed = true;
@@ -364,6 +418,8 @@ $('connect').onclick = () => run(async () => {
 });
 
 async function startSerial(resetMode) {
+  setStage('connect');
+  status('请选择设备串口…');
   if (!navigator.serial) throw new Error('Web Serial 不可用，请使用桌面 Chrome / Edge');
   if (!manifest) await loadRelease();
   serialMode = null;
@@ -421,6 +477,7 @@ $('confirmWrite').onclick = () => run(async () => {
   if (!plan) return;
   pendingConfirmation = null;
   $('confirm').hidden = true;
+  setWriting(true);
   if (plan.path === 'ota') await runOta(plan);
   else if (plan.path === 'rom') await runRomWrite(plan);
 });
@@ -431,6 +488,8 @@ $('cancelWrite').onclick = () => run(async () => {
   helloCache = null;
   serialMode = null;
   $('confirm').hidden = true;
+  $('rescueGuide').hidden = true;
+  setStage('connect');
   if (romConnection) {
     try { await romConnection.transport.disconnect(); } catch (_) {}
     romConnection = null;
@@ -442,9 +501,20 @@ $('manifest').addEventListener('input', () => {
   manifest = null;
   releaseBase = null;
   $('releaseVersion').textContent = '等待加载';
+  setStage('connect');
   status('发布包已变更，点击连接或救援以重新加载');
 });
-window.addEventListener('load', () => run(loadRelease));
+for (const link of document.querySelectorAll('.main-nav a, #successEditorLink')) link.addEventListener('click', event => {
+  if (!writingActive) return;
+  event.preventDefault();
+  status('正在写入设备，完成前请不要离开此页面。', 'update');
+});
+window.addEventListener('beforeunload', event => {
+  if (!writingActive) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+window.addEventListener('load', () => { setStage('connect'); run(loadRelease); });
 </script>
 </body>
 </html>
