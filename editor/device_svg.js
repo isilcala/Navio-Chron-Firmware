@@ -56,10 +56,11 @@ function fitActionLabels(container) {
   }
 }
 
-export function renderDevice(container, { actions, actionLabel, selected, accent = [109, 93, 252], lighting = false, onSelect }) {
+export function renderDevice(container, { actions, actionLabel, selected, accent = [109, 93, 252], lighting = false, previewColors = null, onSelect }) {
   const ledColor = `rgb(${accent.join(',')})`;
   const buttonMarkup = actions.slice(0, 12).map((action, index) =>
-    buttonDef(index, actionLabel(action), selected.type === 'btn' && selected.index === index, ledColor)).join('');
+    buttonDef(index, actionLabel(action), selected.type === 'btn' && selected.index === index,
+      previewColors ? `rgb(${previewColors[index].join(',')})` : ledColor)).join('');
   const encoderMarkup = ENCODERS.map((encoder, index) => {
     const base = 16 + index * 2;
     return encoderDef(encoder, selected.type === 'encoder' && selected.id === encoder.id,

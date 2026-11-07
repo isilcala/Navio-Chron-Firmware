@@ -1,12 +1,12 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-06';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-07';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
-  R = NavioWebflashRules, $ = id => document.getElementById(id);
+  R = NavioWebflashRules, RGB = NavioRgbPreview, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-06';
+const ASSET_VERSION = '20261107-07';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -21,6 +21,9 @@ let deviceGeneration = 0, deviceFirmware = null, updateDismissed = false;
 let editSession = null, pendingAfterEdit = null, pendingDeleteKey = null, pendingKeyboardDeleteId = null;
 let operationMessage = null, toastTimer, libraryLoadError = null, librarySaveError = null;
 let quarantinedPresets = [], templateInstallations = loadTemplateInstallations();
+let previewEngine = null, previewEngineKey = '', previewElapsed = 0, previewLastTick = 0, previewLastPaint = 0;
+let previewFrame = 0, previewPlaying = !matchMedia('(prefers-reduced-motion: reduce)').matches, previewSpeed = 1;
+let previewSeed = 0x6D2B79F5, previewHeld = new Set(), thumbnailEngines = new Map();
 
 for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
 for (const dialog of document.querySelectorAll('dialog')) {
@@ -293,22 +296,74 @@ function focusSelector() {
 function restoreFocus(selector) {
   if (selector) document.querySelector(selector)?.focus({ preventScroll: true });
 }
+function ensurePreviewEngine() {
+  const preset = currentPreset(), key = `${editSession?.sourceKey || selectedKey}:${preset.rgbMode}`;
+  if (key !== previewEngineKey) {
+    previewEngine = RGB.createPreview({ mode: preset.rgbMode, accent: preset.accent, seed: previewSeed });
+    previewEngineKey = key; previewElapsed = 0; previewHeld.clear();
+  }
+  previewEngine.setAccent(preset.accent);
+  return previewEngine;
+}
+function paintPreviewLed(element, color) {
+  const level = Math.max(...color) / 255;
+  element.setAttribute('fill', `rgb(${color.join(',')})`);
+  element.style.opacity = level === 0 ? '0' : String(Math.max(0.16, level));
+  element.style.filter = level > 0.65 ? `drop-shadow(0 0 5px rgb(${color.join(',')}))` : 'none';
+}
+function samplePreview(now) {
+  const colors = ensurePreviewEngine().sample(now);
+  $('deviceStage').querySelectorAll('.key-slot .key-led').forEach((led, index) => paintPreviewLed(led, colors[index]));
+  for (const [mode, engine] of thumbnailEngines) {
+    const frame = engine.sample(now);
+    document.querySelectorAll(`[data-effect-thumb="${mode}"] i`).forEach((led, index) => paintPreviewLed(led, frame[index]));
+  }
+}
+function previewTick(now) {
+  const delta = Math.min(100, now - previewLastTick);
+  previewLastTick = now; previewElapsed += delta * previewSpeed;
+  if (now - previewLastPaint >= 33) { samplePreview(previewElapsed); previewLastPaint = now; }
+  previewFrame = requestAnimationFrame(previewTick);
+}
+function syncPreviewAnimation() {
+  cancelAnimationFrame(previewFrame); previewFrame = 0;
+  if (workspaceTab !== 'lighting') return;
+  const engine = ensurePreviewEngine();
+  samplePreview(previewPlaying ? previewElapsed : engine.representativeTime());
+  if (previewPlaying && !document.hidden) {
+    previewLastTick = performance.now(); previewLastPaint = 0;
+    previewFrame = requestAnimationFrame(previewTick);
+  }
+}
+function togglePreviewKey(index) {
+  const engine = ensurePreviewEngine();
+  if (previewHeld.has(index)) { engine.release(index, previewElapsed); previewHeld.delete(index); }
+  else { engine.press(index, previewElapsed); previewHeld.add(index); }
+  samplePreview(previewElapsed);
+}
 function renderDeviceCanvas() {
   const focus = focusSelector(), preset = currentPreset();
+  const lighting = workspaceTab === 'lighting', engine = lighting ? ensurePreviewEngine() : null;
+  const previewColors = lighting ? engine.sample(previewPlaying ? previewElapsed : engine.representativeTime()) : null;
   renderDevice($('deviceStage'), {
     actions: preset.actions,
     actionLabel: action => P.actionLabel(action, platformOf(preset)),
     selected: workspaceTab === 'mapping' ? selectedInput : {},
     accent: preset.accent,
-    lighting: workspaceTab === 'lighting',
+    lighting,
+    previewColors,
     onSelect: input => {
+      if (lighting) {
+        if (input.type === 'btn' && input.index < 12) togglePreviewKey(input.index);
+        return;
+      }
       selectedInput = input;
       workspaceTab = 'mapping';
-      renderWorkspaceTabs(); renderDeviceCanvas(); renderInspector();
+      renderWorkspaceTabs(); renderDeviceCanvas(); renderInspector(); syncPreviewAnimation();
     },
   });
-  $('canvasHint').innerHTML = workspaceTab === 'lighting'
-    ? '<span class="hint-dot"></span>网页仅为灯效示意，安装或更新后在键盘上生效'
+  $('canvasHint').innerHTML = lighting
+    ? `<span class="hint-dot"></span>${[0, 5].includes(preset.rgbMode) ? '点击键位切换按下与松开 · 网页示意' : '网页仅为灯效示意，安装或更新后在键盘上生效'}`
     : '<span class="hint-dot"></span>点击键位或旋钮查看设置';
   restoreFocus(focus);
 }
@@ -362,11 +417,33 @@ function readonlyNotice(preset) {
       : '当前为只读。可在下方点击“编辑”，保存到我的预设后才会保留本次修改。';
   return `<div class="readonly-card"><p>${text}</p>${readonlyAction(preset)}</div>`;
 }
+const RGB_DETAILS = {
+  0: '按住保持主题色，松开后 500ms 渐隐', 1: '9 秒柔和呼吸周期', 2: '全部按键持续显示主题色',
+  3: '16 秒同步色相周期', 4: '16 秒外缘流动周期', 5: '每键独立随机色，松开渐隐',
+  6: '每 9 秒一轮随机色呼吸', 7: '14.4 秒外缘循环，亮头带三颗拖尾', 8: '14.4 秒外缘循环，16 秒色相周期',
+};
+function previewControls(mode) {
+  return `<div class="preview-controls" aria-label="预览控制">
+    <button id="previewPlay" class="button secondary" type="button">${previewPlaying ? '暂停' : '播放'}</button>
+    <button id="previewRestart" class="button secondary" type="button">重播</button>
+    <label>速度<select id="previewSpeed" aria-label="预览速度"><option value="0.5" ${previewSpeed === 0.5 ? 'selected' : ''}>0.5×</option><option value="1" ${previewSpeed === 1 ? 'selected' : ''}>1×</option><option value="2" ${previewSpeed === 2 ? 'selected' : ''}>2×</option></select></label>
+    ${[5, 6].includes(mode) ? '<button id="previewRandom" class="button secondary" type="button">重新随机</button>' : ''}
+  </div>`;
+}
 function renderLighting(preset) {
-  const readonly = !editSession;
+  const readonly = !editSession, selectedMode = P.RGB_MODES.find(mode => mode.value === preset.rgbMode);
+  thumbnailEngines = new Map(P.RGB_MODES.map(mode => [mode.value, RGB.createPreview({ mode: mode.value, accent: preset.accent, seed: previewSeed })]));
+  const groups = RGB.MODE_GROUPS.map(group => `<section class="effect-group"><h3>${group.label}</h3><div class="lighting-grid">${group.modes.map(value => {
+    const mode = P.RGB_MODES.find(item => item.value === value);
+    return `<label class="lighting-option effect-option"><input type="radio" name="rgbMode" value="${mode.value}" ${preset.rgbMode === mode.value ? 'checked' : ''} ${readonly ? 'disabled' : ''}>
+      <span class="effect-thumb" data-effect-thumb="${mode.value}" aria-hidden="true">${Array.from({ length: 12 }, () => '<i></i>').join('')}</span>
+      <strong>${mode.label}</strong><small>${RGB.MODE_COLORS[mode.value]}</small></label>`;
+  }).join('')}</div></section>`).join('');
   return `<div class="inspector-heading"><span class="selection-label">整套预设</span><h2>灯光效果</h2><p>选择按键灯的表现方式</p></div>
     ${readonly ? readonlyNotice(preset) : ''}
-    <div class="lighting-grid">${P.RGB_MODES.map(mode => `<label class="lighting-option"><input type="radio" name="rgbMode" value="${mode.value}" ${preset.rgbMode === mode.value ? 'checked' : ''} ${readonly ? 'disabled' : ''}><strong>${mode.label}</strong><small>${mode.description}</small></label>`).join('')}</div>
+    <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${RGB_DETAILS[preset.rgbMode]}</span></div>
+    ${previewControls(preset.rgbMode)}
+    <div class="effect-groups">${groups}</div>
     <p class="lighting-note">LED0–LED2 状态灯不受影响。网页预览不代表键盘已实时更新。</p>`;
 }
 function renderInspector() {
@@ -466,7 +543,7 @@ function renderEditor() {
   const focus = focusSelector();
   renderHeader(); renderLibrary(); renderPresetHeader(); renderWorkspaceTabs();
   renderDeviceCanvas(); renderInspector(); renderActionbar();
-  restoreFocus(focus);
+  syncPreviewAnimation(); restoreFocus(focus);
 }
 
 function beginEdit() {
@@ -795,7 +872,7 @@ for (const button of document.querySelectorAll('[data-library-tab]')) button.add
 });
 for (const button of document.querySelectorAll('[data-workspace-tab]')) button.addEventListener('click', () => {
   workspaceTab = button.dataset.workspaceTab;
-  renderWorkspaceTabs(); renderDeviceCanvas(); renderInspector();
+  renderWorkspaceTabs(); renderDeviceCanvas(); renderInspector(); syncPreviewAnimation();
 });
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => {
   const id = button.dataset.close;
@@ -830,8 +907,23 @@ $('discardChanges').addEventListener('click', discardAndContinue);
 $('saveChanges').addEventListener('click', saveAndContinue);
 $('writePreset').addEventListener('click', openWriteDialog);
 $('inspector').addEventListener('click', event => {
+  const control = event.target.closest('#previewPlay, #previewRestart, #previewRandom');
+  if (control) {
+    if (control.id === 'previewPlay') {
+      previewPlaying = !previewPlaying;
+      control.textContent = previewPlaying ? '暂停' : '播放';
+    } else if (control.id === 'previewRestart') {
+      previewElapsed = 0; previewHeld.clear(); ensurePreviewEngine().restart(0);
+    } else {
+      previewSeed = (previewSeed + 0x9E3779B9) >>> 0;
+      previewEngineKey = ''; previewElapsed = 0; previewHeld.clear();
+      renderEditor(); return;
+    }
+    syncPreviewAnimation(); return;
+  }
   if (event.target.closest('[data-action="copy-current"]')) copyPresetByKey(selectedKey);
 });
+document.addEventListener('visibilitychange', syncPreviewAnimation);
 
 function beginRename() {
   if (!editSession) {
@@ -906,6 +998,7 @@ $('platformPopover').addEventListener('click', event => {
 document.addEventListener('click', event => { if (!event.target.closest('.popover-anchor')) closePopovers(); });
 
 $('inspector').addEventListener('change', event => {
+  if (event.target.id === 'previewSpeed') { previewSpeed = Number(event.target.value); syncPreviewAnimation(); return; }
   if (!editSession) return;
   if (event.target.name === 'rgbMode') {
     editSession.working.rgbMode = Number(event.target.value);

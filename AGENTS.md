@@ -40,7 +40,8 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 ```
 .github/workflows/pages.yml  GitHub Pages：编辑器首页 / + /firmware/ 更新页、manifest 与四件套
 editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
-                presets/ 官方模板库（一预设一 JSON + 生成索引 index.json）
+                presets/ 官方模板库（一预设一 JSON + 生成索引 index.json）；
+                rgb_preview.js 九种灯效纯 JS 引擎与时间点测试，图形化卡片和 SVG 动画，不做硬件 LED_PREVIEW
 prototype/      独立 UX/UI 交互原型：模拟数据与关键场景，不接设备、不入公开部署
 include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
 src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
@@ -99,7 +100,8 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    编辑器页头显示设备固件版本，新连接主动检查固件更新；RGB 九种灯效模式与编辑器选择已实现（D26，0.5.23），真机灯效与功耗待验收；
    产品化 UX 阶段 1–4 已完成：单套编辑、来源复制、单项安装与断线恢复通过本地 Chrome/模拟 HID 回归；
    跨页、可访问性、窄屏/缩放、Pages 与线上验收通过；真机正式编辑器 WebHID 读取及原内容写回验证通过；
-   独立审查后续修复 ID 碰撞覆盖、刷写失败恢复、固件样式、Wheel 修饰键、焦点与缓存，293 项 Node 与 13 组浏览器回归通过
+   独立审查后续修复 ID 碰撞覆盖、刷写失败恢复、固件样式、Wheel 修饰键、焦点与缓存，293 项 Node 与 13 组浏览器回归通过；
+   网页 RGB 图形化选择与动画预览已完成（D29），17 项引擎检查与 7 组浏览器检查通过，不开发硬件 LED_PREVIEW
 2. 预设扩展：Premiere Win/Mac、Resolve/剪映 Mac、Procreate(iPad) 已入编辑器官方模板库
    （共 9 套，presets/ 一预设一 JSON；平台入 150B 记录 byte 13（D24），显示名不带平台词、
    chip 呈现，Cmd=GUI 修饰；快捷键按官方文档填写，待目标 App 实测微调；

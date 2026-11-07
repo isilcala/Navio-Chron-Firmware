@@ -39,6 +39,7 @@ jobs:
           node editor/library_test.js
           node editor/device_test.js
           node editor/templates_test.js
+          node editor/rgb_preview_test.js
       - name: Assemble static site
         run: |
           release_dir=$(find release -mindepth 1 -maxdepth 1 -type d -name 'navio_chron_*' -print -quit)

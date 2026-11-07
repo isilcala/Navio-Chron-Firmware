@@ -373,3 +373,16 @@ progress::-moz-progress-bar { border-radius: 8px; background: var(--accent); }
 #preserveNotice { margin-top: 10px; color: var(--success); font-weight: 700; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .diagnostics pre { min-height: 120px; max-height: 360px; margin: 0; padding: 16px; overflow: auto; color: var(--muted); font: 12px/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+
+.selected-effect { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; padding: 12px 13px; border-radius: 12px; box-shadow: var(--inset-small); }
+.selected-effect strong { font-size: 14px; }
+.selected-effect span { color: var(--muted); font-size: 11px; }
+.preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 18px; }
+.preview-controls .button { min-height: 34px; padding: 6px 10px; font-size: 11px; }
+.preview-controls label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
+.preview-controls select { min-height: 34px; padding: 5px 7px; border: 0; border-radius: 9px; background: var(--surface); color: var(--text); box-shadow: var(--inset-small); }
+.effect-groups { display: flex; flex-direction: column; gap: 18px; }
+.effect-group h3 { margin: 0 0 9px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.effect-option { min-height: 124px; gap: 5px; }
+.effect-thumb { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; width: 100%; margin-bottom: 5px; padding: 10px 12px; border-radius: 10px; box-shadow: var(--inset-small); }
+.effect-thumb i { display: block; width: 9px; height: 9px; margin: auto; border-radius: 50%; background: var(--surface-deep); pointer-events: none; }
