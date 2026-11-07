@@ -23,6 +23,12 @@ let operationMessage = null, toastTimer, libraryLoadError = null, librarySaveErr
 let quarantinedPresets = [], templateInstallations = loadTemplateInstallations();
 
 for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
+for (const dialog of document.querySelectorAll('dialog')) {
+  const title = dialog.querySelector('h2');
+  if (!title) continue;
+  title.id ||= `${dialog.id}Title`;
+  dialog.setAttribute('aria-labelledby', title.id);
+}
 
 function loadTemplateInstallations() {
   try {
@@ -452,6 +458,7 @@ function requestLeave(action) {
   $('unsavedDescription').textContent = editingKeyboard()
     ? '保存到键盘后才会改变键盘中的预设。放弃后，本次修改不会被保留。'
     : '保存到我的预设后才会保留这些修改。放弃后，本次修改不会写入本地库。';
+  $('unsavedError').hidden = true;
   $('saveChanges').textContent = editingKeyboard() ? '保存到键盘' : '保存到我的预设';
   $('saveChanges').disabled = editingKeyboard() && !deviceClient;
   openDialog('unsavedDialog');
@@ -488,7 +495,11 @@ async function saveAndContinue() {
     closeDialog('unsavedDialog'); openWriteDialog(); return;
   }
   const action = pendingAfterEdit;
-  if (!saveLocal()) return;
+  if (!saveLocal()) {
+    $('unsavedError').textContent = operationMessage?.text || '保存失败，请继续编辑后重试。';
+    $('unsavedError').hidden = false;
+    return;
+  }
   closeDialog('unsavedDialog');
   action?.();
 }
@@ -758,6 +769,8 @@ for (const button of document.querySelectorAll('[data-close]')) button.addEventL
   if (id === 'unsavedDialog' || id === 'writeDialog') pendingAfterEdit = null;
   closeDialog(id);
 });
+for (const id of ['unsavedDialog', 'writeDialog']) $(id).addEventListener('cancel', () => { pendingAfterEdit = null; });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closePopovers(); });
 for (const link of [$('flashLink'), $('firmwareFlashLink')]) link.addEventListener('click', event => {
   event.preventDefault();
   if (deviceBusy) return;

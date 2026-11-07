@@ -8,9 +8,9 @@
   --muted: #596372;
   --accent: #6d5dfc;
   --accent-dark: #5547d7;
-  --success: #187c6b;
+  --success: #146b5d;
   --warning: #765800;
-  --danger: #b64242;
+  --danger: #a63838;
   --shadow-dark: #b8bcc2;
   --shadow-light: #ffffff;
   --raised: 7px 7px 14px var(--shadow-dark), -7px -7px 14px var(--shadow-light);
@@ -22,11 +22,11 @@
   font-synthesis: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 360px; min-height: 100vh; background: var(--page); color: var(--text); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--page); color: var(--text); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; }
 button { color: inherit; }
 button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 button, input, select, .preset-item, .lighting-option { transition: box-shadow 200ms ease-in-out, color 200ms ease-in-out, background 200ms ease-in-out, opacity 200ms ease-in-out; }
 [hidden] { display: none !important; }
@@ -341,6 +341,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 @media (max-width: 1250px) { .app-header { padding: 0 20px; } .brand-copy small, .version-badge { display: none; } .view { padding: 18px; } .editor-workspace { grid-template-columns: 230px minmax(420px, 1fr) 320px; gap: 18px; } }
 @media (max-width: 1080px) { .header-actions { gap: 7px; } .connection-status { display: none; } .editor-workspace { grid-template-columns: 230px minmax(0, 1fr); } .library-panel, .canvas-panel { height: 690px; } .inspector-panel { grid-column: 1 / -1; height: auto; min-height: 0; padding: 12px 0; overflow: visible; } .lighting-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 760px) { .app-header { position: relative; grid-template-columns: 1fr auto; gap: 12px; padding: 13px 15px; } .main-nav { grid-row: 2; grid-column: 1 / -1; justify-content: center; } .brand-copy small, .header-actions .text-button { display: none; } .update-banner { margin: 12px 12px 0; } .update-banner > div:nth-child(2) { flex-direction: column; gap: 0; } .view { padding: 14px; } .editor-workspace { grid-template-columns: 1fr; } .library-panel, .canvas-panel, .inspector-panel { height: auto; min-height: 0; } .library-panel { max-height: 480px; } .inspector-panel { overflow: visible; } .preset-header { flex-wrap: wrap; } .workspace-tabs { width: 100%; } .workspace-tabs button { flex: 1; } .preset-name-input { max-width: calc(100vw - 140px); } .device-stage { min-height: 310px; } .editor-actionbar { bottom: 9px; flex-wrap: wrap; } .write-result { display: none; } .firmware-view { padding-top: 28px; } .firmware-card { padding: 22px; } .firmware-steps li { width: auto; } .firmware-steps li:not(:last-child)::after { width: 24px; margin: 0 7px; } .rescue-steps { grid-template-columns: 1fr; } .preview-dock { bottom: 10px; left: 10px; } }
+@media (max-width: 760px) { .canvas-panel { order: 1; } .library-panel { order: 2; } .inspector-panel { order: 3; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 
 .library-reset { align-self: flex-start; min-height: 32px; margin: 4px 0 0; padding: 5px 7px; font-size: 11px; }
