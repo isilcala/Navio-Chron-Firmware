@@ -58,4 +58,21 @@ throws(() => L.validateUserPresets([{ ...valid, uuid: "" }], P), "stored entry r
 throws(() => L.validateUserPresets([{ ...valid, _dirtySlots: [0, 22] }], P), "dirty slot range is validated centrally");
 throws(() => L.validateUserPresets([{ ...valid, name: "中中中中中中中中" }], P), "invalid stored name is rejected centrally");
 
+equal(L.sourceKey("template", template), "template:jianying-win", "official source uses the stable template slug");
+equal(L.sourceKey("device", { id: 7 }), "device:7", "keyboard source uses the stable device ID");
+equal(L.sourceKey("local", valid), null, "an independent local preset has no source identity");
+const officialCopy = L.createUserCopy({ ...P.clonePreset(template), ...P.clonePreset(valid), templateId: "jianying-win" }, P,
+  { uuid: "copy-1", id: 20, originSourceKey: "template:jianying-win" });
+equal(officialCopy.uuid, "copy-1", "source copy receives a new local UUID");
+equal(officialCopy.id, 20, "source copy receives a new local preset ID");
+equal(officialCopy._readonly, false, "source copy is independently editable");
+equal(officialCopy._dirty, false, "source copy starts saved rather than as an edit draft");
+equal(officialCopy.originTemplateId, null, "source copy does not inherit template update binding");
+equal(officialCopy._originSourceKey, "template:jianying-win", "source copy remembers its explicit origin");
+equal(L.existingSourceCopy([officialCopy], "template:jianying-win"), officialCopy, "repeated copy opens the existing source copy");
+equal(L.existingSourceCopy([officialCopy], "template:other"), null, "different sources do not share copies");
+const variant = L.createUserCopy(officialCopy, P, { uuid: "copy-2", id: 21 });
+equal(variant._originSourceKey, null, "explicit local variant does not inherit the source-copy relationship");
+throws(() => L.validateUserPresets([{ ...valid, _originSourceKey: "device:999" }], P), "invalid source identity is rejected centrally");
+
 console.log(`\nAll ${passed} checks passed.`);

@@ -57,6 +57,41 @@
     return { preset: planned, installed: target };
   }
 
+  function samePresetContent(a, b) {
+    return sameBytes(Preset.encodePresetRecord({ ...a, id: 1 }), Preset.encodePresetRecord({ ...b, id: 1 }));
+  }
+
+  function allocatePresetId(installed) {
+    const used = new Set(installed.map(item => item.id));
+    for (let id = 1; id <= 255; ++id) if (!used.has(id)) return id;
+    throw new Error("没有可用的设备预设 ID");
+  }
+
+  function planInstall(source, installed, options = {}) {
+    const errors = Preset.presetErrors(source);
+    if (errors.length) throw new Error(errors[0]);
+    const planned = Preset.clonePreset(source);
+    let target = null;
+    if (options.asNew) {
+      planned.id = allocatePresetId(installed);
+      delete planned._installedId;
+    } else if (planned._installedId) {
+      target = installed.find(item => item.id === planned._installedId) || null;
+      if (target) planned.id = target.id;
+      else if (installed.some(item => item.id === planned.id)) planned.id = allocatePresetId(installed);
+    } else {
+      const resolved = resolveSlotTarget(planned, installed);
+      target = resolved.installed;
+      planned.id = resolved.preset.id;
+    }
+    if (!target && installed.length >= 6) {
+      target = installed.find(item => item.id === options.replacementId) || null;
+      if (!target) throw new Error("键盘已满，请选择要替换的预设");
+      planned.id = target.id;
+    }
+    return { preset: planned, installed: target, asNew: Boolean(options.asNew) };
+  }
+
   function planBatch(presets, installed) {
     const ids = new Set();
     for (const preset of presets) {
@@ -162,5 +197,6 @@
     return { device, session: new P.Session(transport), abort };
   }
 
-  return { HID_FILTER, sameBytes, parseInfo, parsePresetList, resolveSlotTarget, planBatch, moveAnchor, DeviceClient, connectHid };
+  return { HID_FILTER, sameBytes, samePresetContent, allocatePresetId, parseInfo, parsePresetList,
+    resolveSlotTarget, planInstall, planBatch, moveAnchor, DeviceClient, connectHid };
 });

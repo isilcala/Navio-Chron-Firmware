@@ -3,84 +3,180 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Navio Chron 预设编辑器</title>
+  <meta name="theme-color" content="#e0e5ec">
+  <title>预设 · Navio Chron</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261106-01">
+  <link rel="stylesheet" href="styles.css?v=20261107-03">
 </head>
 <body>
-  <header class="topbar app-header">
-    <div class="brand"><span class="brand-mark">N</span><div class="brand-copy"><strong>Navio Chron</strong><small>预设与设备管理</small></div></div>
+  <header class="app-header">
+    <div class="brand" aria-label="Navio Chron 预设编辑器">
+      <span class="brand-mark">N</span>
+      <span class="brand-copy"><strong>Navio Chron</strong><small>让键盘按你的方式工作</small></span>
+    </div>
     <nav class="main-nav" aria-label="工作区">
       <a class="nav-item active" href="./" aria-current="page">预设</a>
-      <a id="flashLink" class="nav-item" href="../">固件更新</a>
+      <a id="flashLink" class="nav-item" href="./firmware/">固件更新</a>
     </nav>
-    <div class="top-actions header-actions">
-      <span id="saveState" class="save-state">本地修改尚未写入设备</span>
-      <span id="deviceFirmware" class="device-firmware" hidden></span>
-      <span id="deviceStatus" class="device-status">未连接</span>
-      <button id="connectDevice" class="button secondary">连接设备</button>
-      <button id="applyAll" class="button secondary" disabled>应用全部修改</button>
-      <button id="applyPreset" class="button primary" disabled>安装 / 写入</button>
+    <div class="header-actions">
+      <span id="firmwareBadge" class="version-badge" hidden></span>
+      <span id="connectionStatus" class="connection-status"><i></i><span>未连接</span></span>
+      <button id="connectButton" class="button secondary">连接设备</button>
+      <button id="helpButton" class="button text-button">使用帮助</button>
     </div>
   </header>
-  <div id="firmwareNotice" class="firmware-notice update-banner" role="status" hidden>
-    <span id="firmwareNoticeText"></span><a id="firmwareFlashLink" href="../" class="button primary">更新固件</a>
+
+  <div id="updateBanner" class="update-banner" role="status" hidden>
+    <div class="update-banner-icon">↑</div>
+    <div><strong>发现新的固件版本</strong><span id="updateBannerText"></span></div>
+    <a id="firmwareFlashLink" class="button small secondary" href="./firmware/">查看更新</a>
+    <button id="dismissUpdate" class="icon-button" aria-label="关闭更新提示">×</button>
   </div>
 
-  <main class="workspace editor-workspace view">
-    <aside class="panel library-panel">
-      <div class="panel-heading"><div><span class="eyebrow">PRESET LIBRARY</span><h2>预设库</h2></div><button id="newPreset" class="icon-button" title="新建预设">＋</button></div>
-      <div id="presetList" class="preset-list"></div>
-      <div id="deviceList" class="preset-list device-list"></div>
-      <div class="library-actions">
-        <button id="duplicatePreset" class="button secondary">复制当前</button>
-        <button id="resetLibrary" class="button ghost">清空我的</button>
-        <button id="deletePreset" class="button ghost danger-button" disabled>删除当前自定义预设</button>
-      </div>
-      <div class="import-export">
-        <button id="exportPreset" class="button secondary">导出 .navio.json</button>
-        <label class="button secondary file-button">导入预设<input id="importPreset" type="file" accept=".json,.navio.json"></label>
-      </div>
-      <p class="hint">导入只会进入本地库，不会覆盖设备配置。本地库支持 schemaVersion 迁移。</p>
-    </aside>
+  <main>
+    <section class="view editor-view" aria-label="预设编辑器">
+      <div class="editor-workspace">
+        <aside class="panel library-panel">
+          <div class="library-tabs segmented" role="tablist" aria-label="预设位置">
+            <button class="active" data-library-tab="library" role="tab" aria-selected="true">预设库</button>
+            <button data-library-tab="device" role="tab" aria-selected="false">键盘 <span id="deviceCount" class="count-badge">0</span></button>
+          </div>
+          <div id="libraryToolbar" class="library-toolbar">
+            <button id="newPresetButton" class="button secondary">＋ 新建</button>
+            <label class="button secondary file-button">导入<input id="importPreset" type="file" accept=".json,.navio.json"></label>
+            <button id="exportButton" class="button secondary">导出当前</button>
+          </div>
+          <button id="resetLibrary" class="button text-button library-reset">清空我的预设</button>
+          <div id="libraryContent"></div>
+        </aside>
 
-    <section class="device-panel canvas-panel">
-      <div class="device-heading"><div><span class="eyebrow">DEVICE MAP</span><h2 id="currentPresetTitle">当前预设</h2></div><span class="device-caption">点击键位或旋钮开始编辑</span></div>
-      <div id="device" class="device-stage"></div>
-      <div id="encoderDetail" class="encoder-detail" hidden></div>
-      <div class="legend"><span><i class="legend-selected"></i>当前选中</span><span><i class="legend-dirty"></i>本地已修改</span><span><i class="legend-locked"></i>全局保留</span></div>
+        <section class="panel canvas-panel">
+          <div class="preset-header">
+            <div class="preset-heading-copy">
+              <div id="presetSource" class="source-line"></div>
+              <div class="preset-identity">
+                <div class="popover-anchor">
+                  <button id="accentButton" class="theme-swatch" aria-label="修改主题色" title="修改主题色"></button>
+                  <div id="colorPopover" class="popover color-popover" hidden>
+                    <strong>主题色</strong>
+                    <p>用于预设标识和支持主题色的灯光效果</p>
+                    <input id="accentInput" type="color" value="#e87832" aria-label="主题色">
+                    <div class="color-presets">
+                      <button data-color="#e87832" style="--swatch:#e87832" aria-label="橙色"></button>
+                      <button data-color="#3f8cdc" style="--swatch:#3f8cdc" aria-label="蓝色"></button>
+                      <button data-color="#8e5cd2" style="--swatch:#8e5cd2" aria-label="紫色"></button>
+                      <button data-color="#26a69a" style="--swatch:#26a69a" aria-label="青色"></button>
+                    </div>
+                  </div>
+                </div>
+                <h1 id="presetTitle" role="button" tabindex="0" title="点击修改名称">预设</h1>
+                <input id="presetNameInput" class="preset-name-input" type="text" maxlength="40" aria-label="预设名称" aria-describedby="renameError" hidden>
+                <div id="renameActions" class="rename-actions" hidden>
+                  <button id="confirmRename" type="button" class="rename-action confirm" aria-label="确认名称" title="确认"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-9"></path></svg></button>
+                  <button id="cancelRename" type="button" class="rename-action cancel" aria-label="取消改名" title="取消"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"></path></svg></button>
+                </div>
+                <div id="renameError" class="rename-error" role="alert" hidden></div>
+                <div class="popover-anchor">
+                  <button id="platformButton" class="platform-button">Windows <span class="chevron" aria-hidden="true"></span></button>
+                  <div id="platformPopover" class="popover platform-popover" hidden>
+                    <strong>平台与修饰键</strong>
+                    <button data-platform="win">Windows <small>Ctrl / Win</small></button>
+                    <button data-platform="mac">macOS <small>Opt / Cmd</small></button>
+                    <button data-platform="ipad">iPadOS <small>Opt / Cmd</small></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="workspace-tabs segmented" role="tablist" aria-label="编辑内容">
+              <button class="active" data-workspace-tab="mapping" role="tab" aria-selected="true">键位映射</button>
+              <button data-workspace-tab="lighting" role="tab" aria-selected="false">灯光效果</button>
+            </div>
+          </div>
+          <div id="draftNotice" class="draft-notice" hidden></div>
+          <div id="deviceStage" class="device-stage"></div>
+          <div id="canvasHint" class="canvas-hint"><span class="hint-dot"></span>点击键位或旋钮查看设置</div>
+        </section>
+
+        <aside class="panel inspector-panel"><div id="inspector"></div></aside>
+      </div>
+
+      <div class="editor-actionbar">
+        <div class="save-summary">
+          <span id="saveSummaryIcon" class="save-summary-icon">✓</span>
+          <div><strong id="saveSummaryTitle">官方模板 · 只读</strong><span id="saveSummaryDetail">可直接安装，或复制后编辑</span></div>
+        </div>
+        <div id="writeResult" class="write-result" role="status" hidden></div>
+        <button id="editPreset" class="button secondary" hidden>编辑</button>
+        <button id="discardEdit" class="button danger" hidden>放弃修改</button>
+        <button id="writePreset" class="button primary">安装到键盘</button>
+      </div>
     </section>
-
-    <aside class="panel inspector-panel">
-      <div class="panel-heading"><div><span class="eyebrow">INSPECTOR</span><h2 id="selectionTitle">键位设置</h2></div></div>
-      <div class="preset-meta">
-        <label>预设名称<input id="presetName" type="text" maxlength="40"><span id="nameBytes" class="byte-count"></span></label>
-        <label class="color-label">主题色<input id="presetAccent" type="color" value="#ff7828"></label>
-        <label class="platform-label">修饰键文案<select id="presetPlatform">
-          <option value="win">Windows · Ctrl/Win</option>
-          <option value="mac">macOS · Ctrl/Opt/Cmd</option>
-          <option value="ipad">iPadOS · Ctrl/Opt/Cmd</option>
-        </select></label>
-      </div>
-      <div class="tabs segmented" role="tablist"><button class="tab active" data-tab="mapping" role="tab">键位映射</button><button class="tab" data-tab="lighting" role="tab">灯光效果</button></div>
-      <div id="inspector"></div>
-    </aside>
   </main>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <dialog id="replaceDialog" class="replace-dialog dialog">
+
+  <dialog id="writeDialog" class="dialog">
     <form method="dialog">
-      <h2>设备已满 6 套</h2>
-      <p id="replaceDescription"></p>
-      <label>选择要替换的设备预设<select id="replaceTarget"></select></label>
-      <div class="dialog-actions"><button value="cancel" class="button secondary">取消</button><button id="confirmReplacement" value="default" class="button">确认替换</button></div>
+      <div class="dialog-heading"><div><span class="dialog-kicker">KEYBOARD</span><h2 id="writeDialogTitle">安装到键盘</h2></div><button type="button" class="icon-button" data-close="writeDialog" aria-label="关闭">×</button></div>
+      <p id="writeDialogDescription" class="dialog-description"></p>
+      <div class="impact-card"><span class="impact-icon">i</span><div><strong>写入后会立即验证</strong><p>键盘会重新读取此预设，确认内容一致。</p></div></div>
+      <label id="installAsNewField" class="install-new-field" hidden><input id="installAsNew" type="checkbox">作为新预设安装，保留键盘中的原项目</label>
+      <label id="replacementField" class="field" hidden>选择要替换的键盘预设<select id="replacementTarget"></select></label>
+      <div id="writeError" class="field-error" role="alert" hidden></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="writeDialog">取消</button><button id="confirmWrite" type="button" class="button primary">确认安装</button></div>
     </form>
   </dialog>
-  <script src="../tools/probe/navio_proto.js?v=20261106-01"></script>
-  <script src="../tools/probe/webflash_rules.js?v=20261106-01"></script>
-  <script src="preset.js?v=20261106-01"></script>
-  <script src="templates.js?v=20261106-01"></script>
-  <script src="library.js?v=20261106-01"></script>
-  <script src="device.js?v=20261106-01"></script>
-  <script type="module" src="app.js?v=20261106-01"></script>
+
+  <dialog id="unsavedDialog" class="dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">UNSAVED</span><h2>当前修改尚未保存</h2></div><button type="button" class="icon-button" data-close="unsavedDialog" aria-label="继续编辑">×</button></div>
+      <p id="unsavedDescription" class="dialog-description"></p>
+      <div class="dialog-actions unsaved-actions"><button id="continueEdit" type="button" class="button secondary" data-close="unsavedDialog">继续编辑</button><button id="discardChanges" type="button" class="button danger">放弃修改</button><button id="saveChanges" type="button" class="button primary">保存</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog" class="dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">MY PRESETS</span><h2>删除我的预设</h2></div><button type="button" class="icon-button" data-close="deleteDialog" aria-label="关闭">×</button></div>
+      <p id="deleteDescription" class="dialog-description"></p>
+      <div class="delete-warning"><strong>只删除浏览器中的这一套预设</strong><p>键盘中的内容不会改变。此操作无法撤销。</p></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="deleteDialog">取消</button><button id="confirmDelete" type="button" class="button danger-primary">确认删除</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteKeyboardDialog" class="dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">KEYBOARD</span><h2>从键盘删除预设</h2></div><button type="button" class="icon-button" data-close="deleteKeyboardDialog" aria-label="关闭">×</button></div>
+      <p id="deleteKeyboardDescription" class="dialog-description"></p>
+      <div class="delete-warning"><strong id="deleteKeyboardWarning">键盘中的预设将被移除</strong><p>我的预设和官方模板不受影响，此操作无法撤销。</p></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="deleteKeyboardDialog">取消</button><button id="confirmDeleteKeyboard" type="button" class="button danger-primary">确认删除</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="resetDialog" class="dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">MY PRESETS</span><h2 id="resetTitle">清空我的预设</h2></div><button type="button" class="icon-button" data-close="resetDialog" aria-label="关闭">×</button></div>
+      <p id="resetDescription" class="dialog-description"></p>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="resetDialog">取消</button><button id="confirmReset" type="button" class="button danger-primary">确认清空</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="helpDialog" class="dialog help-dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">HELP</span><h2>使用帮助</h2></div><button type="button" class="icon-button" data-close="helpDialog" aria-label="关闭">×</button></div>
+      <div class="help-item"><span>1</span><div><strong>连接键盘</strong><p>使用桌面 Chrome 或 Edge，通过 USB 连接 Navio Chron。</p></div></div>
+      <div class="help-item"><span>2</span><div><strong>编辑与保存</strong><p>点击编辑后修改，再明确保存到我的预设或保存到键盘。</p></div></div>
+      <div class="help-item"><span>3</span><div><strong>切换预设</strong><p>短按设备侧键即可循环切换已安装预设。</p></div></div>
+      <div class="dialog-actions"><button type="button" class="button primary" data-close="helpDialog">知道了</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="../tools/probe/navio_proto.js?v=20261107-03"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261107-03"></script>
+  <script src="preset.js?v=20261107-03"></script>
+  <script src="templates.js?v=20261107-03"></script>
+  <script src="library.js?v=20261107-03"></script>
+  <script src="device.js?v=20261107-03"></script>
+  <script type="module" src="app.js?v=20261107-03"></script>
 </body>
 </html>

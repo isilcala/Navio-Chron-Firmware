@@ -20,6 +20,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
       firmware version label and update notices use HELLO and the deployed release manifest
 - [x] Official preset templates as per-preset JSON data files with a generated index and CI validation
 - [x] Official template library at 9 presets: Premiere Win/Mac, Resolve Win/Mac, JianYing Win/Mac, Procreate (iPad), Test, F13 Macro (Mac/iPad variants pending on-app tuning)
+- [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery; verified in Chrome with mock HID
+- [ ] Final cross-page, accessibility, online and hardware UX regression
 - [ ] Hardware and power validation for nine preset lighting modes (implemented in 0.5.23)
 - [ ] Sleep/wake and battery-power validation
 

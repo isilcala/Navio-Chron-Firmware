@@ -67,6 +67,40 @@ test("batch plan rejects multiple presets targeting the same hinted slot", () =>
   const second = { ...Preset.clonePreset(sample), id: 8, _installedId: 3 };
   assert.throws(() => D.planBatch([first, second], [{ id: 3, name: "P3" }]), /重复设备 ID 3/);
 });
+test("single install reuses the recorded target without changing the source ID", () => {
+  const source = { ...Preset.clonePreset(sample), id: 7, _installedId: 3 };
+  const plan = D.planInstall(source, [{ id: 3, name: "P3" }]);
+  assert.equal(plan.preset.id, 3); assert.equal(plan.installed.id, 3); assert.equal(source.id, 7);
+});
+test("single install can update a direct ID match", () => {
+  const plan = D.planInstall(Preset.clonePreset(sample), [{ id: 1, name: "Old" }]);
+  assert.equal(plan.installed.name, "Old"); assert.equal(plan.asNew, false);
+});
+test("missing recorded target does not overwrite an unrelated direct-ID match", () => {
+  const source = { ...Preset.clonePreset(sample), id: 7, _installedId: 3 };
+  const plan = D.planInstall(source, [{ id: 7, name: "Unrelated" }]);
+  assert.equal(plan.preset.id, 1); assert.equal(plan.installed, null);
+});
+test("explicit new install allocates a fresh ID even when the source ID exists", () => {
+  const plan = D.planInstall(Preset.clonePreset(sample), [{ id: 1, name: "Old" }], { asNew: true });
+  assert.equal(plan.preset.id, 2); assert.equal(plan.installed, null); assert.equal(plan.asNew, true);
+});
+test("full keyboard replacement writes the selected target ID", () => {
+  const installed = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `P${index}` }));
+  const source = { ...Preset.clonePreset(sample), id: 9 };
+  const plan = D.planInstall(source, installed, { replacementId: 4 });
+  assert.equal(plan.preset.id, 4); assert.equal(plan.installed.name, "P3"); assert.equal(source.id, 9);
+});
+test("full keyboard install requires an explicit replacement", () => {
+  const installed = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `P${index}` }));
+  assert.throws(() => D.planInstall({ ...Preset.clonePreset(sample), id: 9 }, installed), /选择要替换/);
+});
+test("content comparison ignores IDs and page metadata", () => {
+  const other = { ...Preset.clonePreset(sample), id: 99, _dirty: true, uuid: "local" };
+  assert.equal(D.samePresetContent(sample, other), true);
+  other.name = "Changed";
+  assert.equal(D.samePresetContent(sample, other), false);
+});
 test("move up targets the previous entry", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }, { id: 3 }], 3, -1), 2));
 test("move down targets the entry after next", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }, { id: 3 }], 1, 1), 3));
 test("move to last uses zero anchor", () => assert.equal(D.moveAnchor([{ id: 1 }, { id: 2 }], 1, 1), 0));

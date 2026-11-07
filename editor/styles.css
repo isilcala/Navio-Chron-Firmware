@@ -343,86 +343,11 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 @media (max-width: 760px) { .app-header { position: relative; grid-template-columns: 1fr auto; gap: 12px; padding: 13px 15px; } .main-nav { grid-row: 2; grid-column: 1 / -1; justify-content: center; } .brand-copy small, .header-actions .text-button { display: none; } .update-banner { margin: 12px 12px 0; } .update-banner > div:nth-child(2) { flex-direction: column; gap: 0; } .view { padding: 14px; } .editor-workspace { grid-template-columns: 1fr; } .library-panel, .canvas-panel, .inspector-panel { height: auto; min-height: 0; } .library-panel { max-height: 480px; } .inspector-panel { overflow: visible; } .preset-header { flex-wrap: wrap; } .workspace-tabs { width: 100%; } .workspace-tabs button { flex: 1; } .preset-name-input { max-width: calc(100vw - 140px); } .device-stage { min-height: 310px; } .editor-actionbar { bottom: 9px; flex-wrap: wrap; } .write-result { display: none; } .firmware-view { padding-top: 28px; } .firmware-card { padding: 22px; } .firmware-steps li { width: auto; } .firmware-steps li:not(:last-child)::after { width: 24px; margin: 0 7px; } .rescue-steps { grid-template-columns: 1fr; } .preview-dock { bottom: 10px; left: 10px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 
-.top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-.topbar .brand > div { display: flex; flex-direction: column; }
-.save-state { color: var(--success); font-size: 13px; }
-.device-status { color: var(--muted); font-size: 12px; }
-.device-active { color: var(--success); font-size: 11px; white-space: nowrap; }
-.device-firmware { color: var(--muted); font-size: 11px; white-space: nowrap; }
-.button.ghost { background: transparent; box-shadow: none; color: var(--muted); }
-.button.danger-button { color: var(--danger); grid-column: 1 / -1; }
-.library-panel { overflow-y: auto; }
-.panel-heading, .device-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.panel-heading h2, .device-heading h2 { margin: 2px 0 0; font-size: 19px; }
-.eyebrow { color: var(--accent); font-size: 10px; letter-spacing: 1.2px; font-weight: 700; }
-.library-section { margin: 8px 4px 3px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.library-section:not(:first-child) { margin-top: 20px; padding-top: 14px; box-shadow: inset 0 1px 0 var(--shadow-dark), inset 0 -1px 0 var(--shadow-light); }
-.preset-item { display: flex; align-items: center; }
-.preset-item .swatch { width: 8px; height: 30px; border-radius: 5px; flex: none; box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); }
-.preset-item .preset-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.preset-item .dirty-mark { color: var(--accent); font-size: 12px; }
-.library-actions, .import-export { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-.import-export { grid-template-columns: 1fr; margin-top: 10px; }
-.file-button { text-align: center; }
+.library-reset { align-self: flex-start; min-height: 32px; margin: 4px 0 0; padding: 5px 7px; font-size: 11px; }
+.library-reset.recovery-action { color: var(--danger); }
+.file-button { cursor: pointer; }
 .file-button input { display: none; }
-.hint, .field-help { color: var(--muted); font-size: 12px; }
-.hint { margin-top: 16px; }
-.device-caption { color: var(--muted); font-size: 12px; }
-.legend { display: flex; justify-content: center; gap: 20px; color: var(--muted); font-size: 12px; }
-.legend span { display: flex; align-items: center; gap: 6px; }
-.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; }
-.legend-selected { box-shadow: var(--inset-small); }
-.legend-dirty { background: var(--accent); }
-.legend-locked { background: var(--muted); }
-.encoder-detail { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 10px; margin: 10px 0 14px; padding: 13px 15px; border-radius: 13px; box-shadow: var(--inset-small); }
-.detail-heading { color: var(--accent); font-weight: 700; }
-.detail-item { display: flex; flex-direction: column; gap: 3px; }
-.detail-item span { color: var(--muted); font-size: 11px; }
-.detail-item strong { font-size: 12px; font-weight: 550; overflow-wrap: anywhere; }
-.preset-meta { display: grid; grid-template-columns: 1fr 74px; gap: 12px; }
-.preset-meta .platform-label { grid-column: 1 / -1; }
-.preset-meta label, .action-field { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 12px; }
-input[type=text], input[type=number], select { width: 100%; min-height: 40px; border: 0; border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: var(--inset-small); padding: 8px 10px; }
-input:focus, select:focus { box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light); }
-input[type=color] { width: 64px; height: 38px; padding: 4px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: var(--inset-small); }
-.byte-count { align-self: flex-end; margin-top: -25px; margin-right: 8px; color: var(--muted); font-size: 11px; pointer-events: none; }
-.tabs { margin: 18px 0 15px; }
-.tab { cursor: pointer; }
-.action-card { padding: 14px; margin-bottom: 14px; border-radius: 14px; box-shadow: var(--inset-small); }
-.action-card h3 { font-size: 14px; margin: 0 0 12px; }
-.action-card h3 span { color: var(--accent); }
-.action-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.action-fields .full { grid-column: 1 / -1; }
-.mods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 7px; }
-.mod { display: flex; gap: 4px; align-items: center; justify-content: center; min-height: 36px; border-radius: 9px; box-shadow: var(--raised-small); color: var(--muted); font-size: 11px; }
-.mod input { accent-color: var(--accent); }
-.locked-message, .lighting-placeholder { padding: 22px 15px; border-radius: 13px; box-shadow: var(--inset-small); color: var(--muted); text-align: center; }
-.locked-message strong { display: block; color: var(--text); margin-bottom: 6px; }
-.toast.error { color: var(--danger); }
-.device-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.device-actions .danger-button { grid-column: 1 / -1; }
-.replace-dialog label { display: flex; flex-direction: column; gap: 8px; color: var(--muted); margin: 18px 0; }
-.firmware-notice .button { flex: none; }
-.firmware-notice strong { color: var(--accent); }
-.lighting-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.lighting-option em { margin-left: 7px; color: var(--success); font-size: 10px; font-style: normal; }
-.lighting-settings .hint { line-height: 1.7; }
-.release-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
-.release-heading h2 { margin-top: 3px; }
-.release-version { margin: 0; flex: none; }
-.manifest-label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font-size: 12px; }
-.flash-actions { display: flex; gap: 10px; margin: 22px 0 18px; }
-.flash-actions .button { min-width: 170px; }
-.flash-status { min-height: 52px; padding: 14px 16px; border-radius: 12px; box-shadow: var(--inset-small); color: var(--text); white-space: pre-wrap; }
-progress { display: block; width: 100%; height: 12px; margin: 16px 0 0; border: 0; border-radius: 8px; overflow: hidden; background: var(--surface); accent-color: var(--accent); box-shadow: var(--inset-small); }
-progress::-webkit-progress-bar { background: var(--surface); }
-progress::-webkit-progress-value { background: var(--accent); border-radius: 8px; }
-progress::-moz-progress-bar { background: var(--accent); }
-#confirm { margin-top: 22px; padding: 18px; border-radius: 14px; box-shadow: var(--inset-small); white-space: pre-wrap; }
-#confirmText { line-height: 1.8; }
-#eraseWarning { margin-top: 10px; color: var(--danger); font-weight: 700; }
-#preserveNotice { margin-top: 10px; color: var(--success); font-weight: 700; }
-.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-.diagnostics pre { min-height: 120px; max-height: 360px; margin: 0; padding: 16px; overflow: auto; color: var(--muted); font: 12px/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
-.flash-footer { text-align: center; color: var(--muted); font-size: 12px; }
-@media (max-width: 760px) { .panel-heading, .device-heading { align-items: flex-start; } .device-caption { display: none; } .legend { flex-wrap: wrap; gap: 8px; } .action-fields { grid-template-columns: 1fr; } .lighting-options { grid-template-columns: 1fr; } }
+.field-error { display: block; margin-top: 10px; color: var(--danger); font-size: 12px; }
+.action-error { margin: -6px 0 12px; }
+.write-result.error { color: var(--danger); }
+.unsaved-actions { flex-wrap: wrap; }

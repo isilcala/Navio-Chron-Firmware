@@ -10,6 +10,27 @@
   const FACTORY_IDS = { 1: "jianying-win", 2: "resolve-win", 3: "test", 4: "f13-macro" };
   const clone = value => JSON.parse(JSON.stringify(value));
 
+  function sourceKey(source, preset) {
+    if (source === "template" && typeof preset?.templateId === "string") return `template:${preset.templateId}`;
+    if (source === "device" && Number.isInteger(preset?.id)) return `device:${preset.id}`;
+    return null;
+  }
+  function existingSourceCopy(userPresets, key) {
+    return key ? userPresets.find(preset => preset._originSourceKey === key) || null : null;
+  }
+  function createUserCopy(source, Preset, identity) {
+    const copy = Preset.clonePresetData(source);
+    copy.uuid = identity.uuid;
+    copy.id = identity.id;
+    copy._readonly = false;
+    copy._dirty = false;
+    copy._dirtySlots = [];
+    copy.originTemplateId = null;
+    copy.originTemplateVersion = null;
+    copy._originSourceKey = identity.originSourceKey || null;
+    return copy;
+  }
+
   function packageLibrary(userPresets) {
     return { schemaVersion: SCHEMA_VERSION, templateVersion: TEMPLATE_VERSION, userPresets };
   }
@@ -35,6 +56,10 @@
     if (preset?._dirtySlots !== undefined && (!Array.isArray(preset._dirtySlots) ||
         preset._dirtySlots.some(slot => !Number.isInteger(slot) || slot < 0 || slot >= Preset.ACTION_COUNT)))
       errors.push('Invalid dirty slots');
+    if (preset?._originSourceKey !== undefined && preset._originSourceKey !== null &&
+        (typeof preset._originSourceKey !== 'string' || preset._originSourceKey.length > 160 ||
+        !/^(template:[a-z0-9-]+|device:(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$/.test(preset._originSourceKey)))
+      errors.push('Invalid origin source');
     return errors[0] || null;
   }
   function validateUserPresets(userPresets, Preset) {
@@ -62,5 +87,6 @@
     return changed;
   }
 
-  return { SCHEMA_VERSION, TEMPLATE_VERSION, FACTORY_IDS, packageLibrary, migrateLegacy, userPresetError, validateUserPresets, syncTemplates };
+  return { SCHEMA_VERSION, TEMPLATE_VERSION, FACTORY_IDS, sourceKey, existingSourceCopy, createUserCopy,
+    packageLibrary, migrateLegacy, userPresetError, validateUserPresets, syncTemplates };
 });
