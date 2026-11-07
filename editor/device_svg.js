@@ -20,7 +20,7 @@ function buttonDef(index, action, selected, ledColor) {
     <title>${label} · ${escapeHtml(action)}</title>
     <rect class="slot-hit" x="${x}" y="${y}" width="${w}" height="${h}" rx="18"/>
     <text class="slot-name" x="${x + 16}" y="${y + 25}">${label}</text>
-    <text class="slot-action ${action === '未设置' ? 'is-empty' : ''}" x="${x + w / 2}" y="${y + h / 2 + 12}" text-anchor="middle">${escapeHtml(action)}</text>
+    <text class="slot-action ${action === '未设置' ? 'is-empty' : ''}" x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central" data-max-width="${w - 18}">${escapeHtml(action)}</text>
     <circle class="key-led" cx="${x + w / 2}" cy="${y + h / 2 - 22}" r="4" fill="${ledColor}"/>
   </g>`;
 }
@@ -34,7 +34,7 @@ function encoderDef(encoder, selected, press, cw, ccw) {
   return `<g class="${classes}" data-input="encoder" data-id="${id}" tabindex="0" role="button" aria-label="${name}：逆时针 ${escapeHtml(ccw)}，顺时针 ${escapeHtml(cw)}，下压 ${escapeHtml(press)}">
     <title>${name}：逆时针 ${escapeHtml(ccw)} / 顺时针 ${escapeHtml(cw)} / 下压 ${escapeHtml(press)}</title>
     ${hit}
-    <text class="slot-action ${press === '未设置' ? 'is-empty' : ''}" x="${x}" y="${y + 8}" text-anchor="middle">${escapeHtml(press)}</text>
+    <text class="slot-action ${press === '未设置' ? 'is-empty' : ''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" data-max-width="${(id === 'Wheel' ? r * 1.1 : r * 2) - 18}">${escapeHtml(press)}</text>
     <text class="control-name" x="${x}" y="${nameY}" text-anchor="middle">${name}</text>
   </g>`;
 }
@@ -42,6 +42,18 @@ function statusLed(x, title, color) {
   return `<g class="status-led" tabindex="0" role="img" aria-label="${title}"><title>${title}</title>
     <rect class="status-led-socket" x="${x - 16}" y="204" width="32" height="14" rx="7"/><rect class="status-led-light" x="${x - 7}" y="207.5" width="14" height="7" rx="3.5" fill="${color}"/>
   </g>`;
+}
+
+function fitActionLabels(container) {
+  for (const text of container.querySelectorAll('.slot-action[data-max-width]')) {
+    const maxWidth = Number(text.dataset.maxWidth);
+    for (let fontSize = 16; fontSize > 11 && text.getComputedTextLength() > maxWidth; --fontSize)
+      text.style.fontSize = `${fontSize - 1}px`;
+    if (text.getComputedTextLength() > maxWidth) {
+      text.setAttribute('textLength', String(maxWidth));
+      text.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+    }
+  }
 }
 
 export function renderDevice(container, { actions, actionLabel, selected, accent = [109, 93, 252], lighting = false, onSelect }) {
@@ -65,7 +77,7 @@ export function renderDevice(container, { actions, actionLabel, selected, accent
       </filter>
     </defs>
     <rect class="hardware-shell" x="55" y="45" width="890" height="650" rx="48"/>
-    <text class="device-brand" x="105" y="90">navio chron</text>
+    <text class="device-brand" x="105" y="86">navio chron</text>
     <g class="status-leds" aria-label="设备状态指示灯">
       ${statusLed(760, '电源指示灯：显示电量与低电提示', '#8995a3')}
       ${statusLed(795, '连接状态指示灯：显示 USB、蓝牙连接或配对状态', '#187c6b')}
@@ -78,6 +90,7 @@ export function renderDevice(container, { actions, actionLabel, selected, accent
     ${buttonMarkup}
     ${encoderMarkup}
   </svg>`;
+  fitActionLabels(container);
   container.querySelectorAll('[data-input]').forEach(element => {
     const select = () => {
       if (element.dataset.input === 'btn') onSelect({ type: 'btn', index: Number(element.dataset.index) });
