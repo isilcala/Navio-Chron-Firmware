@@ -21,7 +21,7 @@ function buttonDef(index, action, selected, ledColor) {
     <rect class="slot-hit" x="${x}" y="${y}" width="${w}" height="${h}" rx="18"/>
     <text class="slot-name" x="${x + 16}" y="${y + 25}">${label}</text>
     <text class="slot-action ${action === '未设置' ? 'is-empty' : ''}" x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central" data-max-width="${w - 18}">${escapeHtml(action)}</text>
-    <circle class="key-led" cx="${x + w / 2}" cy="${y + h / 2 - 22}" r="4" fill="${ledColor}"/>
+    <circle class="key-led" cx="${x + w / 2}" cy="${y + h / 2 - 22}" r="7" fill="${ledColor}"/>
   </g>`;
 }
 function encoderDef(encoder, selected, press, cw, ccw) {
@@ -56,7 +56,7 @@ function fitActionLabels(container) {
   }
 }
 
-export function renderDevice(container, { actions, actionLabel, selected, accent = [109, 93, 252], lighting = false, previewColors = null, onSelect }) {
+export function renderDevice(container, { actions, actionLabel, selected, accent = [109, 93, 252], lighting = false, previewColors = null, onLightInput = null, onSelect }) {
   const ledColor = `rgb(${accent.join(',')})`;
   const buttonMarkup = actions.slice(0, 12).map((action, index) =>
     buttonDef(index, actionLabel(action), selected.type === 'btn' && selected.index === index,
@@ -93,6 +93,24 @@ export function renderDevice(container, { actions, actionLabel, selected, accent
   </svg>`;
   fitActionLabels(container);
   container.querySelectorAll('[data-input]').forEach(element => {
+    if (onLightInput && element.dataset.input === 'btn' && Number(element.dataset.index) < 12) {
+      const index = Number(element.dataset.index);
+      element.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        try { element.setPointerCapture(event.pointerId); } catch (_) {}
+        onLightInput(index, true);
+      });
+      for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        element.addEventListener(type, event => { event.preventDefault(); onLightInput(index, false); });
+      }
+      element.addEventListener('keydown', event => {
+        if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) { event.preventDefault(); onLightInput(index, true); }
+      });
+      element.addEventListener('keyup', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onLightInput(index, false); }
+      });
+      return;
+    }
     const select = () => {
       if (element.dataset.input === 'btn') onSelect({ type: 'btn', index: Number(element.dataset.index) });
       else onSelect({ type: 'encoder', id: element.dataset.id });

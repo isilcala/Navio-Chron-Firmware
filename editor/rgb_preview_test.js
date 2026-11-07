@@ -85,11 +85,36 @@ test('marquee interpolates the next rising key and keeps the tail maximum', () =
   assert.equal(headLevel > nextLevel, true);
   assert.equal(nextLevel >= 64, true);
 });
+test('marquee has four lights at alignment and five while the next key rises', () => {
+  const preview = R.createPreview({ mode: 7, accent });
+  const count = time => preview.sample(time).filter(color => brightness(color) > 0).length;
+  assert.equal(count(0), 4);
+  assert.equal(count(600), 5);
+});
+test('blue breath preserves its hue instead of mixing to gray', () => {
+  const preview = R.createPreview({ mode: 1, accent: [0, 0, 255], smooth: true });
+  const color = preview.sample(500)[0];
+  assert.equal(color[0] === 0 && color[1] === 0 && color[2] > 0, true);
+});
+test('both marquee modes advance clockwise one outer-ring position per step', () => {
+  for (const mode of [7, 8]) {
+    const preview = R.createPreview({ mode, accent });
+    assert.equal(brightness(preview.sample(0)[R.KEY_ORDER[0]]), 255);
+    assert.equal(brightness(preview.sample(1200)[R.KEY_ORDER[1]]), 255);
+    assert.equal(brightness(preview.sample(2400)[R.KEY_ORDER[2]]), 255);
+  }
+});
 test('rainbow marquee changes hue over time while retaining its tail', () => {
   const preview = R.createPreview({ mode: 8 });
   const first = preview.sample(0), second = preview.sample(4000);
   assert.notDeepEqual(first[R.KEY_ORDER[0]], second[R.KEY_ORDER[0]]);
   assert.equal(brightness(second[R.KEY_ORDER[1]]) > 0, true);
+});
+test('thumbnail marquee wraps after ten visible positions without hidden steps', () => {
+  assert.equal(R.thumbnailTime(7, 10800), 10800);
+  assert.equal(R.thumbnailTime(7, 12000), 0);
+  assert.equal(R.thumbnailTime(8, 12000), 0);
+  assert.equal(R.thumbnailTime(1, 12000), 12000);
 });
 test('restart clears held keys and restarts the effect timeline', () => {
   const preview = R.createPreview({ mode: 7, accent });
