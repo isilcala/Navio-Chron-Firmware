@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Navio Chron 固件更新</title>
-  <link rel="stylesheet" href="../../editor/styles.css">
+  <link rel="stylesheet" href="../../editor/styles.css?v=20261107-04">
 
 </head>
 <body>
@@ -54,10 +54,10 @@
     </div></details>
     <p class="flash-footer firmware-note">写入完成后设备会自动重启，无需在网页中重新连接。</p>
   </main>
-  <script src="navio_proto.js"></script>
-  <script src="webflash_rules.js"></script>
+  <script src="navio_proto.js?v=20261107-04"></script>
+  <script src="webflash_rules.js?v=20261107-04"></script>
 <script type="module">
-import { ESPLoader, Transport } from './esptool-js.bundle.js';
+import { ESPLoader, Transport } from './esptool-js.bundle.js?v=20261107-04';
 
 const P = NavioProto, R = NavioWebflashRules;
 const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
@@ -90,11 +90,9 @@ function setStage(stage) {
   $('successActions').hidden = stage !== 'done';
   $('connect').parentElement.hidden = stage !== 'connect';
   if (stage === 'connect' && $('rescueGuide').hidden) $('connect').textContent = '连接设备';
-  document.body.dataset.firmwareStage = stage;
 }
 function setWriting(active) {
   writingActive = active;
-  document.body.classList.toggle('is-writing', active);
 }
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function hex(data) { return [...data].map(v => v.toString(16).padStart(2, '0')).join(''); }
@@ -116,7 +114,14 @@ async function run(fn) {
   try { await fn(); }
   catch (error) {
     log(error.stack || String(error));
-    status(error.message || String(error));
+    if (writingActive) {
+      pendingConfirmation = null;
+      $('confirm').hidden = true;
+      $('rescueGuide').hidden = true;
+      setStage('connect');
+      $('connect').textContent = '重新连接';
+      status(`${error.message || String(error)}\n写入未完成。诊断信息已保留，请重新连接后再试。`);
+    } else status(error.message || String(error));
   }
   finally { setBusy(false); setWriting(false); }
 }
@@ -276,6 +281,7 @@ async function startOta() {
     currentVersion: helloCache.fw, targetVersion: manifest.version, channel: manifest.channel });
   if (decision.path === 'latest') {
     status('你的设备已是最新版本，无需更新。', 'done');
+    $('progress').hidden = true;
     return;
   }
   const images = await downloadImages(true);
@@ -500,9 +506,19 @@ $('cancelWrite').onclick = () => run(async () => {
 $('manifest').addEventListener('input', () => {
   manifest = null;
   releaseBase = null;
+  pendingConfirmation = null;
+  navioConfirmed = false;
+  helloCache = null;
+  serialMode = null;
+  $('confirm').hidden = true;
+  $('rescueGuide').hidden = true;
+  if (romConnection) {
+    romConnection.transport.disconnect().catch(() => {});
+    romConnection = null;
+  }
   $('releaseVersion').textContent = '等待加载';
   setStage('connect');
-  status('发布包已变更，点击连接或救援以重新加载');
+  status('发布包已变更，旧确认已失效。请重新连接并加载发布包。');
 });
 for (const link of document.querySelectorAll('.main-nav a, #successEditorLink')) link.addEventListener('click', event => {
   if (!writingActive) return;

@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261106-01';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-04';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261106-01';
+const ASSET_VERSION = '20261107-04';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -267,8 +267,34 @@ function renderLibrary() {
     <div class="preset-list">${templates.map(preset => presetItem(preset, 'template')).join('')}</div>`;
 }
 
+function focusSelector() {
+  const element = document.activeElement;
+  if (!element || element === document.body) return null;
+  if (element.id) return `#${CSS.escape(element.id)}`;
+  if (element.dataset.input === 'btn') return `[data-input="btn"][data-index="${element.dataset.index}"]`;
+  if (element.dataset.input === 'encoder') return `[data-input="encoder"][data-id="${element.dataset.id}"]`;
+  if (element.dataset.actionField) {
+    const slot = element.closest('[data-slot]')?.dataset.slot;
+    return slot === undefined ? null : `[data-slot="${slot}"] [data-action-field="${element.dataset.actionField}"]`;
+  }
+  if (element.dataset.actionBit) {
+    const slot = element.closest('[data-slot]')?.dataset.slot;
+    return slot === undefined ? null : `[data-slot="${slot}"] [data-action-bit="${element.dataset.actionBit}"]`;
+  }
+  if (element.name === 'rgbMode') return `input[name="rgbMode"][value="${element.value}"]`;
+  const item = element.closest('[data-preset]');
+  if (item) return `[data-preset="${item.dataset.preset}"]`;
+  if (element.dataset.libraryTab) return `[data-library-tab="${element.dataset.libraryTab}"]`;
+  if (element.dataset.workspaceTab) return `[data-workspace-tab="${element.dataset.workspaceTab}"]`;
+  if (element.dataset.platform) return `[data-platform="${element.dataset.platform}"]`;
+  if (element.dataset.color) return `[data-color="${element.dataset.color}"]`;
+  return null;
+}
+function restoreFocus(selector) {
+  if (selector) document.querySelector(selector)?.focus({ preventScroll: true });
+}
 function renderDeviceCanvas() {
-  const preset = currentPreset();
+  const focus = focusSelector(), preset = currentPreset();
   renderDevice($('deviceStage'), {
     actions: preset.actions,
     actionLabel: action => P.actionLabel(action, platformOf(preset)),
@@ -284,6 +310,7 @@ function renderDeviceCanvas() {
   $('canvasHint').innerHTML = workspaceTab === 'lighting'
     ? '<span class="hint-dot"></span>网页仅为灯效示意，安装或更新后在键盘上生效'
     : '<span class="hint-dot"></span>点击键位或旋钮查看设置';
+  restoreFocus(focus);
 }
 function renderWorkspaceTabs() {
   document.querySelectorAll('[data-workspace-tab]').forEach(button => {
@@ -316,8 +343,8 @@ function actionForm(preset, slot, compact = false) {
       <option value="2" ${action.kind === 2 ? 'selected' : ''}>媒体控制</option>
       ${!isButton ? `<option value="3" ${action.kind === 3 ? 'selected' : ''}>滚轮</option>` : ''}
     </select></label>
-    ${action.kind === P.Kind.KeyChord ? `<label class="field">键码<select data-action-field="code" ${readonly ? 'disabled' : ''}>${keyOptions(action.code)}</select></label>
-      <div class="field">修饰键<div class="modifier-groups">${modifierGroup(labels, 0, action.mods, readonly)}${modifierGroup(labels, 4, action.mods, readonly)}</div></div>` : ''}
+    ${action.kind === P.Kind.KeyChord ? `<label class="field">键码<select data-action-field="code" ${readonly ? 'disabled' : ''}>${keyOptions(action.code)}</select></label>` : ''}
+    ${action.kind === P.Kind.KeyChord || action.kind === P.Kind.Wheel ? `<div class="field">修饰键<div class="modifier-groups">${modifierGroup(labels, 0, action.mods, readonly)}${modifierGroup(labels, 4, action.mods, readonly)}</div></div>` : ''}
     ${action.kind === P.Kind.Consumer ? `<label class="field">功能<select data-action-field="code" ${readonly ? 'disabled' : ''}>${P.CONSUMER_OPTIONS.map(option => `<option value="${option.code}" ${option.code === action.code ? 'selected' : ''}>${option.label}</option>`).join('')}</select></label>` : ''}
     ${action.kind === P.Kind.Wheel ? `<label class="field">滚动格数<input type="number" min="-127" max="127" value="${action.wheelDy}" data-action-field="wheelDy" ${readonly ? 'disabled' : ''}><small>正数向下滚动，负数向上滚动</small></label>` : ''}
     <small class="field-error action-error" role="alert" hidden></small>
@@ -383,17 +410,21 @@ function renderPresetHeader() {
     const target = editingKeyboard() ? '键盘' : '我的预设';
     $('draftNotice').innerHTML = `<strong>正在编辑「${escapeHtml(editSession.original.name)}」</strong><span>修改尚未保存到${target}。</span>`;
   }
-  closePopovers();
 }
 function renderActionbar() {
   const preset = currentPreset(), source = currentSource(), editing = Boolean(editSession), linked = linkedDevice(preset);
+  const persistentMessage = libraryLoadError
+    ? { text: `本地库读取失败：${libraryLoadError.message}。原数据未改动，本次修改不会保存。`, error: true }
+    : librarySaveError
+      ? { text: `本地保存失败：${librarySaveError.message}。修改仅保留在当前页面。`, error: true }
+      : operationMessage;
   $('editPreset').hidden = editing || source !== 'local';
   $('editPreset').disabled = deviceBusy;
   $('discardEdit').hidden = !editing;
   $('discardEdit').disabled = deviceBusy;
-  $('writeResult').hidden = !operationMessage;
-  $('writeResult').textContent = operationMessage?.text || '';
-  $('writeResult').classList.toggle('error', Boolean(operationMessage?.error));
+  $('writeResult').hidden = !persistentMessage;
+  $('writeResult').textContent = persistentMessage?.text || '';
+  $('writeResult').classList.toggle('error', Boolean(persistentMessage?.error));
   let title = '官方模板 · 只读', detail = '可直接安装，或复制到我的预设后编辑', label = '安装到键盘';
   let disabled = !deviceClient || deviceBusy;
   if (source === 'local') {
@@ -432,8 +463,10 @@ function renderHeader() {
 }
 function renderEditor() {
   if (!booted) return;
+  const focus = focusSelector();
   renderHeader(); renderLibrary(); renderPresetHeader(); renderWorkspaceTabs();
   renderDeviceCanvas(); renderInspector(); renderActionbar();
+  restoreFocus(focus);
 }
 
 function beginEdit() {
@@ -769,8 +802,21 @@ for (const button of document.querySelectorAll('[data-close]')) button.addEventL
   if (id === 'unsavedDialog' || id === 'writeDialog') pendingAfterEdit = null;
   closeDialog(id);
 });
+for (const tablist of document.querySelectorAll('[role="tablist"]')) tablist.addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const tabs = [...tablist.querySelectorAll('[role="tab"]')], current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 :
+    (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  event.preventDefault();
+  tabs[index].focus(); tabs[index].click();
+});
 for (const id of ['unsavedDialog', 'writeDialog']) $(id).addEventListener('cancel', () => { pendingAfterEdit = null; });
-document.addEventListener('keydown', event => { if (event.key === 'Escape') closePopovers(); });
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const trigger = !$('colorPopover').hidden ? $('accentButton') : !$('platformPopover').hidden ? $('platformButton') : null;
+  closePopovers(); trigger?.focus();
+});
 for (const link of [$('flashLink'), $('firmwareFlashLink')]) link.addEventListener('click', event => {
   event.preventDefault();
   if (deviceBusy) return;
@@ -849,13 +895,13 @@ $('colorPopover').addEventListener('click', event => {
   const button = event.target.closest('[data-color]');
   if (!button || !editSession) return;
   editSession.working.accent = [1, 3, 5].map(offset => parseInt(button.dataset.color.slice(offset, offset + 2), 16));
-  changeWorking(true);
+  changeWorking(true); closePopovers(); $('accentButton').focus();
 });
 $('platformPopover').addEventListener('click', event => {
   const button = event.target.closest('[data-platform]');
   if (!button || !editSession) return;
   editSession.working.platform = button.dataset.platform;
-  changeWorking(true);
+  changeWorking(true); closePopovers(); $('platformButton').focus();
 });
 document.addEventListener('click', event => { if (!event.target.closest('.popover-anchor')) closePopovers(); });
 

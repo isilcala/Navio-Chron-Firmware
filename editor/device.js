@@ -79,10 +79,8 @@
       target = installed.find(item => item.id === planned._installedId) || null;
       if (target) planned.id = target.id;
       else if (installed.some(item => item.id === planned.id)) planned.id = allocatePresetId(installed);
-    } else {
-      const resolved = resolveSlotTarget(planned, installed);
-      target = resolved.installed;
-      planned.id = resolved.preset.id;
+    } else if (installed.some(item => item.id === planned.id)) {
+      planned.id = allocatePresetId(installed);
     }
     if (!target && installed.length >= 6) {
       target = installed.find(item => item.id === options.replacementId) || null;

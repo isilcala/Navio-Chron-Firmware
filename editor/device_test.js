@@ -72,9 +72,13 @@ test("single install reuses the recorded target without changing the source ID",
   const plan = D.planInstall(source, [{ id: 3, name: "P3" }]);
   assert.equal(plan.preset.id, 3); assert.equal(plan.installed.id, 3); assert.equal(source.id, 7);
 });
-test("single install can update a direct ID match", () => {
-  const plan = D.planInstall(Preset.clonePreset(sample), [{ id: 1, name: "Old" }]);
-  assert.equal(plan.installed.name, "Old"); assert.equal(plan.asNew, false);
+test("single install without a recorded target never overwrites a direct ID collision", () => {
+  const plan = D.planInstall(Preset.clonePreset(sample), [{ id: 1, name: "Unrelated" }]);
+  assert.equal(plan.preset.id, 2); assert.equal(plan.installed, null); assert.equal(plan.asNew, false);
+});
+test("single install without a collision keeps the source ID", () => {
+  const plan = D.planInstall(Preset.clonePreset(sample), [{ id: 2, name: "Other" }]);
+  assert.equal(plan.preset.id, 1); assert.equal(plan.installed, null);
 });
 test("missing recorded target does not overwrite an unrelated direct-ID match", () => {
   const source = { ...Preset.clonePreset(sample), id: 7, _installedId: 3 };
@@ -90,6 +94,11 @@ test("full keyboard replacement writes the selected target ID", () => {
   const source = { ...Preset.clonePreset(sample), id: 9 };
   const plan = D.planInstall(source, installed, { replacementId: 4 });
   assert.equal(plan.preset.id, 4); assert.equal(plan.installed.name, "P3"); assert.equal(source.id, 9);
+});
+test("full keyboard replacement wins over a source ID collision", () => {
+  const installed = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `P${index}` }));
+  const plan = D.planInstall(Preset.clonePreset(sample), installed, { replacementId: 5 });
+  assert.equal(plan.preset.id, 5); assert.equal(plan.installed.name, "P4");
 });
 test("full keyboard install requires an explicit replacement", () => {
   const installed = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `P${index}` }));

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#e0e5ec">
   <title>预设 · Navio Chron</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261107-03">
+  <link rel="stylesheet" href="styles.css?v=20261107-04">
 </head>
 <body>
   <header class="app-header">
@@ -38,8 +38,8 @@
       <div class="editor-workspace">
         <aside class="panel library-panel">
           <div class="library-tabs segmented" role="tablist" aria-label="预设位置">
-            <button class="active" data-library-tab="library" role="tab" aria-selected="true">预设库</button>
-            <button data-library-tab="device" role="tab" aria-selected="false">键盘 <span id="deviceCount" class="count-badge">0</span></button>
+            <button class="active" data-library-tab="library" role="tab" aria-selected="true" aria-controls="libraryContent">预设库</button>
+            <button data-library-tab="device" role="tab" aria-selected="false" aria-controls="libraryContent">键盘 <span id="deviceCount" class="count-badge">0</span></button>
           </div>
           <div id="libraryToolbar" class="library-toolbar">
             <button id="newPresetButton" class="button secondary">＋ 新建</button>
@@ -47,7 +47,7 @@
             <button id="exportButton" class="button secondary">导出当前</button>
           </div>
           <button id="resetLibrary" class="button text-button library-reset">清空我的预设</button>
-          <div id="libraryContent"></div>
+          <div id="libraryContent" role="tabpanel" aria-label="预设列表"></div>
         </aside>
 
         <section class="panel canvas-panel">
@@ -88,8 +88,8 @@
               </div>
             </div>
             <div class="workspace-tabs segmented" role="tablist" aria-label="编辑内容">
-              <button class="active" data-workspace-tab="mapping" role="tab" aria-selected="true">键位映射</button>
-              <button data-workspace-tab="lighting" role="tab" aria-selected="false">灯光效果</button>
+              <button class="active" data-workspace-tab="mapping" role="tab" aria-selected="true" aria-controls="inspector">键位映射</button>
+              <button data-workspace-tab="lighting" role="tab" aria-selected="false" aria-controls="inspector">灯光效果</button>
             </div>
           </div>
           <div id="draftNotice" class="draft-notice" hidden></div>
@@ -97,7 +97,7 @@
           <div id="canvasHint" class="canvas-hint"><span class="hint-dot"></span>点击键位或旋钮查看设置</div>
         </section>
 
-        <aside class="panel inspector-panel"><div id="inspector"></div></aside>
+        <aside class="panel inspector-panel"><div id="inspector" role="tabpanel" aria-label="当前设置"></div></aside>
       </div>
 
       <div class="editor-actionbar">
@@ -172,12 +172,12 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="../tools/probe/navio_proto.js?v=20261107-03"></script>
-  <script src="../tools/probe/webflash_rules.js?v=20261107-03"></script>
-  <script src="preset.js?v=20261107-03"></script>
-  <script src="templates.js?v=20261107-03"></script>
-  <script src="library.js?v=20261107-03"></script>
-  <script src="device.js?v=20261107-03"></script>
-  <script type="module" src="app.js?v=20261107-03"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261107-04"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261107-04"></script>
+  <script src="preset.js?v=20261107-04"></script>
+  <script src="templates.js?v=20261107-04"></script>
+  <script src="library.js?v=20261107-04"></script>
+  <script src="device.js?v=20261107-04"></script>
+  <script type="module" src="app.js?v=20261107-04"></script>
 </body>
 </html>

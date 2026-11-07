@@ -39,7 +39,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .brand-copy strong { font-size: 17px; letter-spacing: -.2px; }
 .brand-copy small { margin-top: 1px; color: var(--muted); font-size: 12px; }
 .main-nav { display: flex; gap: 4px; padding: 5px; border-radius: 14px; box-shadow: none; }
-.nav-item { min-width: 96px; min-height: 36px; padding: 6px 13px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; cursor: pointer; }
+.nav-item { display: inline-flex; align-items: center; justify-content: center; min-width: 96px; min-height: 36px; padding: 6px 13px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; }
 .nav-item:not(.active):hover { color: var(--text); box-shadow: var(--raised-small); }
 .nav-item.active { background: var(--surface-deep); box-shadow: var(--inset-small); color: var(--accent); }
 .header-actions { display: flex; align-items: center; justify-self: end; gap: 13px; }
@@ -48,7 +48,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .connection-status i { width: 8px; height: 8px; border-radius: 50%; background: #8a96a3; box-shadow: var(--raised-small); }
 .connection-status.connected { color: var(--success); }
 .connection-status.connected i { background: var(--success); }
-.button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 9px 15px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: var(--raised-small); color: var(--text); font-weight: 650; font-size: 13px; cursor: pointer; }
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 9px 15px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: var(--raised-small); color: var(--text); font-weight: 650; font-size: 13px; text-align: center; text-decoration: none; cursor: pointer; }
 .button:hover:not(:disabled) { box-shadow: 2px 2px 5px var(--shadow-dark), -2px -2px 5px var(--shadow-light); }
 .button:active:not(:disabled) { box-shadow: var(--inset-small); }
 .button.primary { background: var(--accent); color: #ffffff; }
@@ -235,7 +235,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .editor-actionbar { position: sticky; bottom: 16px; z-index: 10; display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 15px 18px; border-radius: 18px; background: var(--surface); box-shadow: var(--raised); }
 .save-summary { display: flex; flex: 1; align-items: center; gap: 11px; }
 .save-summary-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--surface); box-shadow: var(--raised-small); color: var(--success); font-size: 13px; font-weight: 800; }
-.save-summary strong, .save-summary span { display: block; }
+.save-summary strong, .save-summary div > span { display: block; }
 .save-summary strong { font-size: 13px; }
 .save-summary div > span { margin-top: 1px; color: var(--muted); font-size: 12px; }
 .write-result { color: var(--success); font-size: 12px; }
@@ -352,3 +352,24 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .action-error { margin: -6px 0 12px; }
 .write-result.error { color: var(--danger); }
 .unsaved-actions { flex-wrap: wrap; }
+
+.top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.device-status { color: var(--muted); font-size: 12px; }
+.eyebrow { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 1.2px; }
+.release-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.release-heading h2 { margin-top: 3px; }
+.manifest-label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font-size: 12px; }
+.manifest-label input { width: 100%; min-height: 40px; padding: 8px 10px; border: 0; border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: var(--inset-small); }
+.flash-actions { display: flex; gap: 10px; margin: 22px 0 18px; }
+.flash-actions .button { min-width: 170px; }
+.flash-status { min-height: 52px; padding: 14px 16px; border-radius: 12px; box-shadow: var(--inset-small); color: var(--text); white-space: pre-wrap; }
+progress { display: block; width: 100%; height: 12px; margin: 16px 0 0; border: 0; border-radius: 8px; overflow: hidden; background: var(--surface); accent-color: var(--accent); box-shadow: var(--inset-small); }
+progress::-webkit-progress-bar { background: var(--surface); }
+progress::-webkit-progress-value { border-radius: 8px; background: var(--accent); }
+progress::-moz-progress-bar { border-radius: 8px; background: var(--accent); }
+#confirm { margin-top: 22px; padding: 18px; border-radius: 14px; box-shadow: var(--inset-small); white-space: pre-wrap; }
+#confirmText { line-height: 1.8; }
+#eraseWarning { margin-top: 10px; color: var(--danger); font-weight: 700; }
+#preserveNotice { margin-top: 10px; color: var(--success); font-weight: 700; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.diagnostics pre { min-height: 120px; max-height: 360px; margin: 0; padding: 16px; overflow: auto; color: var(--muted); font: 12px/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
