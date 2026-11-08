@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Navio Chron 固件更新</title>
-  <link rel="stylesheet" href="../../editor/styles.css?v=20261107-24">
+  <link rel="stylesheet" href="../../editor/styles.css?v=20261107-28">
 
 </head>
 <body>
@@ -49,15 +49,15 @@
     </section>
     <details class="diagnostics advanced-panel"><summary>高级选项与诊断信息</summary><div class="advanced-content">
       <!-- esptool-js 0.7.0, SHA-256 00ebe6fb0b202976d3e2a3c6b9a6bd438c26a81d2af6739c95ac276a64c1a84e -->
-      <label class="manifest-label">发布清单<input id="manifest" type="text" value="/release/navio_chron_0.5.25/manifest.json"></label>
+      <label class="manifest-label">发布清单<input id="manifest" type="text" value="/release/navio_chron_0.5.26/manifest.json"></label>
       <pre id="out"></pre>
     </div></details>
     <p class="flash-footer firmware-note">写入完成后设备会自动重启，无需在网页中重新连接。</p>
   </main>
-  <script src="navio_proto.js?v=20261107-24"></script>
-  <script src="webflash_rules.js?v=20261107-24"></script>
+  <script src="navio_proto.js?v=20261107-28"></script>
+  <script src="webflash_rules.js?v=20261107-28"></script>
 <script type="module">
-import { ESPLoader, Transport } from './esptool-js.bundle.js?v=20261107-24';
+import { ESPLoader, Transport } from './esptool-js.bundle.js?v=20261107-28';
 
 const P = NavioProto, R = NavioWebflashRules;
 const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,

@@ -12,9 +12,9 @@
     "id": 3,
     "name": "Test",
     "accent": [
-      0,
-      0,
-      200
+      255,
+      255,
+      255
     ],
     "rgbMode": 1,
     "platform": "win",

@@ -23,7 +23,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery
 - [x] Cross-page, accessibility, responsive, online and hardware WebHID UX regression
 - [x] Animated Web RGB previews and graphical effect cards for nine active effects plus an off mode; no hardware preview protocol
-- [ ] Hardware and power validation for default-reactive behavior and all ten lighting modes (implemented in 0.5.25)
+- [ ] Hardware and power validation for default-reactive behavior and all ten lighting modes (implemented in 0.5.26)
 - [ ] Sleep/wake and battery-power validation
 
 See `docs/PROJECT.md` for the roadmap and `docs/DECISIONS.md` for technical decisions.

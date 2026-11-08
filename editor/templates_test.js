@@ -72,6 +72,10 @@ ok("official library holds at least 9 templates");
 const orders = loaded.templates.map(t => t.templateId);
 equal(orders[0], "jianying-win", "display order starts with jianying-win");
 equal(orders.includes("procreate"), true, "procreate template present");
+equal(loaded.templates.find(t => t.templateId === "test").accent.join(","), "255,255,255", "Test template uses pure white accent");
+const firmwareSource = fs.readFileSync(path.join(__dirname, "../src/mapping/Presets.cpp"), "utf8");
+assert(/kPresetTest\s*=\s*\{\s*"Test",\s*\{255,\s*255,\s*255\}/.test(firmwareSource), "firmware Test preset uses pure white accent");
+ok("firmware Test preset uses pure white accent");
 const slugs = new Set(loaded.templates.map(t => t.templateId));
 equal(slugs.size, loaded.templates.length, "templateId unique across the library");
 

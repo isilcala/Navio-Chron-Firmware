@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-24';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-28';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, $ = id => document.getElementById(id);
@@ -6,9 +6,9 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-24';
+const ASSET_VERSION = '20261107-28';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
-const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.25/manifest.json' : './manifest.json';
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
 const platformOf = preset => P.normalizePlatform(preset?.platform);
@@ -402,7 +402,7 @@ function modifierGroup(labels, start, mods, readonly) {
   }).join('')}</div></div>`;
 }
 function actionForm(preset, slot, compact = false) {
-  const action = preset.actions[slot], readonly = !editSession, isButton = slot < 16;
+  const action = preset.actions[slot], readonly = currentSource() === 'template' && !editSession, isButton = slot < 16;
   const labels = P.modLabels(platformOf(preset));
   const typeName = action.kind === P.Kind.None ? '未设置' : action.kind === P.Kind.KeyChord ? '快捷键' : action.kind === P.Kind.Consumer ? '媒体控制' : '滚轮';
   const direction = slot >= 16 ? (slot % 2 === 0 ? '顺时针' : '逆时针') : '下压';
@@ -421,17 +421,13 @@ function actionForm(preset, slot, compact = false) {
     <small class="field-error action-error" role="alert" hidden></small>
   </div>`;
 }
-function readonlyAction(preset) {
-  if (currentSource() !== 'template') return '';
-  const copy = sourceCopy(preset, 'template');
-  return `<button class="button primary" data-action="copy-current" style="width:100%;margin-top:14px">${copy ? '打开我的副本' : '复制到我的预设'}</button>`;
-}
-function readonlyNotice(preset) {
-  const text = currentSource() === 'template'
-    ? '官方模板为只读。复制到我的预设后即可自由修改，也可以直接安装到键盘。'
-    : currentSource() === 'device' ? '当前为只读。可在下方点击“编辑”，保存到键盘前原预设不会改变。'
-      : '当前为只读。可在下方点击“编辑”，保存到我的预设后才会保留本次修改。';
-  return `<div class="readonly-card"><p>${text}</p>${readonlyAction(preset)}</div>`;
+function inspectorHeading(label, title, description, editable = true) {
+  let action = '';
+  if (!editSession && editable && currentSource() === 'template') {
+    const text = sourceCopy(currentPreset(), 'template') ? '编辑副本' : '复制并编辑';
+    action = `<button class="button secondary start-edit" data-action="edit-current">${text}</button>`;
+  }
+  return `<div class="inspector-heading"><div class="inspector-heading-copy"><span class="selection-label">${label}</span><h2>${title}</h2><p>${description}</p></div>${action}</div>`;
 }
 const RGB_DETAILS = {
   0: '关闭全部按键灯，状态灯保持原功能', 1: '按住保持主题色，松开后 500ms 渐隐', 2: '每键独立随机色，松开渐隐',
@@ -461,7 +457,7 @@ function syncThumbnailEngines(preset) {
   thumbnailPulseStates = new Map();
 }
 function renderLighting(preset) {
-  const readonly = !editSession, selectedMode = P.RGB_MODES.find(mode => mode.value === preset.rgbMode);
+  const readonly = currentSource() === 'template' && !editSession, selectedMode = P.RGB_MODES.find(mode => mode.value === preset.rgbMode);
   syncThumbnailEngines(preset);
   const groups = RGB.MODE_GROUPS.map(group => `<section class="effect-group"><h3>${group.label}</h3><div class="lighting-grid">${group.modes.map(value => {
     const mode = P.RGB_MODES.find(item => item.value === value);
@@ -469,8 +465,7 @@ function renderLighting(preset) {
       <span class="effect-thumb" data-effect-thumb="${mode.value}" aria-hidden="true">${thumbnailCells()}</span>
       <strong>${mode.label}</strong><small>${RGB.MODE_COLORS[mode.value]}</small></label>`;
   }).join('')}</div></section>`).join('');
-  return `<div class="inspector-heading"><span class="selection-label">整套预设</span><h2>灯光效果</h2><p>选择按键灯的表现方式</p></div>
-    ${readonly ? readonlyNotice(preset) : ''}
+  return `${inspectorHeading('整套预设', '灯光效果', '选择按键灯的表现方式')}
     <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${RGB_DETAILS[preset.rgbMode]}</span></div>
     ${previewControls(preset.rgbMode)}
     <div class="effect-groups">${groups}</div>
@@ -480,25 +475,24 @@ function renderInspector() {
   const preset = currentPreset();
   if (workspaceTab === 'lighting') { $('inspector').innerHTML = renderLighting(preset); return; }
   if (selectedInput.type === 'btn' && selectedInput.index === 15) {
-    $('inspector').innerHTML = `<div class="inspector-heading"><span class="selection-label">全局保留</span><h2>SideKey</h2><p>设备侧面按键</p></div>
+    $('inspector').innerHTML = `${inspectorHeading('全局保留', 'SideKey', '设备侧面按键', false)}
       <div class="locked-card"><span class="lock-symbol">—</span><strong>此按键不可重新映射</strong><p>短按切换预设，长按用于配对和固件烧写。导入导出时会原样保留。</p></div>`;
     return;
   }
   if (selectedInput.type === 'encoder') {
     const encoder = P.ENCODERS.find(item => item.id === selectedInput.id);
-    $('inspector').innerHTML = `<div class="inspector-heading"><span class="selection-label">编码器</span><h2>${encoder.name}</h2><p>旋转与下压可分别设置</p></div>
-      ${editSession ? '' : readonlyNotice(preset)}
+    $('inspector').innerHTML = `${inspectorHeading('编码器', encoder.name, '旋转与下压可分别设置')}
       <div class="encoder-rotation-group">${actionForm(preset, encoder.ccwSlot, true)}${actionForm(preset, encoder.cwSlot, true)}</div>
       <div class="encoder-press">${actionForm(preset, encoder.pressSlot, true)}</div>`;
     return;
   }
   const index = selectedInput.index, action = preset.actions[index];
-  $('inspector').innerHTML = `<div class="inspector-heading"><span class="selection-label">按键 K${index + 1}</span><h2>键位设置</h2><p>选择这个按键要执行的动作</p></div>
+  $('inspector').innerHTML = `${inspectorHeading(`按键 K${index + 1}`, '键位设置', '选择这个按键要执行的动作')}
     <div class="action-summary">${escapeHtml(P.actionLabel(action, platformOf(preset)))}</div>
-    ${editSession ? '' : readonlyNotice(preset)}${actionForm(preset, index)}`;
+    ${actionForm(preset, index)}`;
 }
 function renderPresetHeader() {
-  const preset = currentPreset(), readonly = !editSession;
+  const preset = currentPreset(), readonly = currentSource() === 'template' && !editSession;
   $('presetTitle').textContent = preset.name;
   $('presetTitle').hidden = false;
   $('presetNameInput').hidden = true;
@@ -526,8 +520,6 @@ function renderActionbar() {
     : librarySaveError
       ? { text: `本地保存失败：${librarySaveError.message}。修改仅保留在当前页面。`, error: true }
       : operationMessage;
-  $('editPreset').hidden = editing || source !== 'local';
-  $('editPreset').disabled = deviceBusy;
   $('discardEdit').hidden = !editing;
   $('discardEdit').disabled = deviceBusy;
   $('writeResult').hidden = !persistentMessage;
@@ -542,8 +534,8 @@ function renderActionbar() {
   }
   if (source === 'device') {
     title = '键盘中的只读预设';
-    detail = '点击编辑后开始修改，保存前键盘不会改变';
-    label = '编辑'; disabled = deviceBusy;
+    detail = '在右栏点击编辑后开始修改，保存前键盘不会改变';
+    disabled = deviceBusy;
   }
   if (editing) {
     title = editSession.dirty ? '当前修改尚未保存' : '正在编辑当前预设';
@@ -558,6 +550,7 @@ function renderActionbar() {
   $('saveSummaryIcon').textContent = editing ? '!' : source === 'device' ? 'i' : '✓';
   $('writePreset').textContent = label;
   $('writePreset').disabled = disabled;
+  $('writePreset').hidden = source === 'device' && !editing;
 }
 function renderHeader() {
   const connected = Boolean(deviceClient);
@@ -577,12 +570,17 @@ function renderEditor() {
   syncPreviewAnimation(); restoreFocus(focus);
 }
 
-function beginEdit() {
-  if (editSession || !['local', 'device'].includes(currentSource())) return;
+function ensureEditSession() {
+  if (editSession) return true;
+  if (!['local', 'device'].includes(currentSource())) return false;
   const original = currentOriginal();
-  if (!original) return;
+  if (!original) return false;
   editSession = { source: currentSource(), sourceKey: selectedKey, original: P.clonePreset(original), working: P.clonePreset(original), dirty: false };
   operationMessage = null;
+  return true;
+}
+function beginEdit() {
+  if (!ensureEditSession()) return;
   renderEditor();
   $('inspector').querySelector('select:not(:disabled), input:not(:disabled)')?.focus();
 }
@@ -609,7 +607,7 @@ function discardAndContinue() {
   const action = pendingAfterEdit;
   endEdit(); closeDialog('unsavedDialog'); operationMessage = null; renderEditor();
   if (action) action();
-  else $(currentSource() === 'device' ? 'writePreset' : 'editPreset').focus();
+  else $('presetTitle').focus();
 }
 function saveLocal() {
   if (!editSession || editingKeyboard()) return false;
@@ -627,7 +625,7 @@ function saveLocal() {
   userPresets = next;
   endEdit();
   operationMessage = { text: '已保存到我的预设', error: false };
-  renderEditor(); $('editPreset').focus();
+  renderEditor(); $('presetTitle').focus();
   return true;
 }
 async function saveAndContinue() {
@@ -663,7 +661,7 @@ async function refreshDevice(selectActive = false) {
   devicePresets = result.presets.map(preset => ({ ...preset, _readonly: true, _device: true }));
   syncInstalledState();
   if (!editingKeyboard()) {
-    if (selectActive) selectedKey = keyFor('device', devicePresets.find(preset => preset.id === activeDeviceId));
+    if (selectActive && !selectedKey?.startsWith('local:')) selectedKey = keyFor('device', devicePresets.find(preset => preset.id === activeDeviceId));
     else if (selectedDeviceId) selectedKey = keyFor('device', devicePresets.find(preset => preset.id === selectedDeviceId) || devicePresets[0]);
   }
   renderEditor();
@@ -781,7 +779,7 @@ $('confirmWrite').addEventListener('click', () => runDeviceAction(async () => {
     closeDialog('writeDialog');
     await refreshDevice(false);
     operationMessage = { text: '已保存到键盘并完成验证', error: false };
-    renderEditor(); $('writePreset').focus();
+    renderEditor(); $('presetTitle').focus();
     continuation?.();
     return;
   }
@@ -841,7 +839,7 @@ $('confirmDeleteKeyboard').addEventListener('click', () => {
   });
 });
 
-function copyPresetByKey(key) {
+function copyPresetByKey(key, editAfter = false) {
   const source = findByKey(key);
   if (!source) return;
   const sourceType = key.split(':')[0];
@@ -849,6 +847,7 @@ function copyPresetByKey(key) {
     const existing = sourceCopy(source, sourceType);
     if (existing) {
       libraryTab = 'library'; selectPreset(keyFor('local', existing));
+      if (editAfter) beginEdit();
       toast('已打开之前复制的预设，没有创建重复副本'); return;
     }
   }
@@ -864,6 +863,7 @@ function copyPresetByKey(key) {
   const saved = saveLibrary();
   libraryTab = 'library'; selectedKey = keyFor('local', copy); operationMessage = null;
   renderEditor();
+  if (editAfter) beginEdit();
   toast(saved ? '已复制到我的预设，来源内容未改变' : '副本仅保留在当前页面，未能保存到浏览器', !saved);
 }
 function openLocalDelete(key) {
@@ -932,7 +932,6 @@ for (const link of [$('flashLink'), $('firmwareFlashLink')]) link.addEventListen
 });
 $('dismissUpdate').addEventListener('click', () => { updateDismissed = true; $('updateBanner').hidden = true; });
 $('helpButton').addEventListener('click', () => openDialog('helpDialog'));
-$('editPreset').addEventListener('click', beginEdit);
 $('discardEdit').addEventListener('click', () => requestLeave(null));
 $('discardChanges').addEventListener('click', discardAndContinue);
 $('saveChanges').addEventListener('click', saveAndContinue);
@@ -952,15 +951,19 @@ $('inspector').addEventListener('click', event => {
     }
     syncPreviewAnimation(); return;
   }
-  if (event.target.closest('[data-action="copy-current"]')) copyPresetByKey(selectedKey);
+  const start = event.target.closest('[data-action="edit-current"]');
+  if (!start) return;
+  if (currentSource() === 'template') copyPresetByKey(selectedKey, true);
+  else beginEdit();
 });
 document.addEventListener('visibilitychange', syncPreviewAnimation);
 
 function beginRename() {
-  if (!editSession) {
-    toast(currentSource() === 'template' ? '官方模板为只读，请先复制到我的预设' : '请先点击“编辑”进入修改状态');
+  if (!editSession && currentSource() === 'template') {
+    toast('官方模板为只读，请先复制到我的预设');
     return;
   }
+  if (!ensureEditSession()) return;
   closePopovers();
   $('renameError').hidden = true;
   $('presetNameInput').setAttribute('aria-invalid', 'false');
@@ -1004,25 +1007,25 @@ $('cancelRename').addEventListener('click', () => finishRename(false));
 $('accentButton').addEventListener('click', () => { $('colorPopover').hidden = !$('colorPopover').hidden; $('platformPopover').hidden = true; });
 $('platformButton').addEventListener('click', () => { $('platformPopover').hidden = !$('platformPopover').hidden; $('colorPopover').hidden = true; });
 function changeWorking(render = false) {
-  if (!editSession) return;
+  if (!ensureEditSession()) return;
   editSession.dirty = true; operationMessage = null;
   if (render) renderEditor();
   else { renderPresetHeader(); renderDeviceCanvas(); renderActionbar(); }
 }
 $('accentInput').addEventListener('input', event => {
-  if (!editSession) return;
+  if (!ensureEditSession()) return;
   editSession.working.accent = [1, 3, 5].map(offset => parseInt(event.target.value.slice(offset, offset + 2), 16));
   changeWorking(true);
 });
 $('colorPopover').addEventListener('click', event => {
   const button = event.target.closest('[data-color]');
-  if (!button || !editSession) return;
+  if (!button || !ensureEditSession()) return;
   editSession.working.accent = [1, 3, 5].map(offset => parseInt(button.dataset.color.slice(offset, offset + 2), 16));
   changeWorking(true); closePopovers(); $('accentButton').focus();
 });
 $('platformPopover').addEventListener('click', event => {
   const button = event.target.closest('[data-platform]');
-  if (!button || !editSession) return;
+  if (!button || !ensureEditSession()) return;
   editSession.working.platform = button.dataset.platform;
   changeWorking(true); closePopovers(); $('platformButton').focus();
 });
@@ -1030,7 +1033,7 @@ document.addEventListener('click', event => { if (!event.target.closest('.popove
 
 $('inspector').addEventListener('change', event => {
   if (event.target.id === 'previewSpeed') { previewSpeed = Number(event.target.value); syncPreviewAnimation(); return; }
-  if (!editSession) return;
+  if (!ensureEditSession()) return;
   if (event.target.name === 'rgbMode') {
     editSession.working.rgbMode = Number(event.target.value);
     changeWorking(true); return;
@@ -1047,7 +1050,7 @@ $('inspector').addEventListener('change', event => {
   changeWorking(true);
 });
 $('inspector').addEventListener('input', event => {
-  if (event.target.dataset.actionField !== 'wheelDy' || !editSession) return;
+  if (event.target.dataset.actionField !== 'wheelDy' || !ensureEditSession()) return;
   const card = event.target.closest('[data-slot]'), slot = Number(card.dataset.slot);
   const action = { ...editSession.working.actions[slot], wheelDy: Number(event.target.value) };
   const issue = P.actionError(action, slot < 16), error = card.querySelector('.action-error');

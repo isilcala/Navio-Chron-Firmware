@@ -44,7 +44,7 @@ static const Preset kPresetJianYing = {
 // 预设 1：冒烟测试——按键出数字/符号，编码器出音量/方向/滚轮，方便逐路验证
 static const Preset kPresetTest = {
     "Test",
-    {0, 0, 200},  // 蓝
+    {255, 255, 255},  // 白
     1,  // reactive：默认按下保持、松开渐隐
     {
         /* K1  */ actKey(MOD_NONE, HID_1),
