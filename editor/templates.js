@@ -1,4 +1,4 @@
-// 官方模板装配：presets/*.json 信封校验与模板构建；浏览器挂到 NavioEditorTemplates，Node 用 require。
+// 项目模板装配：presets/*.json 信封校验与模板构建；浏览器挂到 NavioEditorTemplates，Node 用 require。
 // 信封沿用 .navio.json 导出格式，官方文件额外要求 metadata.templateId（=文件名 slug）、
 // metadata.order（展示顺序）与可选 description/author；单条损坏跳过并报告，不拖垮整库。
 (function (root, factory) {
@@ -19,7 +19,7 @@
     if (typeof meta.templateId !== "string" || !SLUG.test(meta.templateId)) return "metadata.templateId 必须是小写 slug";
     if (!Number.isInteger(meta.order)) return "metadata.order 必须是整数";
     if (meta.templateId !== fileName.replace(/\.json$/, "")) return `templateId(${meta.templateId}) 与文件名不一致`;
-    // 官方模板的 platform 严格校验（用户导入文件才会静默归一）：拼错平台名必须暴露而不是被藏起来
+    // 项目模板的 platform 严格校验（用户导入文件才会静默归一）：拼错平台名必须暴露而不是被藏起来
     if (json.preset.platform !== undefined && !P.PLATFORMS.includes(json.preset.platform))
       return `preset.platform 非法：${json.preset.platform}`;
     const errors = P.presetErrors(json.preset);

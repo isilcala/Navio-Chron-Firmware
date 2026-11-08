@@ -18,8 +18,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
       [deployed and verified online](https://isilcala.github.io/Navio-Chron-Firmware/)
 - [x] Browser preset editor with local library and full device management, verified on hardware;
       firmware version label and update notices use HELLO and the deployed release manifest
-- [x] Official preset templates as per-preset JSON data files with a generated index and CI validation
-- [x] Official template library at 28 presets: twelve Win/Mac app families, Final Cut Pro (Mac), Procreate (iPad), F13 Macro and Test; brand-consistent accents (on-app tuning pending)
+- [x] Project preset templates as per-preset JSON data files with a generated index and CI validation
+- [x] Project template library at 28 presets: twelve Win/Mac app families, Final Cut Pro (Mac), Procreate (iPad), F13 Macro and Test; brand-consistent accents (on-app tuning pending)
 - [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery
 - [x] Template browser with workflow groups, alias search and merged Win/Mac entries with explicit platform switching
 - [x] Cross-page, accessibility, responsive, online and hardware WebHID UX regression

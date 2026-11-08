@@ -1,4 +1,4 @@
-// 官方模板浏览视图：按应用合并平台变体、工作流分组与搜索；不改变模板身份或记录数据。
+// 项目模板浏览视图：按应用合并平台变体、工作流分组与搜索；不改变模板身份或记录数据。
 (function (root, factory) {
   const api = factory();
   root.NavioTemplateBrowser = api;

@@ -1,5 +1,5 @@
 // 运行：node editor/templates_test.js
-// 校验 editor/presets/ 官方模板库：信封与预设合法性、150B 往返、slug/ID 唯一、index.json 无漂移、
+// 校验 editor/presets/ 项目模板库：信封与预设合法性、150B 往返、slug/ID 唯一、index.json 无漂移、
 // 以及与固件出厂预设（src/mapping/Presets.cpp）的逐槽基线（2026-11-02 K10/K11 事故后固化）。
 "use strict";
 const fs = require("node:fs");

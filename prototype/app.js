@@ -71,7 +71,7 @@ let firmwareProgressTimer;
 let pendingAfterEdit = null;
 
 const editorScenes = [
-  ['local', '本地预设 · 待更新'], ['template', '官方模板'], ['device', '键盘预设 · 只读'],
+  ['local', '本地预设 · 待更新'], ['template', '项目模板'], ['device', '键盘预设 · 只读'],
   ['disconnected', '未连接设备'], ['full', '键盘已满 · 替换'],
 ];
 const firmwareScenes = [
@@ -91,7 +91,7 @@ function editingKeyboard() { return Boolean(state.editWorking && state.editConte
 function keyboardOriginal() { return devices.find(item => item.key === state.editSourceKey) || null; }
 function sourceLabel(preset) {
   if (state.editWorking) return `${state.editContext === 'device' ? '键盘预设' : '我的预设'} · 编辑中`;
-  if (preset.source === 'template') return '官方模板';
+  if (preset.source === 'template') return '项目模板';
   if (preset.source === 'device') return '键盘中的预设';
   return '我的预设';
 }
@@ -166,8 +166,8 @@ function renderLibrary() {
     return;
   }
   $('libraryContent').innerHTML = `<div class="library-heading"><h2>我的预设</h2></div>
-    <div class="preset-list">${users.length ? users.map(presetItem).join('') : '<div class="library-empty">从官方模板或键盘显式复制后，独立预设会保存在这里。</div>'}</div>
-    <div class="library-heading"><h2>官方模板</h2></div>
+    <div class="preset-list">${users.length ? users.map(presetItem).join('') : '<div class="library-empty">从项目模板或键盘显式复制后，独立预设会保存在这里。</div>'}</div>
+    <div class="library-heading"><h2>项目模板</h2></div>
     <div class="preset-list">${templates.map(presetItem).join('')}</div>`;
 }
 
@@ -268,7 +268,7 @@ function renderInspector() {
 }
 function readonlyNotice(preset) {
   const text = preset.source === 'template'
-    ? '官方模板为只读。复制到我的预设后即可自由修改，也可以直接安装到键盘。'
+    ? '项目模板为只读。复制到我的预设后即可自由修改，也可以直接安装到键盘。'
     : preset.source === 'device' ? '当前为只读。可在下方点击“编辑”，保存到键盘前原预设不会改变。'
       : '当前为只读。可在下方点击“编辑”，保存到我的预设后才会保留本次修改。';
   return `<div class="readonly-card"><p>${text}</p>${readonlyAction(preset)}</div>`;
@@ -313,7 +313,7 @@ function renderActionbar() {
   let label = '安装到键盘';
   let disabled = !state.connected;
   if (preset.source === 'template') {
-    title = '官方模板 · 只读';
+    title = '项目模板 · 只读';
     detail = linked ? `再次安装将更新键盘中的「${linked.name}」` : '可作为新预设安装，或先复制到我的预设';
   }
   if (preset.source === 'device') {
@@ -573,7 +573,7 @@ function applyEditorScene(scene) {
 function beginRename() {
   const preset = currentPreset();
   if (!state.editWorking) {
-    showToast(preset.source === 'template' ? '官方模板为只读，请先复制到我的预设' : '请先点击“编辑”进入修改状态');
+    showToast(preset.source === 'template' ? '项目模板为只读，请先复制到我的预设' : '请先点击“编辑”进入修改状态');
     return;
   }
   closePopovers();

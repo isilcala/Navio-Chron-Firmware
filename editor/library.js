@@ -1,4 +1,4 @@
-// 官方模板与用户预设分离、迁移和版本同步；浏览器挂到 NavioEditorLibrary。
+// 项目模板与用户预设分离、迁移和版本同步；浏览器挂到 NavioEditorLibrary。
 (function (root, factory) {
   const api = factory();
   root.NavioEditorLibrary = api;

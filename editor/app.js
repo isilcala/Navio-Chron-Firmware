@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-32';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-33';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-32';
+const ASSET_VERSION = '20261107-33';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -80,21 +80,21 @@ async function boot() {
       preset._readonly = true;
       preset._installedId = templateInstallations[preset.templateId] || null;
     });
-    if (!templates.length) throw new Error(loaded.errors[0] || '官方模板库为空');
+    if (!templates.length) throw new Error(loaded.errors[0] || '项目模板库为空');
     templateGroups = TB.buildTemplateGroups(templates);
     selectedKey = keyFor('template', defaultTemplate());
     userPresets = loadUserPresets();
     booted = true;
     renderEditor();
-    if (loaded.errors.length) toast(`跳过 ${loaded.errors.length} 套无效官方模板：${loaded.errors[0]}`, true);
+    if (loaded.errors.length) toast(`跳过 ${loaded.errors.length} 套无效项目模板：${loaded.errors[0]}`, true);
     else if (libraryLoadError) toast(`本地预设库读取失败：${libraryLoadError.message}。原数据未改动，本次修改不会保存。`, true);
     else if (librarySaveError) toast(`本地库已读取，但启动清理或模板决定未能保存：${librarySaveError.message}`, true);
     else if (quarantinedPresets.length) toast(`${quarantinedPresets.length} 套预设无法读取已跳过，原始数据已保留`, true);
   } catch (error) {
-    $('saveSummaryTitle').textContent = '官方模板加载失败';
+    $('saveSummaryTitle').textContent = '项目模板加载失败';
     $('saveSummaryDetail').textContent = error.message;
     $('writePreset').disabled = true;
-    toast('官方模板加载失败，页面功能不可用；请刷新重试', true);
+    toast('项目模板加载失败，页面功能不可用；请刷新重试', true);
   }
 }
 function persistLibrary(list) {
@@ -123,7 +123,7 @@ function loadUserPresets() {
       }
     }
     const synced = L.syncTemplates(loaded, templates, (preset, template) =>
-      confirm(`官方模板“${template.name}”已更新，是否用新版替换你的预设“${preset.name}”？`));
+      confirm(`项目模板“${template.name}”已更新，是否用新版替换你的预设“${preset.name}”？`));
     if (normalized || synced) {
       try { persistLibrary(loaded); }
       catch (error) { librarySaveError = error; }
@@ -206,7 +206,7 @@ function syncInstalledState() {
 
 function sourceLabel() {
   if (editSession) return `${editingKeyboard() ? '键盘预设' : '我的预设'} · 编辑中`;
-  return { template: '官方模板', local: '我的预设', device: '键盘中的预设' }[currentSource()];
+  return { template: '项目模板', local: '我的预设', device: '键盘中的预设' }[currentSource()];
 }
 function presetItem(preset, source, display = {}) {
   const key = keyFor(source, preset), active = display.active ?? key === selectedKey;
@@ -253,7 +253,7 @@ function renderLibrary() {
   $('resetLibrary').hidden = libraryTab !== 'library';
   $('templateSearchField').hidden = libraryTab !== 'library';
   $('templateSearchStatus').textContent = libraryTab === 'library' && templateQuery
-    ? `官方模板筛选出 ${applicationCount} 个应用` : '';
+    ? `项目模板筛选出 ${applicationCount} 个应用` : '';
   $('resetLibrary').textContent = libraryLoadError ? '备份并重建本地库' : '清空我的预设';
   $('resetLibrary').classList.toggle('recovery-action', Boolean(libraryLoadError || quarantinedPresets.length));
   if (!deviceClient && libraryTab === 'device') {
@@ -288,9 +288,9 @@ function renderLibrary() {
     <div class="preset-list">${group.items.map(templateFamilyItem).join('')}</div>
   </section>`).join('');
   $('libraryContent').innerHTML = `<div class="library-heading"><h2>我的预设</h2></div>
-    <div class="preset-list">${userPresets.length ? userPresets.map(preset => presetItem(preset, 'local')).join('') : '<div class="library-empty">从官方模板或键盘显式复制后，独立预设会保存在这里。</div>'}</div>
-    <div class="library-heading"><h2>官方模板</h2><span class="library-count">${applicationCount} 个应用</span></div>
-    ${applicationCount ? `<div class="template-groups">${templateGroupsHtml}</div>` : '<div class="library-empty">没有匹配的官方模板，请尝试其他关键词。</div>'}`;
+    <div class="preset-list">${userPresets.length ? userPresets.map(preset => presetItem(preset, 'local')).join('') : '<div class="library-empty">从项目模板或键盘显式复制后，独立预设会保存在这里。</div>'}</div>
+    <div class="library-heading"><h2>项目模板</h2><span class="library-count">${applicationCount} 个应用</span></div>
+    ${applicationCount ? `<div class="template-groups">${templateGroupsHtml}</div>` : '<div class="library-empty">没有匹配的项目模板，请尝试其他关键词。</div>'}`;
 }
 
 function focusSelector() {
@@ -528,7 +528,7 @@ function renderPresetHeader() {
   $('accentButton').style.background = accentHex(preset);
   $('accentInput').value = accentHex(preset);
   $('platformButton').innerHTML = `${PLATFORM[platformOf(preset)]} <span class="chevron" aria-hidden="true"></span>`;
-  $('platformButton').title = canSwitchPlatform ? '切换此官方模板的平台版本' : '';
+  $('platformButton').title = canSwitchPlatform ? '切换此项目模板的平台版本' : '';
   $('accentButton').disabled = readonly;
   $('platformButton').disabled = readonly && !canSwitchPlatform;
   $('platformPopover').querySelector('strong').textContent = templateItem ? '选择模板平台' : '平台与修饰键';
@@ -556,7 +556,7 @@ function renderActionbar() {
   $('writeResult').hidden = !persistentMessage;
   $('writeResult').textContent = persistentMessage?.text || '';
   $('writeResult').classList.toggle('error', Boolean(persistentMessage?.error));
-  let title = '官方模板 · 只读', detail = '可直接安装，或复制到我的预设后编辑', label = '安装到键盘';
+  let title = '项目模板 · 只读', detail = '可直接安装，或复制到我的预设后编辑', label = '安装到键盘';
   let disabled = !deviceClient || deviceBusy;
   if (source === 'local') {
     title = '已保存到我的预设';
@@ -997,7 +997,7 @@ document.addEventListener('visibilitychange', syncPreviewAnimation);
 
 function beginRename() {
   if (!editSession && currentSource() === 'template') {
-    toast('官方模板为只读，请先复制到我的预设');
+    toast('项目模板为只读，请先复制到我的预设');
     return;
   }
   if (!ensureEditSession()) return;
@@ -1124,7 +1124,7 @@ $('resetLibrary').addEventListener('click', () => requestLeave(() => {
   $('resetTitle').textContent = recovering ? '备份并重建本地库' : '清空我的预设';
   $('resetDescription').textContent = recovering
     ? '将先下载无法读取的原始本地库，再写入空库。原始数据会被替换。'
-    : `将删除浏览器中的 ${userPresets.length} 套我的预设。官方模板和键盘内容不会改变。`;
+    : `将删除浏览器中的 ${userPresets.length} 套我的预设。项目模板和键盘内容不会改变。`;
   $('confirmReset').textContent = recovering ? '备份并重建' : '确认清空';
   openDialog('resetDialog');
 }));

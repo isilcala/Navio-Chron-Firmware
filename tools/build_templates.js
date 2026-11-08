@@ -1,4 +1,4 @@
-// 生成 editor/presets/index.json：浏览器不能列目录，官方模板索引在构建期生成并提交入库。
+// 生成 editor/presets/index.json：浏览器不能列目录，项目模板索引在构建期生成并提交入库。
 // 贡献流程：在编辑器里导出 .navio.json → 放入 editor/presets/（补 metadata.templateId/order）→ 运行本脚本 → 提 PR。
 // 运行：node tools/build_templates.js
 "use strict";
@@ -20,4 +20,4 @@ const templates = files.map(file => {
 
 const index = { version: 1, templates };
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
-console.log(`index.json 已生成：${templates.length} 套官方模板`);
+console.log(`index.json 已生成：${templates.length} 套项目模板`);
