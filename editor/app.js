@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-18';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-21';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-18';
+const ASSET_VERSION = '20261107-21';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.25/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';

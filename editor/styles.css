@@ -137,13 +137,16 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .rename-action.confirm { color: var(--success); }
 .rename-action.cancel { color: var(--danger); }
 .rename-error { position: absolute; top: 44px; left: 38px; z-index: 35; width: 270px; padding: 10px 12px; border-radius: 11px; background: var(--surface); color: var(--danger); box-shadow: var(--raised); font-size: 12px; }
-.theme-swatch { flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); box-shadow: var(--raised-small); cursor: pointer; }
-.theme-swatch:hover { box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); }
-.theme-swatch:active { box-shadow: var(--inset-small); }
-.platform-button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: 30px; padding: 5px 9px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: var(--raised-small); color: var(--muted); font-size: 11px; cursor: pointer; }
+.theme-swatch { flex: none; width: 28px; height: 12px; padding: 0; border: 0; border-radius: 6px; background: var(--accent); box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); cursor: pointer; transform: translateY(2px); }
+.theme-swatch:hover { box-shadow: 1px 1px 3px var(--shadow-dark), -1px -1px 3px var(--shadow-light); }
+.theme-swatch:active { box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light); }
+.theme-swatch:disabled { box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); cursor: default; opacity: 1; }
+.platform-button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: 30px; padding: 5px 9px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: var(--raised-small); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
 .platform-button:active { box-shadow: var(--inset-small); }
+.platform-button:disabled { color: var(--text); cursor: default; opacity: 1; }
 .platform-button .chevron { width: 6px; height: 6px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
 .popover-anchor { position: relative; flex: none; }
+.platform-anchor { align-self: baseline; transform: translateY(7px); }
 .popover { position: absolute; top: calc(100% + 12px); left: 0; z-index: 25; width: 240px; padding: 16px; border-radius: 15px; background: var(--surface); box-shadow: var(--raised-large); }
 .popover > strong { font-size: 13px; }
 .popover > p { margin: 4px 0 13px; color: var(--muted); font-size: 11px; }
@@ -182,12 +185,10 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .slot-action { fill: var(--text); font-size: 16px; font-weight: 650; pointer-events: none; }
 .slot-action.is-empty { opacity: 0; }
 .slot:hover .slot-action.is-empty, .slot:focus-visible .slot-action.is-empty, .slot.selected .slot-action.is-empty { opacity: 1; }
-.knob-ring { fill: none; stroke: var(--surface-deep); stroke-width: 3; pointer-events: none; }
 .key-led { display: none; pointer-events: none; }
 .lighting-mode .key-led { display: block; }
 .device-svg.lighting-mode .slot-action, .device-svg.lighting-mode .slot-name,
-.device-svg.lighting-mode .control-name, .device-svg.lighting-mode .side-key-label, .device-svg.lighting-mode .status-led-light { display: none; }
-.side-key-label { fill: var(--muted); font-size: 12px; font-weight: 650; pointer-events: none; }
+.device-svg.lighting-mode .control-name, .device-svg.lighting-mode .status-led-light { display: none; }
 .canvas-hint { display: flex; align-items: center; justify-content: center; gap: 7px; padding-top: 8px; color: var(--muted); font-size: 12px; }
 .hint-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: var(--raised-small); }
 .encoder-rotation-group .action-card + .action-card { margin-top: 14px; padding-top: 14px; box-shadow: none; }

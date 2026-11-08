@@ -29,7 +29,7 @@ function encoderDef(encoder, selected, press, cw, ccw) {
   const classes = ['slot', 'encoder-slot', selected ? 'selected' : ''].filter(Boolean).join(' ');
   const hit = id === 'Wheel'
     ? `<rect class="slot-hit" x="${x - r * 0.55}" y="${y - r * 1.12}" width="${r * 1.1}" height="${r * 2.24}" rx="20"/>`
-    : `<circle class="slot-hit" cx="${x}" cy="${y}" r="${r}"/><circle class="knob-ring" cx="${x}" cy="${y}" r="${r - 18}"/>`;
+    : `<circle class="slot-hit" cx="${x}" cy="${y}" r="${r}"/>`;
   const nameY = id === 'Wheel' ? y - r * 0.72 : y - r * 0.45;
   return `<g class="${classes}" data-input="encoder" data-id="${id}" tabindex="0" role="button" aria-label="${name}：逆时针 ${escapeHtml(ccw)}，顺时针 ${escapeHtml(cw)}，下压 ${escapeHtml(press)}">
     <title>${name}：逆时针 ${escapeHtml(ccw)} / 顺时针 ${escapeHtml(cw)} / 下压 ${escapeHtml(press)}</title>
@@ -86,7 +86,6 @@ export function renderDevice(container, { actions, actionLabel, selected, accent
     </g>
     <g class="side-key slot locked" data-input="btn" data-index="15" tabindex="0" role="button" aria-label="SideKey，全局保留">
       <rect class="slot-hit" x="38" y="245" width="42" height="88" rx="16"/>
-      <text class="side-key-label" x="60" y="289" text-anchor="middle" transform="rotate(-90 60 289)">SideKey</text>
     </g>
     ${buttonMarkup}
     ${encoderMarkup}
