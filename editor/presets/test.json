@@ -5,7 +5,7 @@
   "metadata": {
     "author": "official",
     "templateId": "test",
-    "order": 80,
+    "order": 280,
     "description": "冒烟测试：按键出数字/符号，编码器出音量/方向/滚轮，用于逐路验证"
   },
   "preset": {

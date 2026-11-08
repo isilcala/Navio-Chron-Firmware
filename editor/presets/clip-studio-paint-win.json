@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "clip-studio-paint-win",
+    "order": 220,
+    "description": "Clip Studio Paint Windows：参考 TourBox 笔刷/第二属性/缩放布局；B/P/E、Ctrl+Y、Ctrl+Shift+N、Ctrl+[ ] 不透明度；不预设需自定义的画布旋转"
+  },
+  "preset": {
+    "id": 19,
+    "name": "Clip Studio Paint",
+    "accent": [70, 175, 220],
+    "rgbMode": 1,
+    "platform": "win",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 5, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 8, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 19, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 28, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 3, "code": 17, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 4, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 27, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 6, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 39, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 45, "wheelDy": 0 }
+    ]
+  }
+}

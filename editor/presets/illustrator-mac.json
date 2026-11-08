@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "illustrator-mac",
+    "order": 150,
+    "description": "Illustrator macOS：与 Win 版同位；V/A/P、Cmd+G、[ ] 笔刷、Cmd+Option+[ ] 选上下对象、Cmd+=/- 缩放（Adobe 官方键位）"
+  },
+  "preset": {
+    "id": 24,
+    "name": "Illustrator",
+    "accent": [255, 154, 0],
+    "rgbMode": 1,
+    "platform": "mac",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 25, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 4, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 19, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 10, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 10, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 4, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 27, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 39, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 30, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 12, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 12, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 45, "wheelDy": 0 }
+    ]
+  }
+}

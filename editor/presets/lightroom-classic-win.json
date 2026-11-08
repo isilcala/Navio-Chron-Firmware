@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "lightroom-classic-win",
+    "order": 180,
+    "description": "Lightroom Classic Windows：参考 TourBox 选片/调色工作流；P/X/U、G/E/D、R、\\ 前后对比、. / , 选参数、+/- 调当前滑块（Adobe 官方键位）"
+  },
+  "preset": {
+    "id": 17,
+    "name": "Lightroom Classic",
+    "accent": [122, 184, 214],
+    "rgbMode": 1,
+    "platform": "win",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 19, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 27, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 24, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 3, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 21, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 49, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 10, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 7, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 8, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 45, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 55, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 54, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 45, "wheelDy": 0 }
+    ]
+  }
+}

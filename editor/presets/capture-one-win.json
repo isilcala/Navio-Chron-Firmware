@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "capture-one-win",
+    "order": 200,
+    "description": "Capture One Windows：参考 TourBox 选片/局部调整工作流；0/3/5 评分、Y 前后对比、B/E 笔刷、[ ] 大小、Shift+[ ] 硬度、Ctrl+=/- 缩放"
+  },
+  "preset": {
+    "id": 25,
+    "name": "Capture One",
+    "accent": [217, 79, 109],
+    "rgbMode": 1,
+    "platform": "win",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 39, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 32, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 34, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 3, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 28, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 6, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 16, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 5, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 8, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 39, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 2, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 2, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 45, "wheelDy": 0 }
+    ]
+  }
+}

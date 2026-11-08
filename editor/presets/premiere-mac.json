@@ -5,15 +5,15 @@
   "metadata": {
     "author": "official",
     "templateId": "premiere-mac",
-    "order": 60,
+    "order": 80,
     "description": "Adobe Premiere macOS：与 Win 版同位，Cmd 系修饰；⇧+前向删除=波纹删除"
   },
   "preset": {
     "id": 8,
     "name": "Premiere",
     "accent": [
-      140,
-      120,
+      234,
+      119,
       255
     ],
     "rgbMode": 1,

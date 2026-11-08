@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "krita-win",
+    "order": 240,
+    "description": "Krita Windows：沿用 TourBox/CSP 笔刷/旋转/缩放布局；B/E/M、Insert 新建绘画图层、[ ] 笔刷、4/6 旋转、5 复位、2 适配页面"
+  },
+  "preset": {
+    "id": 27,
+    "name": "Krita",
+    "accent": [124, 131, 232],
+    "rgbMode": 1,
+    "platform": "win",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 5, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 8, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 16, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 3, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 73, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 27, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 34, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 31, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 48, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 47, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 35, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 33, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 45, "wheelDy": 0 }
+    ]
+  }
+}

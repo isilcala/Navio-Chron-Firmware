@@ -11,7 +11,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] Matrix keys, 3 encoders, WS2812 lighting and battery sensing
 - [x] USB HID keyboard, mouse, consumer control and vendor interface
 - [x] BLE HID with pairing, reconnect and USB/BLE auto-selection
-- [x] JianYing (CapCut) and DaVinci Resolve presets for Windows, verified over USB and BLE
+- [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
 - [x] Dynamic presets in NVS and Navio Config Protocol v2
 - [x] Dual-slot USB OTA with SHA-256, rollback and local self-confirm
 - [x] Unified Web flasher: OTA, demo migration and BOOT/ROM recovery,
@@ -19,7 +19,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] Browser preset editor with local library and full device management, verified on hardware;
       firmware version label and update notices use HELLO and the deployed release manifest
 - [x] Official preset templates as per-preset JSON data files with a generated index and CI validation
-- [x] Official template library at 9 presets: Premiere Win/Mac, Resolve Win/Mac, JianYing Win/Mac, Procreate (iPad), Test, F13 Macro (Mac/iPad variants pending on-app tuning)
+- [x] Official template library at 28 presets: twelve Win/Mac app families, Final Cut Pro (Mac), Procreate (iPad), F13 Macro and Test; brand-consistent accents (on-app tuning pending)
 - [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery
 - [x] Cross-page, accessibility, responsive, online and hardware WebHID UX regression
 - [x] Animated Web RGB previews and graphical effect cards for nine active effects plus an off mode; no hardware preview protocol

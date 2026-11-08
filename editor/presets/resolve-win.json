@@ -5,7 +5,7 @@
   "metadata": {
     "author": "official",
     "templateId": "resolve-win",
-    "order": 30,
+    "order": 50,
     "description": "DaVinci Resolve Windows：I/O 打点、Ctrl+\\ 添加编辑、JKL 刮擦、Ctrl+Y 重做（官方文档核实）"
   },
   "preset": {

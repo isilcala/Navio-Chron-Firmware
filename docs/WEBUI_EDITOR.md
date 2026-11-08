@@ -93,8 +93,13 @@
 - 旧 `originTemplateId` 只用于已有用户的模板升级决定；新的显式来源副本不继承模板更新绑定。
 - 官方模板以 `editor/presets/` 下“一预设一 JSON”维护，索引由 `tools/build_templates.js` 生成并提交；
   单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-- 官方模板共 9 套：JianYing、Resolve、Premiere 各有 Win/Mac，另有 Procreate iPad、Test、F13 Macro。
-  显示名不带平台词，平台由 chip 呈现；Mac/iPad 的 Cmd=左 GUI、Option=Alt。
+- 官方模板共 28 套：JianYing、CapCut、Resolve、Premiere、After Effects、Blender、Illustrator、Photoshop、
+  Lightroom Classic、Capture One、Clip Studio Paint、Krita 各有 Win/Mac，另有 Final Cut Pro Mac、Procreate iPad、F13 Macro、Test。
+  顺序按剪辑/动效/3D、矢量/修图、绘画、工具排列；显示名不带平台词，平台由 chip 呈现；Mac/iPad 的 Cmd=左 GUI、Option=Alt。
+- 主题色采用软件品牌或图标的识别色，同软件跨平台变体保持一致，Test 固定纯白；不使用随机配色。
+  既有固件出厂预设的 accent 不随网页模板整理而改变。
+- 应用键位优先参考公开 TourBox 等控制器模板，再按目标软件官方默认快捷键校对；只映射现有 HID 动作，
+  不承诺 TourBox 专有插件、动态面板、宏或鼠标拖动能力。新模板仍需目标 App 实测微调。
 - `platform` 随 150B 记录 byte 13 落盘；设备图、动作面板和修饰键勾选框统一跟随，固件不按平台分支。
 - 未知 schemaVersion 或整库损坏仍拒绝加载，原始存储保持不变；“备份并重建本地库”先下载原始数据，再经页面对话框确认。
 - 单个非法条目按条隔离，其余预设照常可用；隔离条目不进入编辑或设备操作，原始字段在每次保存时原样写回。

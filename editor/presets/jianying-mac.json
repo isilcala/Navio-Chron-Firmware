@@ -12,9 +12,9 @@
     "id": 5,
     "name": "JianYing",
     "accent": [
-      70,
-      200,
-      200
+      0,
+      170,
+      170
     ],
     "rgbMode": 1,
     "platform": "mac",

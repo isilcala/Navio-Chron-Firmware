@@ -5,16 +5,16 @@
   "metadata": {
     "author": "official",
     "templateId": "procreate",
-    "order": 70,
+    "order": 260,
     "description": "Procreate iPad：⌘Z/⇧⌘Z、B/E 画笔橡皮、L/C/S/V 面板与工具、X 换色、Space=QuickMenu、[ ] 笔刷大小（官方手册）"
   },
   "preset": {
     "id": 9,
     "name": "Procreate",
     "accent": [
-      40,
-      190,
-      110
+      176,
+      112,
+      232
     ],
     "rgbMode": 1,
     "platform": "ipad",

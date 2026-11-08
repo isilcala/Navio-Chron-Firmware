@@ -67,11 +67,26 @@ for (const { file, json } of entries) {
 const loaded = T.buildTemplates(entries);
 equal(loaded.errors.length, 0, `all ${files.length} official templates assemble without errors`);
 // 数量下限守卫防误删；目录/索引不一致的精确拦截由下方漂移检查负责（报错带修复指引）
-assert(loaded.templates.length >= 9, "official library shrank below 9 templates — intentional?");
-ok("official library holds at least 9 templates");
+assert(loaded.templates.length >= 28, "official library shrank below 28 templates — intentional?");
+ok("official library holds at least 28 templates");
 const orders = loaded.templates.map(t => t.templateId);
 equal(orders[0], "jianying-win", "display order starts with jianying-win");
 equal(orders.includes("procreate"), true, "procreate template present");
+const expandedApps = ["capcut-win", "capcut-mac", "final-cut-pro", "after-effects-win", "after-effects-mac",
+  "blender-win", "blender-mac", "illustrator-win", "illustrator-mac",
+  "photoshop-win", "photoshop-mac", "lightroom-classic-win", "lightroom-classic-mac", "capture-one-win", "capture-one-mac",
+  "clip-studio-paint-win", "clip-studio-paint-mac", "krita-win", "krita-mac"];
+for (const slug of expandedApps)
+  assert(orders.includes(slug), `expanded official template missing: ${slug}`);
+ok("all 19 expanded app templates present");
+equal(orders.at(-2), "f13-macro", "utility templates follow app templates");
+equal(orders.at(-1), "test", "test template is last");
+for (const slug of ["jianying", "capcut", "resolve", "premiere", "after-effects", "blender", "illustrator", "photoshop", "lightroom-classic", "capture-one", "clip-studio-paint", "krita"]) {
+  const win = loaded.templates.find(t => t.templateId === `${slug}-win`);
+  const mac = loaded.templates.find(t => t.templateId === `${slug}-mac`);
+  assert(win && mac, `platform pair exists: ${slug}`);
+  equal(win.accent.join(","), mac.accent.join(","), `platform pair shares brand accent: ${slug}`);
+}
 equal(loaded.templates.find(t => t.templateId === "test").accent.join(","), "255,255,255", "Test template uses pure white accent");
 const firmwareSource = fs.readFileSync(path.join(__dirname, "../src/mapping/Presets.cpp"), "utf8");
 assert(/kPresetTest\s*=\s*\{\s*"Test",\s*\{255,\s*255,\s*255\}/.test(firmwareSource), "firmware Test preset uses pure white accent");
@@ -105,6 +120,25 @@ for (const [slug, expect] of Object.entries(firmware)) {
     assert(JSON.stringify(template.actions[+slot]) === JSON.stringify(action),
       `firmware baseline ${slug} slot ${slot}`);
   ok(`firmware baseline slot-identical: ${slug}`);
+}
+// 第二批关键槽位：视图控制、画笔属性与容易混淆的主键盘数字键
+const secondBatch = {
+  "blender-win": { 16: k(0, 0x5E), 17: k(0, 0x5C), 20: k(0, 0x57), 21: k(0, 0x56) },
+  "blender-mac": { 16: k(0, 0x5E), 17: k(0, 0x5C), 20: k(0, 0x57), 21: k(0, 0x56) },
+  "illustrator-win": { 13: k(1, 0x27), 14: k(1, 0x1E), 18: k(5, 0x30) },
+  "illustrator-mac": { 13: k(8, 0x27), 14: k(8, 0x1E), 18: k(12, 0x30) },
+  "capture-one-win": { 16: k(0, 0x30), 18: k(2, 0x30), 20: k(1, 0x2E) },
+  "capture-one-mac": { 16: k(0, 0x30), 18: k(2, 0x30), 20: k(8, 0x2E) },
+  "krita-win": { 6: k(0, 0x49), 13: k(0, 0x22), 14: k(0, 0x1F) },
+  "krita-mac": { 6: k(0, 0x49), 13: k(0, 0x22), 14: k(0, 0x1F) },
+};
+for (const [slug, expect] of Object.entries(secondBatch)) {
+  const template = loaded.templates.find(t => t.templateId === slug);
+  assert(template, `second-batch baseline template missing: ${slug}`);
+  for (const [slot, action] of Object.entries(expect))
+    assert(JSON.stringify(template.actions[+slot]) === JSON.stringify(action),
+      `second-batch baseline ${slug} slot ${slot}`);
+  ok(`second-batch baseline slot-identical: ${slug}`);
 }
 // 平台变体与箭头簇抽查（K10=← K11=↓ K12=→，硬件笔记 2026-10-26 实测）
 for (const template of loaded.templates) {

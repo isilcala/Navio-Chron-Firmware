@@ -5,7 +5,7 @@
   "metadata": {
     "author": "official",
     "templateId": "f13-macro",
-    "order": 90,
+    "order": 270,
     "description": "F13-F24 宏：按键映射到 F13..F24，在剪辑软件里自定义快捷键即可用"
   },
   "preset": {

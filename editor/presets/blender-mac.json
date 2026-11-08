@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "blender-mac",
+    "order": 130,
+    "description": "Blender macOS：与 Win 版同位，Cmd 可替代 Ctrl；G/R/S、Shift+A、Tab、X；小键盘 4/6、8/2 离散旋转，+/- 缩放，Home 全景"
+  },
+  "preset": {
+    "id": 22,
+    "name": "Blender",
+    "accent": [245, 121, 42],
+    "rgbMode": 1,
+    "platform": "mac",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 10, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 21, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 22, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 10, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 27, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 2, "code": 4, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 43, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 98, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 74, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 94, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 92, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 90, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 96, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 87, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 86, "wheelDy": 0 }
+    ]
+  }
+}

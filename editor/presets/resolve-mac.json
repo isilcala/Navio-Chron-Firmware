@@ -5,16 +5,16 @@
   "metadata": {
     "author": "official",
     "templateId": "resolve-mac",
-    "order": 40,
+    "order": 60,
     "description": "DaVinci Resolve macOS：与 Win 版同位；⌘\\ 添加编辑、⇧⌘Z 重做、⌘=/⌘- 时间线缩放"
   },
   "preset": {
     "id": 6,
     "name": "Resolve",
     "accent": [
-      230,
-      130,
-      30
+      200,
+      90,
+      0
     ],
     "rgbMode": 1,
     "platform": "mac",

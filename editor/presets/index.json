@@ -12,39 +12,134 @@
       "order": 20
     },
     {
+      "file": "capcut-win.json",
+      "templateId": "capcut-win",
+      "order": 30
+    },
+    {
+      "file": "capcut-mac.json",
+      "templateId": "capcut-mac",
+      "order": 40
+    },
+    {
       "file": "resolve-win.json",
       "templateId": "resolve-win",
-      "order": 30
+      "order": 50
     },
     {
       "file": "resolve-mac.json",
       "templateId": "resolve-mac",
-      "order": 40
+      "order": 60
     },
     {
       "file": "premiere-win.json",
       "templateId": "premiere-win",
-      "order": 50
+      "order": 70
     },
     {
       "file": "premiere-mac.json",
       "templateId": "premiere-mac",
-      "order": 60
+      "order": 80
+    },
+    {
+      "file": "final-cut-pro.json",
+      "templateId": "final-cut-pro",
+      "order": 90
+    },
+    {
+      "file": "after-effects-win.json",
+      "templateId": "after-effects-win",
+      "order": 100
+    },
+    {
+      "file": "after-effects-mac.json",
+      "templateId": "after-effects-mac",
+      "order": 110
+    },
+    {
+      "file": "blender-win.json",
+      "templateId": "blender-win",
+      "order": 120
+    },
+    {
+      "file": "blender-mac.json",
+      "templateId": "blender-mac",
+      "order": 130
+    },
+    {
+      "file": "illustrator-win.json",
+      "templateId": "illustrator-win",
+      "order": 140
+    },
+    {
+      "file": "illustrator-mac.json",
+      "templateId": "illustrator-mac",
+      "order": 150
+    },
+    {
+      "file": "photoshop-win.json",
+      "templateId": "photoshop-win",
+      "order": 160
+    },
+    {
+      "file": "photoshop-mac.json",
+      "templateId": "photoshop-mac",
+      "order": 170
+    },
+    {
+      "file": "lightroom-classic-win.json",
+      "templateId": "lightroom-classic-win",
+      "order": 180
+    },
+    {
+      "file": "lightroom-classic-mac.json",
+      "templateId": "lightroom-classic-mac",
+      "order": 190
+    },
+    {
+      "file": "capture-one-win.json",
+      "templateId": "capture-one-win",
+      "order": 200
+    },
+    {
+      "file": "capture-one-mac.json",
+      "templateId": "capture-one-mac",
+      "order": 210
+    },
+    {
+      "file": "clip-studio-paint-win.json",
+      "templateId": "clip-studio-paint-win",
+      "order": 220
+    },
+    {
+      "file": "clip-studio-paint-mac.json",
+      "templateId": "clip-studio-paint-mac",
+      "order": 230
+    },
+    {
+      "file": "krita-win.json",
+      "templateId": "krita-win",
+      "order": 240
+    },
+    {
+      "file": "krita-mac.json",
+      "templateId": "krita-mac",
+      "order": 250
     },
     {
       "file": "procreate.json",
       "templateId": "procreate",
-      "order": 70
-    },
-    {
-      "file": "test.json",
-      "templateId": "test",
-      "order": 80
+      "order": 260
     },
     {
       "file": "f13-macro.json",
       "templateId": "f13-macro",
-      "order": 90
+      "order": 270
+    },
+    {
+      "file": "test.json",
+      "templateId": "test",
+      "order": 280
     }
   ]
 }

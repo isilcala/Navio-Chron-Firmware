@@ -104,11 +104,13 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    跨页、可访问性、窄屏/缩放、Pages 与线上验收通过；真机正式编辑器 WebHID 读取及原内容写回验证通过；
    独立审查后续修复 ID 碰撞覆盖、刷写失败恢复、固件样式、Wheel 修饰键、焦点与缓存，293 项 Node 与 13 组浏览器回归通过；
    网页 RGB 图形化选择与动画预览已完成（D29），23 项引擎检查通过，不开发硬件 LED_PREVIEW
-2. 预设扩展：Premiere Win/Mac、Resolve/剪映 Mac、Procreate(iPad) 已入编辑器官方模板库
-   （共 9 套，presets/ 一预设一 JSON；平台入 150B 记录 byte 13（D24），显示名不带平台词、
-   chip 呈现，Cmd=GUI 修饰；快捷键按官方文档填写，待目标 App 实测微调；
-   平台字节改动需重刷固件）；
-   Final Cut 等更多模板待 D 阶段后评估，Android 平台待真实需求与实测快捷键
+2. 预设扩展：官方模板库共 28 套：剪映/CapCut/Resolve/Premiere/After Effects/Blender/Illustrator/
+   Photoshop/Lightroom Classic/Capture One/Clip Studio Paint/Krita 各 Win/Mac，
+   另有 Final Cut Pro Mac、Procreate iPad、Test、F13 Macro；
+   presets/ 一预设一 JSON，平台入 150B 记录 byte 13（D24），显示名不带平台词、chip 呈现，Cmd=GUI 修饰；
+   两批新增模板均参考公开 TourBox 布局并核对默认快捷键，主题色按品牌识别色且跨平台一致；
+   各套快捷键待目标 App 实测微调，REAPER、SAI/MediBang 与 iPad 变体等待后续评估，
+   Android 平台待真实需求与实测快捷键
 3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
 4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
 

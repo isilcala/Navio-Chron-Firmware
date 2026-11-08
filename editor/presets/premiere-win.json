@@ -5,16 +5,16 @@
   "metadata": {
     "author": "official",
     "templateId": "premiere-win",
-    "order": 50,
+    "order": 70,
     "description": "Adobe Premiere Windows：I/O 打点、Ctrl+K 添加编辑、Shift+Delete 波纹删除、=/- 缩放、\\ 序列适配、JKL（官方默认键位）"
   },
   "preset": {
     "id": 7,
     "name": "Premiere",
     "accent": [
-      110,
-      90,
-      230
+      234,
+      119,
+      255
     ],
     "rgbMode": 1,
     "platform": "win",
