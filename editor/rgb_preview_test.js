@@ -121,11 +121,16 @@ test('rainbow marquee changes hue over time while retaining its tail', () => {
   assert.notDeepEqual(first[R.KEY_ORDER[0]], second[R.KEY_ORDER[0]]);
   assert.equal(brightness(second[R.KEY_ORDER[1]]) > 0, true);
 });
-test('thumbnail marquee wraps after ten visible positions without hidden steps', () => {
-  assert.equal(R.thumbnailTime(8, 10800), 10800);
-  assert.equal(R.thumbnailTime(8, 12000), 0);
-  assert.equal(R.thumbnailTime(9, 12000), 0);
-  assert.equal(R.thumbnailTime(4, 12000), 12000);
+test('marquee follows all twelve physical positions and wraps naturally', () => {
+  for (const mode of [8, 9]) {
+    const preview = R.createPreview({ mode, accent });
+    R.KEY_ORDER.forEach((key, position) => {
+      assert.equal(brightness(preview.sample(position * R.MARQUEE_STEP_MS)[key]), 255);
+    });
+    const start = preview.sample(0), wrapped = preview.sample(R.MARQUEE_STEP_MS * R.KEY_COUNT);
+    assert.deepEqual(wrapped.map(brightness), start.map(brightness));
+    if (mode === 8) assert.deepEqual(wrapped, start);
+  }
 });
 test('restart clears held keys and restarts the effect timeline', () => {
   const preview = R.createPreview({ mode: 8, accent });

@@ -80,9 +80,9 @@ export function renderDevice(container, { actions, actionLabel, selected, accent
     <rect class="hardware-shell" x="55" y="45" width="890" height="650" rx="48"/>
     <text class="device-brand" x="105" y="86">navio chron</text>
     <g class="status-leds" aria-label="设备状态指示灯">
-      ${statusLed(760, '电源指示灯：显示电量与低电提示', '#8995a3')}
-      ${statusLed(795, '连接状态指示灯：显示 USB、蓝牙连接或配对状态', '#187c6b')}
-      ${statusLed(830, '当前预设指示灯：显示当前预设的主题色', ledColor)}
+      ${statusLed(760, '上方电源指示灯：显示电量与低电提示', '#8995a3')}
+      ${statusLed(795, '上方连接指示灯：显示 USB、蓝牙连接或配对状态', '#187c6b')}
+      ${statusLed(830, '上方预设指示灯：显示当前预设的主题色', ledColor)}
     </g>
     <g class="side-key slot locked" data-input="btn" data-index="15" tabindex="0" role="button" aria-label="SideKey，全局保留">
       <rect class="slot-hit" x="38" y="245" width="42" height="88" rx="16"/>

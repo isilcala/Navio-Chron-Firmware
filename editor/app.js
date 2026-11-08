@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-28';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-31';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-28';
+const ASSET_VERSION = '20261107-31';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -25,6 +25,7 @@ let previewEngine = null, previewEngineKey = '', previewElapsed = 0, previewLast
 let previewFrame = 0, previewPlaying = !matchMedia('(prefers-reduced-motion: reduce)').matches, previewSpeed = 1;
 let previewSeed = 0x6D2B79F5, previewHeld = new Set();
 let thumbnailEngines = new Map(), thumbnailSignature = '', thumbnailElapsed = 0, thumbnailPulseStates = new Map();
+let previewDeviceLeds = [], thumbnailLeds = new Map();
 
 for (const id of ['flashLink', 'firmwareFlashLink']) $(id).href = FLASHER_URL;
 for (const dialog of document.querySelectorAll('dialog')) {
@@ -320,7 +321,7 @@ function paintPreviewLed(element, color, glow = true) {
 }
 function samplePreview(now, thumbnailNow = now) {
   const colors = ensurePreviewEngine().sample(now);
-  $('deviceStage').querySelectorAll('.key-slot .key-led').forEach((led, index) => paintPreviewLed(led, colors[index]));
+  previewDeviceLeds.forEach((led, index) => paintPreviewLed(led, colors[index]));
   for (const [mode, engine] of thumbnailEngines) {
     let frame;
     if ([1, 2].includes(mode)) {
@@ -328,15 +329,15 @@ function samplePreview(now, thumbnailNow = now) {
       if (!state) { state = { cycle: -1, key: 0, releaseAt: null }; thumbnailPulseStates.set(mode, state); }
       const cycle = Math.floor(thumbnailNow / 2000);
       if (state.cycle !== cycle) {
-        state.cycle = cycle; state.key = cycle % 12;
+        state.cycle = cycle; state.key = cycle % RGB.KEY_COUNT;
         engine.press(state.key, cycle * 2000); state.releaseAt = cycle * 2000 + 500;
       }
       if (state.releaseAt !== null && thumbnailNow >= state.releaseAt) {
         engine.release(state.key, state.releaseAt); state.releaseAt = null;
       }
       frame = engine.sample(thumbnailNow);
-    } else frame = engine.sample(RGB.thumbnailTime(mode, thumbnailNow));
-    document.querySelectorAll(`[data-effect-thumb="${mode}"] i`).forEach((led, index) => paintPreviewLed(led, frame[index], false));
+    } else frame = engine.sample(thumbnailNow);
+    thumbnailLeds.get(mode)?.forEach(led => paintPreviewLed(led, frame[Number(led.dataset.key)], false));
   }
 }
 function previewTick(now) {
@@ -346,7 +347,10 @@ function previewTick(now) {
   previewFrame = requestAnimationFrame(previewTick);
 }
 function syncPreviewAnimation() {
+  // 离开灯光页即停止动画；映射页的局部更新可重绘设备，重新进入时在此重建缓存。
   cancelAnimationFrame(previewFrame); previewFrame = 0;
+  previewDeviceLeds = [...$('deviceStage').querySelectorAll('.key-slot .key-led')];
+  thumbnailLeds = new Map([...thumbnailEngines.keys()].map(mode => [mode, [...document.querySelectorAll(`[data-effect-thumb="${mode}"] i`)]]));
   if (workspaceTab !== 'lighting') return;
   const engine = ensurePreviewEngine();
   samplePreview(previewPlaying ? previewElapsed : engine.representativeTime(), thumbnailElapsed);
@@ -429,16 +433,13 @@ function inspectorHeading(label, title, description, editable = true) {
   }
   return `<div class="inspector-heading"><div class="inspector-heading-copy"><span class="selection-label">${label}</span><h2>${title}</h2><p>${description}</p></div>${action}</div>`;
 }
-const RGB_DETAILS = {
-  0: '关闭全部按键灯，状态灯保持原功能', 1: '按住保持主题色，松开后 500ms 渐隐', 2: '每键独立随机色，松开渐隐',
-  3: '全部按键持续显示主题色', 4: '9 秒柔和呼吸周期', 5: '每 9 秒一轮随机色呼吸',
-  6: '16 秒同步色相周期', 7: '16 秒外缘流动周期',
-  8: '14.4 秒外缘循环，亮头带三颗拖尾', 9: '14.4 秒外缘循环，16 秒色相周期',
-};
-const THUMB_RING_SLOTS = [0, 1, 2, 3, 7, 11, 10, 9, 8, 4];
+const THUMB_RING_SLOTS = [0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4];
 function thumbnailCells() {
-  const cells = Array.from({ length: 12 }, (_, index) => `<b style="order:${index}"></b>`);
-  THUMB_RING_SLOTS.forEach((slot, key) => { cells[slot] = `<i data-key="${key}" style="order:${slot}"></i>`; });
+  const cells = Array.from({ length: 16 }, (_, index) => `<b style="order:${index}"></b>`);
+  THUMB_RING_SLOTS.forEach((slot, position) => {
+    const key = RGB.KEY_ORDER[position];
+    cells[slot] = `<i data-key="${key}" style="order:${slot}"></i>`;
+  });
   return cells.join('');
 }
 function previewControls(mode) {
@@ -466,10 +467,10 @@ function renderLighting(preset) {
       <strong>${mode.label}</strong><small>${RGB.MODE_COLORS[mode.value]}</small></label>`;
   }).join('')}</div></section>`).join('');
   return `${inspectorHeading('整套预设', '灯光效果', '选择按键灯的表现方式')}
-    <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${RGB_DETAILS[preset.rgbMode]}</span></div>
+    <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${selectedMode.detail}</span></div>
     ${previewControls(preset.rgbMode)}
     <div class="effect-groups">${groups}</div>
-    <p class="lighting-note">LED0–LED2 状态灯不受影响。网页预览不代表键盘已实时更新。</p>`;
+    <p class="lighting-note">上方电源、连接和预设指示灯不受影响。网页预览不代表键盘已实时更新。</p>`;
 }
 function renderInspector() {
   const preset = currentPreset();
@@ -534,7 +535,7 @@ function renderActionbar() {
   }
   if (source === 'device') {
     title = '键盘中的只读预设';
-    detail = '在右栏点击编辑后开始修改，保存前键盘不会改变';
+    detail = '可直接修改，保存前键盘不会改变';
     disabled = deviceBusy;
   }
   if (editing) {

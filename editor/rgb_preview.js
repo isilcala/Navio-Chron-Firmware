@@ -48,10 +48,6 @@
     if (mode === 6 || mode === 7) return 6000;
     return 0;
   }
-  function thumbnailTime(mode, now) {
-    return [8, 9].includes(mode) ? mod(now, MARQUEE_STEP_MS * 10) : now;
-  }
-
   function createPreview({ mode = 1, accent = [255, 120, 40], seed = 0x6D2B79F5, smooth = false } = {}) {
     let rgbMode = mode, currentAccent = [...accent], startedAt = 0, breathCycle = null, breathHue = 0;
     let random = createRandom(seed);
@@ -139,5 +135,5 @@
   }
 
   return { KEY_COUNT, KEY_ORDER, MODE_COLORS, MODE_GROUPS, FADE_MS, BREATH_CYCLE_MS, COLOR_CYCLE_MS, MARQUEE_STEP_MS,
-    hsvToRgb, createRandom, createPreview, representativeTime, thumbnailTime };
+    hsvToRgb, createRandom, createPreview, representativeTime };
 });

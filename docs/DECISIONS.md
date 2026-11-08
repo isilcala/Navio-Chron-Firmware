@@ -464,7 +464,7 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   `5=breathRandom` / `6=colorCycle` / `7=rainbowFlow` / `8=marquee` / `9=rainbowMarquee`，
   与 Web 的“基础 / 按键触发 / 整体变化 / 流动拖尾”分组一致。
 - 记录仍为 150B v1，协议仍为 v2，不新增命令；固件、Web 编解码、官方模板与预览引擎同步使用新枚举。
-  off 的网页卡片与中央 SVG 均保持按键灯熄灭。固件版本升至 0.5.25，真机默认响应、关闭模式与状态灯行为待验收。
+  off 的网页卡片与中央 SVG 均保持按键灯熄灭。固件版本升至 0.5.26，真机默认响应、关闭模式与状态灯行为待验收。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

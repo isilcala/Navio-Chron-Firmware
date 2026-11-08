@@ -61,16 +61,16 @@
   const MOD_LABELS_MAC = ["Ctrl", "Shift", "Opt", "Cmd", "RCtrl", "RShift", "ROpt", "RCmd"];
   const PLATFORMS = ["win", "mac", "ipad"];
   const RGB_MODES = [
-    { value: 0, id: "off", label: "关闭灯效", description: "关闭全部按键灯，状态灯保持原有功能" },
-    { value: 1, id: "reactive", label: "按键响应", description: "按下保持亮起，松开后渐隐；无输入时按键灯熄灭" },
-    { value: 2, id: "reactiveRandom", label: "随机按键响应", description: "每键独立随机颜色，按住保持、松开渐隐" },
-    { value: 3, id: "follow", label: "常亮", description: "全部按键灯持续显示主题色" },
-    { value: 4, id: "breath", label: "柔和呼吸", description: "全部按键灯跟随主题色缓慢呼吸" },
-    { value: 5, id: "breathRandom", label: "随机呼吸", description: "每轮呼吸使用新的随机颜色，不使用主题色" },
-    { value: 6, id: "colorCycle", label: "循环变色", description: "全部按键同步平滑循环 RGB 色相，不使用主题色" },
-    { value: 7, id: "rainbowFlow", label: "彩虹流动", description: "彩虹沿键盘外缘流动，不使用主题色" },
-    { value: 8, id: "marquee", label: "主题走马灯", description: "主题色亮斑带拖尾，沿键盘外缘顺时针流动" },
-    { value: 9, id: "rainbowMarquee", label: "彩虹走马灯", description: "亮斑与拖尾持续变换颜色，沿键盘外缘顺时针流动" },
+    { value: 0, id: "off", label: "关闭灯效", description: "关闭全部按键灯，状态灯保持原有功能", detail: "关闭全部按键灯，状态灯保持原功能" },
+    { value: 1, id: "reactive", label: "按键响应", description: "按下保持亮起，松开后渐隐；无输入时按键灯熄灭", detail: "按住保持主题色，松开后 500ms 渐隐" },
+    { value: 2, id: "reactiveRandom", label: "随机按键响应", description: "每键独立随机颜色，按住保持、松开渐隐", detail: "每键独立随机色，松开渐隐" },
+    { value: 3, id: "follow", label: "常亮", description: "全部按键灯持续显示主题色", detail: "全部按键持续显示主题色" },
+    { value: 4, id: "breath", label: "柔和呼吸", description: "全部按键灯跟随主题色缓慢呼吸", detail: "9 秒柔和呼吸周期" },
+    { value: 5, id: "breathRandom", label: "随机呼吸", description: "每轮呼吸使用新的随机颜色，不使用主题色", detail: "每 9 秒一轮随机色呼吸" },
+    { value: 6, id: "colorCycle", label: "循环变色", description: "全部按键同步平滑循环 RGB 色相，不使用主题色", detail: "16 秒同步色相周期" },
+    { value: 7, id: "rainbowFlow", label: "彩虹流动", description: "彩虹沿键盘外缘流动，不使用主题色", detail: "16 秒外缘流动周期" },
+    { value: 8, id: "marquee", label: "主题走马灯", description: "主题色亮斑带拖尾，沿键盘外缘顺时针流动", detail: "14.4 秒外缘循环，亮头带三颗拖尾" },
+    { value: 9, id: "rainbowMarquee", label: "彩虹走马灯", description: "亮斑与拖尾持续变换颜色，沿键盘外缘顺时针流动", detail: "14.4 秒外缘循环，16 秒色相周期" },
   ];
   // 150B 记录 byte 13 的平台码（D23）：0 是历史记录的天然值（旧数据零迁移）
   const PLATFORM_CODES = { win: 0, mac: 1, ipad: 2 };
