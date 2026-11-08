@@ -136,11 +136,12 @@ WRITE_PRESET / MOVE 各自原子，但批量序列不是事务；若未来重新
 ## 9. 灯光
 
 Preset 数据分为 identity / metadata、actions、lighting，动作和灯光不混用字段。
-九种模式为 reactive、breath、follow、colorCycle、rainbowFlow、reactiveRandom、breathRandom、marquee、rainbowMarquee，
+十种模式（含关闭）按 `off`、reactive、reactiveRandom、follow、breath、breathRandom、colorCycle、
+rainbowFlow、marquee、rainbowMarquee 排列；`1=reactive` 为默认值，`0=off` 可主动选择，完整枚举见 D30 与 `PRESET_SCHEMA.md`。
 具体时序与固件决策见 D26。LED0–LED2 状态灯不受模式影响。
 
 网页提供纯本地灯效示意，不开发硬件 `LED_PREVIEW`，也不暗示实时控制设备；界面明确“安装或更新后在键盘上生效”。
-`rgb_preview.js` 复现九种模式的时间曲线、物理外缘、随机种子与拖尾，支持动态选择卡片、SVG 动画、
+`rgb_preview.js` 复现九种动态模式的时间曲线、物理外缘、随机种子与拖尾，off 保持全部按键灯熄灭；支持动态选择卡片、SVG 动画、
 按键触发模拟、播放/暂停、重播、0.5×/1×/2×、重新随机和减少动态效果。页面不可见时停止动画。
 
 ## 10. 阶段交付与验收

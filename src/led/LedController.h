@@ -21,8 +21,8 @@ class LedController {
   static constexpr uint8_t KEY_COUNT = LED_COUNT - LED_KEY_FIRST;
   static_assert(KEY_COUNT == 12);
   enum Mode : uint8_t {
-    Reactive = 0, Breath = 1, Follow = 2, ColorCycle = 3, RainbowFlow = 4,
-    ReactiveRandom = 5, BreathRandom = 6, Marquee = 7, RainbowMarquee = 8,
+    Off = 0, Reactive = 1, ReactiveRandom = 2, Follow = 3, Breath = 4,
+    BreathRandom = 5, ColorCycle = 6, RainbowFlow = 7, Marquee = 8, RainbowMarquee = 9,
   };
 
   void setKeyColor_(uint8_t key, uint8_t level);

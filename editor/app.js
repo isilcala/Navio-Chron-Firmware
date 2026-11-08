@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-16';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-18';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, $ = id => document.getElementById(id);
@@ -6,9 +6,9 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-16';
+const ASSET_VERSION = '20261107-18';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
-const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.23/manifest.json' : './manifest.json';
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.25/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
 const platformOf = preset => P.normalizePlatform(preset?.platform);
@@ -323,7 +323,7 @@ function samplePreview(now, thumbnailNow = now) {
   $('deviceStage').querySelectorAll('.key-slot .key-led').forEach((led, index) => paintPreviewLed(led, colors[index]));
   for (const [mode, engine] of thumbnailEngines) {
     let frame;
-    if ([0, 5].includes(mode)) {
+    if ([1, 2].includes(mode)) {
       let state = thumbnailPulseStates.get(mode);
       if (!state) { state = { cycle: -1, key: 0, releaseAt: null }; thumbnailPulseStates.set(mode, state); }
       const cycle = Math.floor(thumbnailNow / 2000);
@@ -372,7 +372,7 @@ function renderDeviceCanvas() {
     accent: preset.accent,
     lighting,
     previewColors,
-    onLightInput: [0, 5].includes(preset.rgbMode) ? setPreviewKeyPressed : null,
+    onLightInput: [1, 2].includes(preset.rgbMode) ? setPreviewKeyPressed : null,
     onSelect: input => {
       if (lighting) return;
       selectedInput = input;
@@ -434,9 +434,10 @@ function readonlyNotice(preset) {
   return `<div class="readonly-card"><p>${text}</p>${readonlyAction(preset)}</div>`;
 }
 const RGB_DETAILS = {
-  0: '按住保持主题色，松开后 500ms 渐隐', 1: '9 秒柔和呼吸周期', 2: '全部按键持续显示主题色',
-  3: '16 秒同步色相周期', 4: '16 秒外缘流动周期', 5: '每键独立随机色，松开渐隐',
-  6: '每 9 秒一轮随机色呼吸', 7: '14.4 秒外缘循环，亮头带三颗拖尾', 8: '14.4 秒外缘循环，16 秒色相周期',
+  0: '关闭全部按键灯，状态灯保持原功能', 1: '按住保持主题色，松开后 500ms 渐隐', 2: '每键独立随机色，松开渐隐',
+  3: '全部按键持续显示主题色', 4: '9 秒柔和呼吸周期', 5: '每 9 秒一轮随机色呼吸',
+  6: '16 秒同步色相周期', 7: '16 秒外缘流动周期',
+  8: '14.4 秒外缘循环，亮头带三颗拖尾', 9: '14.4 秒外缘循环，16 秒色相周期',
 };
 const THUMB_RING_SLOTS = [0, 1, 2, 3, 7, 11, 10, 9, 8, 4];
 function thumbnailCells() {
@@ -449,7 +450,7 @@ function previewControls(mode) {
     <button id="previewPlay" class="button secondary" type="button">${previewPlaying ? '暂停' : '播放'}</button>
     <button id="previewRestart" class="button secondary" type="button">重播</button>
     <label>速度<select id="previewSpeed" aria-label="预览速度"><option value="0.5" ${previewSpeed === 0.5 ? 'selected' : ''}>0.5×</option><option value="1" ${previewSpeed === 1 ? 'selected' : ''}>1×</option><option value="2" ${previewSpeed === 2 ? 'selected' : ''}>2×</option></select></label>
-    ${[5, 6].includes(mode) ? '<button id="previewRandom" class="button secondary" type="button">重新随机</button>' : ''}
+    ${[2, 5].includes(mode) ? '<button id="previewRandom" class="button secondary" type="button">重新随机</button>' : ''}
   </div>`;
 }
 function syncThumbnailEngines(preset) {

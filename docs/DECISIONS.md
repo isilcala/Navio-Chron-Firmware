@@ -454,6 +454,18 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   中央 SVG 支持动画、按键触发、播放/暂停、重播、变速、重新随机与减少动态效果。
 - 网页预览与硬件写入严格分离，不调用 WebHID、不宣称实时设备状态；随机模式使用可复现种子并做时间点测试。
 
+## D30. 新增关闭模式，RGB 枚举按类别重排（2026-11-07）
+
+- 新增 `0=off`：K1–K12 按键灯全部熄灭，LED0–LED2 状态灯职责不变。
+  出厂预设、新建预设、官方模板与网页引擎默认使用 `1=reactive`，延续 D26 的默认省电反馈；
+  off 由用户主动选择，不作为默认。
+- 当前无存量用户，明确不保持旧灯效枚举或旧记录行为兼容。byte 11 固定为
+  `0=off` / `1=reactive` / `2=reactiveRandom` / `3=follow` / `4=breath` /
+  `5=breathRandom` / `6=colorCycle` / `7=rainbowFlow` / `8=marquee` / `9=rainbowMarquee`，
+  与 Web 的“基础 / 按键触发 / 整体变化 / 流动拖尾”分组一致。
+- 记录仍为 150B v1，协议仍为 v2，不新增命令；固件、Web 编解码、官方模板与预览引擎同步使用新枚举。
+  off 的网页卡片与中央 SVG 均保持按键灯熄灭。固件版本升至 0.5.25，真机默认响应、关闭模式与状态灯行为待验收。
+
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 
 - 动机：NimBLE-Arduino 2.x（BLE 阶段必需）仅支持 core 3.x/IDF5；官方注册表原生携带

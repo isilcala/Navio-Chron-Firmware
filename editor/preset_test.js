@@ -62,15 +62,15 @@ equal(P.nameError("a\0b") !== null, true, "NUL in name rejected");
 const encoded = P.encodePresetRecord(sample());
 equal(encoded.length, 150, "encoded record is 150 bytes");
 equal(encoded[2], 1, "record version");
-equal(P.createEmptyPreset().rgbMode, 0, "new presets default to reactive lighting");
-equal(P.RGB_MODES.map(mode => mode.id).join(","), "reactive,breath,follow,colorCycle,rainbowFlow,reactiveRandom,breathRandom,marquee,rainbowMarquee", "lighting mode values are stable");
+equal(P.createEmptyPreset().rgbMode, 1, "new presets default to reactive lighting");
+equal(P.RGB_MODES.map(mode => mode.id).join(","), "off,reactive,reactiveRandom,follow,breath,breathRandom,colorCycle,rainbowFlow,marquee,rainbowMarquee", "lighting modes follow the logical enum order");
 for (const mode of P.RGB_MODES) {
   const preset = sample(); preset.rgbMode = mode.value;
   const record = P.encodePresetRecord(preset);
   equal(record[11], mode.value, `${mode.id} encodes at byte 11`);
   equal(P.decodePresetRecord(record).rgbMode, mode.value, `${mode.id} round trips through the record`);
 }
-const badRgbMode = encoded.slice(); badRgbMode[11] = 9;
+const badRgbMode = encoded.slice(); badRgbMode[11] = 10;
 badRgbMode.set([P.crc16(badRgbMode.subarray(0, 148)) & 255, P.crc16(badRgbMode.subarray(0, 148)) >> 8], 148);
 throws(() => P.decodePresetRecord(badRgbMode), "unknown lighting mode rejected");
 equal(encoded[6], 42, "preset ID");

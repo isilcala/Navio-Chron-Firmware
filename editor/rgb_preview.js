@@ -9,11 +9,12 @@
   const KEY_COUNT = 12;
   const KEY_ORDER = [0, 1, 2, 3, 4, 5, 6, 11, 10, 9, 7, 8];
   const FADE_MS = 500, BREATH_CYCLE_MS = 9000, COLOR_CYCLE_MS = 16000, MARQUEE_STEP_MS = 1200;
-  const MODE_COLORS = { 0: "主题色", 1: "主题色", 2: "主题色", 3: "随机色", 4: "随机色", 5: "随机色", 6: "随机色", 7: "主题色", 8: "随机色" };
+  const MODE_COLORS = { 0: "无", 1: "主题色", 2: "随机色", 3: "主题色", 4: "主题色", 5: "随机色", 6: "随机色", 7: "随机色", 8: "主题色", 9: "随机色" };
   const MODE_GROUPS = [
-    { label: "按键触发", modes: [0, 5] },
-    { label: "整体变化", modes: [2, 1, 3, 4, 6] },
-    { label: "流动拖尾", modes: [7, 8] },
+    { label: "基础", modes: [0, 3] },
+    { label: "按键触发", modes: [1, 2] },
+    { label: "整体变化", modes: [4, 5, 6, 7] },
+    { label: "流动拖尾", modes: [8, 9] },
   ];
   const mod = (value, divisor) => ((value % divisor) + divisor) % divisor;
   const uint8 = value => mod(value, 256);
@@ -43,15 +44,15 @@
     };
   }
   function representativeTime(mode) {
-    if (mode === 1 || mode === 6) return 4250;
-    if (mode === 3 || mode === 4) return 6000;
+    if (mode === 4 || mode === 5) return 4250;
+    if (mode === 6 || mode === 7) return 6000;
     return 0;
   }
   function thumbnailTime(mode, now) {
-    return [7, 8].includes(mode) ? mod(now, MARQUEE_STEP_MS * 10) : now;
+    return [8, 9].includes(mode) ? mod(now, MARQUEE_STEP_MS * 10) : now;
   }
 
-  function createPreview({ mode = 0, accent = [255, 120, 40], seed = 0x6D2B79F5, smooth = false } = {}) {
+  function createPreview({ mode = 1, accent = [255, 120, 40], seed = 0x6D2B79F5, smooth = false } = {}) {
     let rgbMode = mode, currentAccent = [...accent], startedAt = 0, breathCycle = null, breathHue = 0;
     let random = createRandom(seed);
     const accentLevel = level => colorLevel(currentAccent, level, smooth), hueAt = (hue, level) => hueLevel(hue, level, smooth);
@@ -65,9 +66,9 @@
     function setMode(mode, now = 0) { rgbMode = mode; restart(now); }
     function setAccent(accent) { currentAccent = [...accent]; }
     function press(key, now = 0) {
-      if (![0, 5].includes(rgbMode) || key < 0 || key >= KEY_COUNT) return;
+      if (![1, 2].includes(rgbMode) || key < 0 || key >= KEY_COUNT) return;
       held[key] = true; fadeStartedAt[key] = null;
-      if (rgbMode === 5) keyHues[key] = random(keyHues[key]);
+      if (rgbMode === 2) keyHues[key] = random(keyHues[key]);
     }
     function release(key, now = 0) {
       if (!held[key]) return;
@@ -78,7 +79,7 @@
     }
     function sample(now) {
       const elapsed = Math.max(0, now - startedAt), colors = blank();
-      if (rgbMode === 0 || rgbMode === 5) {
+      if (rgbMode === 1 || rgbMode === 2) {
         for (let key = 0; key < KEY_COUNT; ++key) {
           let level = 0;
           if (held[key]) level = 255;
@@ -87,13 +88,13 @@
             level = fadeElapsed >= FADE_MS ? 0 : 255 - Math.floor(fadeElapsed * 255 / FADE_MS);
             if (fadeElapsed >= FADE_MS) fadeStartedAt[key] = null;
           }
-          colors[key] = rgbMode === 5 ? hueAt(keyHues[key], level) : accentLevel(level);
+          colors[key] = rgbMode === 2 ? hueAt(keyHues[key], level) : accentLevel(level);
         }
-      } else if (rgbMode === 2) {
+      } else if (rgbMode === 3) {
         for (let key = 0; key < KEY_COUNT; ++key) colors[key] = accentLevel(255);
-      } else if (rgbMode === 1 || rgbMode === 6) {
+      } else if (rgbMode === 4 || rgbMode === 5) {
         const phase = elapsed % BREATH_CYCLE_MS;
-        if (rgbMode === 6 && Math.floor(elapsed / BREATH_CYCLE_MS) !== breathCycle) {
+        if (rgbMode === 5 && Math.floor(elapsed / BREATH_CYCLE_MS) !== breathCycle) {
           breathCycle = Math.floor(elapsed / BREATH_CYCLE_MS); breathHue = random(breathHue);
         }
         let level = 0;
@@ -102,17 +103,17 @@
           level = Math.floor(linear * linear * (3 * 255 - 2 * linear) / (255 * 255));
         }
         for (let key = 0; key < KEY_COUNT; ++key)
-          colors[key] = rgbMode === 6 ? hueAt(breathHue, level) : accentLevel(level);
-      } else if (rgbMode === 3 || rgbMode === 4) {
+          colors[key] = rgbMode === 5 ? hueAt(breathHue, level) : accentLevel(level);
+      } else if (rgbMode === 6 || rgbMode === 7) {
         const baseHue = smooth ? (elapsed % COLOR_CYCLE_MS) * 256 / COLOR_CYCLE_MS : Math.floor((elapsed % COLOR_CYCLE_MS) * 256 / COLOR_CYCLE_MS);
-        if (rgbMode === 3) {
+        if (rgbMode === 6) {
           const color = hsvToRgb(baseHue, smooth);
           for (let key = 0; key < KEY_COUNT; ++key) colors[key] = color;
         } else {
           for (let position = 0; position < KEY_COUNT; ++position)
             colors[KEY_ORDER[position]] = hsvToRgb(baseHue - Math.floor(position * 256 / KEY_COUNT), smooth);
         }
-      } else if (rgbMode === 7 || rgbMode === 8) {
+      } else if (rgbMode === 8 || rgbMode === 9) {
         const phase = elapsed % (MARQUEE_STEP_MS * KEY_COUNT), baseHue = smooth ? (elapsed % COLOR_CYCLE_MS) * 256 / COLOR_CYCLE_MS : Math.floor((elapsed % COLOR_CYCLE_MS) * 256 / COLOR_CYCLE_MS);
         const head = Math.floor(phase * 256 / MARQUEE_STEP_MS);
         for (let position = 0; position < KEY_COUNT; ++position) {
@@ -129,7 +130,7 @@
             if (tail > level) level = tail;
           }
           const key = KEY_ORDER[position];
-          colors[key] = rgbMode === 8 ? hueAt(baseHue, level) : accentLevel(level);
+          colors[key] = rgbMode === 9 ? hueAt(baseHue, level) : accentLevel(level);
         }
       }
       return colors;

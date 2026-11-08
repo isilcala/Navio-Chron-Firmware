@@ -15,7 +15,7 @@ namespace navio {
 static const Preset kPresetJianYing = {
     "JianYing",
     {0, 170, 170},  // 剪映青
-    0,  // reactive：默认按下保持、松开渐隐
+    1,  // reactive：默认按下保持、松开渐隐
     {
         /* K1  顶部左   */ actKey(MOD_NONE, HID_Q),             // 左剪裁
         /* K2  顶部中   */ actKey(MOD_CTRL, HID_B),             // 切分
@@ -45,7 +45,7 @@ static const Preset kPresetJianYing = {
 static const Preset kPresetTest = {
     "Test",
     {0, 0, 200},  // 蓝
-    0,  // reactive：默认按下保持、松开渐隐
+    1,  // reactive：默认按下保持、松开渐隐
     {
         /* K1  */ actKey(MOD_NONE, HID_1),
         /* K2  */ actKey(MOD_NONE, HID_2),
@@ -77,7 +77,7 @@ static const Preset kPresetTest = {
 static const Preset kPresetResolve = {
     "Resolve",
     {200, 90, 0},  // Resolve 橙
-    0,  // reactive：默认按下保持、松开渐隐
+    1,  // reactive：默认按下保持、松开渐隐
     {
         /* K1  顶部左   */ actKey(MOD_NONE, HID_I),             // 设入点
         /* K2  顶部中   */ actKey(MOD_CTRL, HID_BACKSLASH),     // 刀切 Blade
@@ -113,7 +113,7 @@ static const Preset kPresetResolve = {
 static const Preset kPresetF13 = {
     "F13 Macro",
     {160, 0, 200},  // 紫
-    0,  // reactive：默认按下保持、松开渐隐
+    1,  // reactive：默认按下保持、松开渐隐
     {
         /* K1  */ actKey(MOD_NONE, HID_F13),
         /* K2  */ actKey(MOD_NONE, HID_F14),

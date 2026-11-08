@@ -22,8 +22,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] Official template library at 9 presets: Premiere Win/Mac, Resolve Win/Mac, JianYing Win/Mac, Procreate (iPad), Test, F13 Macro (Mac/iPad variants pending on-app tuning)
 - [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery
 - [x] Cross-page, accessibility, responsive, online and hardware WebHID UX regression
-- [x] Animated Web RGB previews and graphical effect cards for all nine lighting modes; no hardware preview protocol
-- [ ] Hardware and power validation for nine preset lighting modes (implemented in 0.5.23)
+- [x] Animated Web RGB previews and graphical effect cards for nine active effects plus an off mode; no hardware preview protocol
+- [ ] Hardware and power validation for default-reactive behavior and all ten lighting modes (implemented in 0.5.25)
 - [ ] Sleep/wake and battery-power validation
 
 See `docs/PROJECT.md` for the roadmap and `docs/DECISIONS.md` for technical decisions.
