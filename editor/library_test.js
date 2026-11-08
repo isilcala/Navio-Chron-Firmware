@@ -20,7 +20,7 @@ const legacy = L.migrateLegacy({ schemaVersion: 1, presets: [
   { uuid: "custom-2", id: 8, name: "other", _dirtySlots: [0] },
 ]});
 equal(legacy.userPresets.length, 2, "only modified legacy presets become user presets");
-equal(legacy.userPresets[0].originTemplateId, "jianying-win", "factory origin is retained");
+equal(legacy.userPresets[0].originTemplateId, "test", "factory origin is retained");
 equal(legacy.userPresets[1].originTemplateId, null, "custom preset has no factory origin");
 equal(legacy.userPresets[0].originTemplateVersion, L.TEMPLATE_VERSION, "migration does not force an update prompt");
 const packaged = L.packageLibrary(legacy.userPresets);

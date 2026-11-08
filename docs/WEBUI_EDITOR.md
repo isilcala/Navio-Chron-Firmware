@@ -93,7 +93,7 @@
 - 旧 `originTemplateId` 只用于已有用户的模板升级决定；新的显式来源副本不继承模板更新绑定。
 - 项目模板以 `editor/presets/` 下“一预设一 JSON”维护，索引由 `tools/build_templates.js` 生成并提交；
   单条损坏跳过并警示，索引或整库失败进入错误态，不静默降级。
-- 项目模板共 28 套：JianYing、CapCut、Resolve、Premiere、After Effects、Blender、Illustrator、Photoshop、
+- 项目模板共 32 套：JianYing、CapCut、万兴喵影、必剪、Resolve、Premiere、After Effects、Blender、Illustrator、Photoshop、
   Lightroom Classic、Capture One、Clip Studio Paint、Krita 各有 Win/Mac，另有 Final Cut Pro Mac、Procreate iPad、F13 Macro、Test。
   顺序按剪辑/动效/3D、矢量/修图、绘画、工具排列；显示名不带平台词，平台由 chip 呈现；Mac/iPad 的 Cmd=左 GUI、Option=Alt。
 - 主题色采用软件品牌或图标的识别色，同软件跨平台变体保持一致，Test 固定纯白；不使用随机配色。

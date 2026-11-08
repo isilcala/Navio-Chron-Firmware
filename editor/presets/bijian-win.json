@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "bijian-win",
+    "order": 97,
+    "description": "必剪 Windows：参考现有快捷键表；X 单次分割、C 分割工具、V 选择、M 标记、Alt+滚轮轨道缩放、滚轮横移；待应用内实测"
+  },
+  "preset": {
+    "id": 31,
+    "name": "必剪",
+    "accent": [251, 114, 153],
+    "rgbMode": 1,
+    "platform": "win",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 16, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 27, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 6, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 3, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 42, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 25, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 12, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 8, "wheelDy": 0 },
+      { "kind": 1, "mods": 1, "code": 53, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 3, "mods": 4, "code": 0, "wheelDy": 1 },
+      { "kind": 3, "mods": 4, "code": 0, "wheelDy": -1 },
+      { "kind": 3, "mods": 0, "code": 0, "wheelDy": 1 },
+      { "kind": 3, "mods": 0, "code": 0, "wheelDy": -1 }
+    ]
+  }
+}

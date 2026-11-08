@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "navio-chron",
+  "record": 1,
+  "metadata": {
+    "author": "official",
+    "templateId": "wondershare-filmora-mac",
+    "order": 96,
+    "description": "万兴喵影 macOS：官方默认键位；Cmd+B 分割、Shift+Cmd+Z 重做、Shift+Z 适配、Option+滚轮横移、Cmd+=/- 缩放、Ctrl+Cmd+F 全屏"
+  },
+  "preset": {
+    "id": 30,
+    "name": "万兴喵影",
+    "accent": [112, 82, 230],
+    "rgbMode": 1,
+    "platform": "mac",
+    "actions": [
+      { "kind": 1, "mods": 0, "code": 12, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 5, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 18, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 10, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 44, "wheelDy": 0 },
+      { "kind": 1, "mods": 2, "code": 76, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 82, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 16, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 81, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 25, "wheelDy": 0 },
+      { "kind": 1, "mods": 2, "code": 29, "wheelDy": 0 },
+      { "kind": 1, "mods": 9, "code": 6, "wheelDy": 0 },
+      { "kind": 0, "mods": 0, "code": 0, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 79, "wheelDy": 0 },
+      { "kind": 1, "mods": 0, "code": 80, "wheelDy": 0 },
+      { "kind": 3, "mods": 4, "code": 0, "wheelDy": 1 },
+      { "kind": 3, "mods": 4, "code": 0, "wheelDy": -1 },
+      { "kind": 1, "mods": 8, "code": 46, "wheelDy": 0 },
+      { "kind": 1, "mods": 8, "code": 45, "wheelDy": 0 }
+    ]
+  }
+}

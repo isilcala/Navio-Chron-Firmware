@@ -15,14 +15,14 @@
     { id: "other", label: "其他" },
   ];
   const FAMILY_GROUPS = {
-    jianying: "video", capcut: "video", resolve: "video", premiere: "video", "final-cut-pro": "video",
+    jianying: "video", capcut: "video", "wondershare-filmora": "video", bijian: "video", resolve: "video", premiere: "video", "final-cut-pro": "video",
     "after-effects": "motion", blender: "motion",
     illustrator: "design", photoshop: "design", "lightroom-classic": "design", "capture-one": "design",
     "clip-studio-paint": "painting", krita: "painting", procreate: "painting",
     "f13-macro": "tools", test: "tools",
   };
   const ALIASES = {
-    jianying: ["剪映"], capcut: ["剪映国际版"], resolve: ["达芬奇"], premiere: ["pr"],
+    jianying: ["剪映"], capcut: ["剪映国际版"], "wondershare-filmora": ["filmora", "wondershare", "喵影"], bijian: ["b站", "哔哩哔哩"], resolve: ["达芬奇"], premiere: ["pr"],
     "final-cut-pro": ["fcp", "finalcut"], "after-effects": ["ae"], blender: ["blender3d"],
     illustrator: ["ai"], photoshop: ["ps"], "lightroom-classic": ["lr", "lrc", "lightroom"],
     "capture-one": ["c1"], "clip-studio-paint": ["csp"], krita: ["krita"], procreate: ["procreate"],

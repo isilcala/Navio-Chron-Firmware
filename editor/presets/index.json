@@ -47,6 +47,26 @@
       "order": 90
     },
     {
+      "file": "wondershare-filmora-win.json",
+      "templateId": "wondershare-filmora-win",
+      "order": 95
+    },
+    {
+      "file": "wondershare-filmora-mac.json",
+      "templateId": "wondershare-filmora-mac",
+      "order": 96
+    },
+    {
+      "file": "bijian-win.json",
+      "templateId": "bijian-win",
+      "order": 97
+    },
+    {
+      "file": "bijian-mac.json",
+      "templateId": "bijian-mac",
+      "order": 98
+    },
+    {
       "file": "after-effects-win.json",
       "templateId": "after-effects-win",
       "order": 100

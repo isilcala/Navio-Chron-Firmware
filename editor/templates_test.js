@@ -67,30 +67,33 @@ for (const { file, json } of entries) {
 const loaded = T.buildTemplates(entries);
 equal(loaded.errors.length, 0, `all ${files.length} official templates assemble without errors`);
 // 数量下限守卫防误删；目录/索引不一致的精确拦截由下方漂移检查负责（报错带修复指引）
-assert(loaded.templates.length >= 28, "official library shrank below 28 templates — intentional?");
-ok("official library holds at least 28 templates");
+assert(loaded.templates.length >= 32, "official library shrank below 32 templates — intentional?");
+ok("official library holds at least 32 templates");
 const orders = loaded.templates.map(t => t.templateId);
 equal(orders[0], "jianying-win", "display order starts with jianying-win");
 equal(orders.includes("procreate"), true, "procreate template present");
-const expandedApps = ["capcut-win", "capcut-mac", "final-cut-pro", "after-effects-win", "after-effects-mac",
+const expandedApps = ["capcut-win", "capcut-mac", "wondershare-filmora-win", "wondershare-filmora-mac", "bijian-win", "bijian-mac", "final-cut-pro", "after-effects-win", "after-effects-mac",
   "blender-win", "blender-mac", "illustrator-win", "illustrator-mac",
   "photoshop-win", "photoshop-mac", "lightroom-classic-win", "lightroom-classic-mac", "capture-one-win", "capture-one-mac",
   "clip-studio-paint-win", "clip-studio-paint-mac", "krita-win", "krita-mac"];
 for (const slug of expandedApps)
   assert(orders.includes(slug), `expanded official template missing: ${slug}`);
-ok("all 19 expanded app templates present");
+ok("all 23 expanded app templates present");
 equal(orders.at(-2), "f13-macro", "utility templates follow app templates");
 equal(orders.at(-1), "test", "test template is last");
-for (const slug of ["jianying", "capcut", "resolve", "premiere", "after-effects", "blender", "illustrator", "photoshop", "lightroom-classic", "capture-one", "clip-studio-paint", "krita"]) {
+for (const slug of ["jianying", "capcut", "wondershare-filmora", "bijian", "resolve", "premiere", "after-effects", "blender", "illustrator", "photoshop", "lightroom-classic", "capture-one", "clip-studio-paint", "krita"]) {
   const win = loaded.templates.find(t => t.templateId === `${slug}-win`);
   const mac = loaded.templates.find(t => t.templateId === `${slug}-mac`);
   assert(win && mac, `platform pair exists: ${slug}`);
   equal(win.accent.join(","), mac.accent.join(","), `platform pair shares brand accent: ${slug}`);
 }
 equal(loaded.templates.find(t => t.templateId === "test").accent.join(","), "255,255,255", "Test template uses pure white accent");
+equal(loaded.templates.find(t => t.templateId === "jianying-win").name, "剪映", "JianYing display name is localized");
 const firmwareSource = fs.readFileSync(path.join(__dirname, "../src/mapping/Presets.cpp"), "utf8");
 assert(/kPresetTest\s*=\s*\{\s*"Test",\s*\{255,\s*255,\s*255\}/.test(firmwareSource), "firmware Test preset uses pure white accent");
 ok("firmware Test preset uses pure white accent");
+assert(/extern const Preset kPresets\[\]\s*=\s*\{kPresetTest\}/.test(firmwareSource), "factory fallback contains only Test");
+ok("factory fallback contains only Test");
 const slugs = new Set(loaded.templates.map(t => t.templateId));
 equal(slugs.size, loaded.templates.length, "templateId unique across the library");
 
@@ -108,10 +111,7 @@ const k = (mods, code) => ({ kind: P.Kind.KeyChord, mods, code, wheelDy: 0 });
 const w = (mods, dy) => ({ kind: P.Kind.Wheel, mods, code: 0, wheelDy: dy });
 const c = code => ({ kind: P.Kind.Consumer, mods: 0, code, wheelDy: 0 });
 const firmware = {
-  "jianying-win": { 0: k(0, 0x14), 1: k(1, 0x05), 2: k(0, 0x1A), 3: k(1, 0x1D), 4: k(3, 0x1D), 5: k(0, 0x2C), 6: k(0, 0x2A), 7: k(0, 0x52), 8: k(4, 0), 9: k(0, 0x50), 10: k(0, 0x51), 11: k(0, 0x4F), 12: k(0, 0x19), 13: k(0, 0x2C), 14: k(0, 0x27), 16: k(0, 0x4F), 17: k(0, 0x50), 18: w(4, 1), 19: w(4, -1), 20: w(1, 1), 21: w(1, -1) },
-  "resolve-win": { 0: k(0, 0x0C), 1: k(1, 0x31), 2: k(0, 0x12), 3: k(1, 0x1D), 4: k(1, 0x1C), 5: k(0, 0x2C), 6: k(2, 0x2A), 7: k(0, 0x52), 8: k(0, 0x10), 9: k(0, 0x50), 10: k(0, 0x51), 11: k(0, 0x4F), 12: k(0, 0x43), 13: k(0, 0x0E), 14: k(0, 0x2C), 16: k(0, 0x4F), 17: k(0, 0x50), 18: k(0, 0x0F), 19: k(0, 0x0D), 20: k(1, 0x2E), 21: k(1, 0x2D) },
   "test": { 0: k(0, 0x1E), 8: k(0, 0x26), 9: k(0, 0x27), 10: k(0, 0x2D), 11: k(0, 0x2E), 12: c(0xE2), 13: k(0, 0x28), 14: k(0, 0x29), 16: c(0xE9), 17: c(0xEA), 18: k(0, 0x4F), 19: k(0, 0x50), 20: w(0, 1), 21: w(0, -1) },
-  "f13-macro": { 0: k(0, 0x68), 9: k(0, 0x71), 11: k(0, 0x73), 12: c(0xCD), 13: k(0, 0x2C), 14: k(1, 0x1D), 16: c(0xE9), 17: c(0xEA), 18: k(1, 0x2E), 19: k(1, 0x2D), 20: w(0, 1), 21: w(0, -1) },
 };
 for (const [slug, expect] of Object.entries(firmware)) {
   const template = loaded.templates.find(t => t.templateId === slug);

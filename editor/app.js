@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-39';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-40';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
@@ -6,9 +6,9 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-39';
+const ASSET_VERSION = '20261107-40';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
-const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
+const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.27/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
 const platformOf = preset => P.normalizePlatform(preset?.platform);

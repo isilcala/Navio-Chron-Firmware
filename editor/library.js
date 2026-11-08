@@ -7,7 +7,7 @@
   "use strict";
 
   const SCHEMA_VERSION = 2, TEMPLATE_VERSION = 1;
-  const FACTORY_IDS = { 1: "jianying-win", 2: "resolve-win", 3: "test", 4: "f13-macro" };
+  const FACTORY_IDS = { 1: "test" };
   const clone = value => JSON.parse(JSON.stringify(value));
 
   function sourceKey(source, preset) {

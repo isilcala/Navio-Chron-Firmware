@@ -12,14 +12,14 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] USB HID keyboard, mouse, consumer control and vendor interface
 - [x] BLE HID with pairing, reconnect and USB/BLE auto-selection
 - [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
-- [x] Dynamic presets in NVS and Navio Config Protocol v2
+- [x] Dynamic presets in NVS and Navio Config Protocol v2; Test is the only factory-fallback preset
 - [x] Dual-slot USB OTA with SHA-256, rollback and local self-confirm
 - [x] Unified Web flasher: OTA, demo migration and BOOT/ROM recovery,
       [deployed and verified online](https://isilcala.github.io/Navio-Chron-Firmware/)
 - [x] Browser preset editor with local library and full device management, verified on hardware;
       firmware version label and update notices use HELLO and the deployed release manifest
 - [x] Project preset templates as per-preset JSON data files with a generated index and CI validation
-- [x] Project template library at 28 presets: twelve Win/Mac app families, Final Cut Pro (Mac), Procreate (iPad), F13 Macro and Test; brand-consistent accents (on-app tuning pending)
+- [x] Project template library at 32 presets: fourteen Win/Mac app families, Final Cut Pro (Mac), Procreate (iPad), F13 Macro and Test; brand-consistent accents (on-app tuning pending)
 - [x] Productized editor workflow: one explicit edit session, source copies, single-preset install/update and disconnect recovery
 - [x] Template browser with workflow groups, alias search and merged Win/Mac entries with explicit platform switching
 - [x] JSON export with copy/download and validated paste/file import through shared transfer logic
