@@ -40,6 +40,7 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 ```
 .github/workflows/pages.yml  GitHub Pages：编辑器首页 / + /firmware/ 更新页、manifest 与四件套
 editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
+                import_export.js 统一 JSON 文本/文件导出及粘贴/文件导入校验（D32）；
                 presets/ 项目模板库（一预设一 JSON + 生成索引 index.json）；
                 rgb_preview.js 十种模式（默认 reactive）纯 JS 引擎与时间点测试，图形化卡片和 SVG 动画，不做硬件 LED_PREVIEW
 prototype/      独立 UX/UI 交互原型：模拟数据与关键场景，不接设备、不入公开部署

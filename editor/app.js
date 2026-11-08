@@ -1,12 +1,12 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-37';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-39';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
-  R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, $ = id => document.getElementById(id);
+  R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-37';
+const ASSET_VERSION = '20261107-39';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -1146,35 +1146,92 @@ $('confirmReset').addEventListener('click', () => {
 });
 $('exportButton').addEventListener('click', () => {
   if (!booted) return;
-  const preset = P.clonePresetData(currentPreset());
-  const content = { schemaVersion: 1, product: 'navio-chron', record: 1,
-    metadata: { author: 'local', platform: 'custom' }, preset };
-  downloadBlob(JSON.stringify(content, null, 2), `${preset.name || 'preset'}.navio.json`, 'application/json');
+  const preset = currentPreset();
+  $('exportDescription').textContent = `将导出「${preset.name}」。可复制 JSON，或保存为 .navio.json 文件。`;
+  $('exportError').hidden = true;
+  try { $('exportJson').value = IO.serializePreset(preset); }
+  catch (error) {
+    $('exportJson').value = '';
+    $('exportError').textContent = error.message;
+    $('exportError').hidden = false;
+  }
+  openDialog('exportDialog');
+  $('copyExport').focus();
 });
-$('importPreset').addEventListener('change', event => {
+$('copyExport').addEventListener('click', async () => {
+  const text = $('exportJson').value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    $('exportError').hidden = true;
+    toast('JSON 已复制到剪贴板');
+  } catch (_) {
+    $('exportJson').focus(); $('exportJson').select();
+    $('exportError').textContent = '自动复制失败，已选中 JSON，请按 Ctrl+C 手动复制。';
+    $('exportError').hidden = false;
+  }
+});
+$('downloadExport').addEventListener('click', () => {
+  const text = $('exportJson').value;
+  if (!text) return;
+  try {
+    downloadBlob(text, `${currentPreset().name || 'preset'}.navio.json`, 'application/json');
+    $('exportError').hidden = true;
+    closeDialog('exportDialog');
+    toast('已生成 .navio.json 下载文件');
+  } catch (error) {
+    $('exportError').textContent = `保存文件失败：${error.message}`;
+    $('exportError').hidden = false;
+  }
+});
+
+function openImportDialog() {
+  if (!booted) return;
+  $('importJson').value = '';
+  $('importFileName').textContent = '未选择文件';
+  $('importError').hidden = true;
+  openDialog('importDialog');
+  $('importJson').focus();
+}
+function showImportError(error) {
+  $('importError').textContent = error.message;
+  $('importError').hidden = false;
+  $('importJson').focus();
+}
+$('importButton').addEventListener('click', openImportDialog);
+$('importJson').addEventListener('input', () => { $('importError').hidden = true; });
+$('importFile').addEventListener('change', async event => {
   const file = event.target.files[0];
   event.target.value = '';
-  if (!file || !booted) return;
-  requestLeave(async () => {
-    try {
-      const content = JSON.parse(await file.text());
-      if (content.schemaVersion !== 1 || content.record !== 1 || !content.preset)
-        throw new Error('不支持的 .navio.json 格式或 record 版本');
-      const errors = P.presetErrors(content.preset);
-      if (errors.length) throw new Error(errors[0]);
-      const preset = P.clonePresetData(content.preset);
-      let idNote = '';
-      if ([...userPresets, ...quarantinedPresets].some(item => item?.id === preset.id)) {
-        const originalId = preset.id, nextId = nextPresetId();
-        if (nextId > 255) throw new Error('本地 presetId 已用完，无法导入冲突预设');
-        preset.id = nextId; idNote = `；原 ID ${originalId} 冲突，已分配 ${nextId}`;
-      }
-      preset.uuid = uuid(); preset._dirty = false; preset._readonly = false;
-      preset.originTemplateId = null; preset._originSourceKey = null;
-      userPresets.push(preset); selectedKey = keyFor('local', preset);
-      const saved = saveLibrary(); operationMessage = null; renderEditor();
-      toast((saved ? '已导入我的预设，未写入键盘' : '已导入当前页面，但未能保存到浏览器') + idNote, !saved);
-    } catch (error) { toast(error.message, true); }
+  if (!file) return;
+  try {
+    $('importJson').value = await file.text();
+    $('importFileName').textContent = file.name;
+    $('importError').hidden = true;
+    $('importJson').focus();
+  } catch (error) { showImportError(new Error(`读取文件失败：${error.message}`)); }
+});
+function commitImportedPreset(preset) {
+  let idNote = '';
+  if ([...userPresets, ...quarantinedPresets].some(item => item?.id === preset.id)) {
+    const originalId = preset.id, nextId = nextPresetId();
+    if (nextId > 255) throw new Error('本地 presetId 已用完，无法导入冲突预设');
+    preset.id = nextId; idNote = `；原 ID ${originalId} 冲突，已分配 ${nextId}`;
+  }
+  preset.uuid = uuid(); preset._dirty = false; preset._readonly = false;
+  preset.originTemplateId = null; preset._originSourceKey = null;
+  userPresets.push(preset); selectedKey = keyFor('local', preset);
+  const saved = saveLibrary(); operationMessage = null;
+  closeDialog('importDialog'); renderEditor();
+  toast((saved ? '已导入我的预设，未写入键盘' : '已导入当前页面，但未能保存到浏览器') + idNote, !saved);
+}
+$('confirmImport').addEventListener('click', () => {
+  let preset;
+  try { preset = IO.parsePreset($('importJson').value); }
+  catch (error) { showImportError(error); return; }
+  requestLeave(() => {
+    try { commitImportedPreset(preset); }
+    catch (error) { showImportError(error); }
   });
 });
 window.addEventListener('beforeunload', event => {

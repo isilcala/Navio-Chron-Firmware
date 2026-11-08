@@ -412,3 +412,14 @@ select option, select optgroup { color: var(--text); background: var(--surface);
 select option { padding: 6px 10px; }
 select option:disabled { color: var(--muted); }
 select optgroup { color: var(--muted); background: var(--surface); font-weight: 600; }
+
+.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
+.transfer-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.json-textarea { width: 100%; min-height: 300px; max-height: 52vh; padding: 13px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: var(--inset-small); color: var(--text); font: 12px/1.6 ui-monospace, Consolas, monospace; resize: vertical; white-space: pre; }
+.json-textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.json-textarea[readonly] { caret-color: transparent; }
+.import-file-row { display: flex; align-items: center; gap: 12px; margin-top: 13px; }
+.import-file-row .button { flex: none; }
+#importFileName { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.transfer-dialog .dialog-actions { flex-wrap: wrap; }
+@media (max-width: 760px) { .json-textarea { min-height: 220px; } }

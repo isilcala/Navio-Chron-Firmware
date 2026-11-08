@@ -43,7 +43,7 @@
           </div>
           <div id="libraryToolbar" class="library-toolbar">
             <button id="newPresetButton" class="button secondary">＋ 新建</button>
-            <label class="button secondary file-button">导入<input id="importPreset" type="file" accept=".json,.navio.json"></label>
+            <button id="importButton" class="button secondary">导入</button>
             <button id="exportButton" class="button secondary">导出当前</button>
           </div>
           <button id="resetLibrary" class="button text-button library-reset">清空我的预设</button>
@@ -117,6 +117,29 @@
     </section>
   </main>
 
+  <dialog id="exportDialog" class="dialog transfer-dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">EXPORT</span><h2>导出当前预设</h2></div><button type="button" class="icon-button" data-close="exportDialog" aria-label="关闭">×</button></div>
+      <p id="exportDescription" class="dialog-description"></p>
+      <label class="transfer-label" for="exportJson">JSON 内容</label>
+      <textarea id="exportJson" class="json-textarea" readonly spellcheck="false"></textarea>
+      <div id="exportError" class="field-error" role="alert" hidden></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="exportDialog">关闭</button><button id="copyExport" type="button" class="button secondary">复制 JSON</button><button id="downloadExport" type="button" class="button primary">保存到文件</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="importDialog" class="dialog transfer-dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="dialog-kicker">IMPORT</span><h2>导入预设</h2></div><button type="button" class="icon-button" data-close="importDialog" aria-label="关闭">×</button></div>
+      <p class="dialog-description">粘贴 JSON 或选择磁盘文件。内容只导入“我的预设”，不会直接写入键盘。</p>
+      <label class="transfer-label" for="importJson">JSON 内容</label>
+      <textarea id="importJson" class="json-textarea" placeholder="在这里粘贴预设 JSON…" spellcheck="false"></textarea>
+      <div class="import-file-row"><label class="button secondary file-button">选择文件<input id="importFile" type="file" accept=".json,.navio.json"></label><span id="importFileName">未选择文件</span></div>
+      <div id="importError" class="field-error" role="alert" hidden></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="importDialog">取消</button><button id="confirmImport" type="button" class="button primary">导入到我的预设</button></div>
+    </form>
+  </dialog>
+
   <dialog id="writeDialog" class="dialog">
     <form method="dialog">
       <div class="dialog-heading"><div><span class="dialog-kicker">KEYBOARD</span><h2 id="writeDialogTitle">安装到键盘</h2></div><button type="button" class="icon-button" data-close="writeDialog" aria-label="关闭">×</button></div>
@@ -176,14 +199,15 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="../tools/probe/navio_proto.js?v=20261107-37"></script>
-  <script src="../tools/probe/webflash_rules.js?v=20261107-37"></script>
-  <script src="preset.js?v=20261107-37"></script>
-  <script src="templates.js?v=20261107-37"></script>
-  <script src="template_browser.js?v=20261107-37"></script>
-  <script src="library.js?v=20261107-37"></script>
-  <script src="device.js?v=20261107-37"></script>
-  <script src="rgb_preview.js?v=20261107-37"></script>
-  <script type="module" src="app.js?v=20261107-37"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261107-39"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261107-39"></script>
+  <script src="preset.js?v=20261107-39"></script>
+  <script src="templates.js?v=20261107-39"></script>
+  <script src="template_browser.js?v=20261107-39"></script>
+  <script src="library.js?v=20261107-39"></script>
+  <script src="device.js?v=20261107-39"></script>
+  <script src="rgb_preview.js?v=20261107-39"></script>
+  <script src="import_export.js?v=20261107-39"></script>
+  <script type="module" src="app.js?v=20261107-39"></script>
 </body>
 </html>
