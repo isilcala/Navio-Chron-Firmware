@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-35';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-37';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-35';
+const ASSET_VERSION = '20261107-37';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -405,7 +405,7 @@ function renderDeviceCanvas() {
       renderWorkspaceTabs(); renderDeviceCanvas(); renderInspector(); syncPreviewAnimation();
     },
   });
-  $('canvasHint').hidden = lighting;
+  $('canvasHintText').textContent = lighting ? '点击右侧卡片预览；网页示意不代表实机效果' : '点击键位或旋钮查看设置';
   restoreFocus(focus);
 }
 function renderWorkspaceTabs() {
@@ -491,7 +491,7 @@ function renderLighting(preset) {
     <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${selectedMode.detail}</span></div>
     ${previewControls(preset.rgbMode)}
     <div class="effect-groups">${groups}</div>
-    <p class="lighting-note">上方电源、连接和预设指示灯不受影响。网页预览不代表键盘已实时更新。</p>`;
+    <p class="lighting-note">上方电源、连接和预设指示灯不受影响。</p>`;
 }
 function renderInspector() {
   const preset = currentPreset();
