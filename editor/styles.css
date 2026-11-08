@@ -125,6 +125,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .preset-heading-copy { min-width: 0; }
 .source-line { display: flex; align-items: center; gap: 6px; min-height: 20px; color: var(--muted); font-size: 12px; }
 .preset-identity { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; height: 36px; margin-top: 4px; }
+.preset-identity.is-pending { visibility: hidden; }
 .preset-header h1 { overflow: hidden; max-width: 350px; margin: 0; padding: 3px 4px; font-size: 23px; line-height: 28px; letter-spacing: -.4px; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
 .preset-header h1:hover { color: var(--accent); }
 .preset-name-input { width: 240px; min-width: 0; height: 34px; padding: 4px 8px; border: 0; border-radius: 10px; color: var(--text); background: var(--surface); box-shadow: var(--inset-small); font-size: 18px; font-weight: 600; line-height: 22px; }
@@ -137,7 +138,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .rename-action.confirm { color: var(--success); }
 .rename-action.cancel { color: var(--danger); }
 .rename-error { position: absolute; top: 44px; left: 38px; z-index: 35; width: 270px; padding: 10px 12px; border-radius: 11px; background: var(--surface); color: var(--danger); box-shadow: var(--raised); font-size: 12px; }
-.theme-swatch { flex: none; width: 28px; height: 12px; padding: 0; border: 0; border-radius: 6px; background: var(--accent); box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); cursor: pointer; transform: translateY(2px); }
+.theme-swatch { flex: none; width: 28px; height: 12px; padding: 0; border: 0; border-radius: 6px; background: var(--accent); box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); cursor: pointer; transform: translateY(2px); transition: box-shadow 200ms ease-in-out; }
 .theme-swatch:hover { box-shadow: 1px 1px 3px var(--shadow-dark), -1px -1px 3px var(--shadow-light); }
 .theme-swatch:active { box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light); }
 .theme-swatch:disabled { box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); cursor: default; opacity: 1; }
