@@ -395,3 +395,20 @@ progress::-moz-progress-bar { border-radius: 8px; background: var(--accent); }
 .effect-option { min-height: 124px; gap: 5px; }
 .effect-thumb { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; width: 100%; margin-bottom: 5px; padding: 10px 12px; border-radius: 10px; }
 .effect-thumb i { display: block; width: 9px; height: 9px; margin: auto; border-radius: 50%; background: var(--surface-deep); pointer-events: none; }
+
+.field select, .advanced-content select, .preview-dock select, .preview-controls select {
+  appearance: none;
+  padding-right: 38px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%238995a3' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right 14px center / 12px 8px no-repeat;
+  cursor: pointer;
+}
+.field select:disabled, .advanced-content select:disabled, .preview-dock select:disabled, .preview-controls select:disabled { cursor: default; }
+select { scrollbar-width: thin; scrollbar-color: #a6afb9 transparent; }
+select::-webkit-scrollbar { width: 8px; height: 8px; }
+select::-webkit-scrollbar-track { background: transparent; }
+select::-webkit-scrollbar-thumb { border-radius: 8px; background: #a6afb9; }
+select::-webkit-scrollbar-thumb:hover { background: #8995a3; }
+select option, select optgroup { color: var(--text); background: var(--surface); font-family: inherit; }
+select option { padding: 6px 10px; }
+select option:disabled { color: var(--muted); }
+select optgroup { color: var(--muted); background: var(--surface); font-weight: 600; }
