@@ -39,6 +39,7 @@ jobs:
           node editor/library_test.js
           node editor/device_test.js
           node editor/templates_test.js
+          node editor/template_browser_test.js
           node editor/rgb_preview_test.js
       - name: Assemble static site
         run: |

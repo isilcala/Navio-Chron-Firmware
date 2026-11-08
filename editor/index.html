@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#e0e5ec">
   <title>预设 · Navio Chron</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261107-31">
+  <link rel="stylesheet" href="styles.css?v=20261107-32">
 </head>
 <body>
   <header class="app-header">
@@ -47,6 +47,11 @@
             <button id="exportButton" class="button secondary">导出当前</button>
           </div>
           <button id="resetLibrary" class="button text-button library-reset">清空我的预设</button>
+          <div id="templateSearchField" class="template-search">
+            <label class="sr-only" for="templateSearch">搜索官方模板</label>
+            <input id="templateSearch" type="search" placeholder="搜索官方模板…" autocomplete="off" spellcheck="false">
+          </div>
+          <div id="templateSearchStatus" class="sr-only" role="status" aria-live="polite"></div>
           <div id="libraryContent" role="tabpanel" aria-label="预设列表"></div>
         </aside>
 
@@ -171,13 +176,14 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="../tools/probe/navio_proto.js?v=20261107-31"></script>
-  <script src="../tools/probe/webflash_rules.js?v=20261107-31"></script>
-  <script src="preset.js?v=20261107-31"></script>
-  <script src="templates.js?v=20261107-31"></script>
-  <script src="library.js?v=20261107-31"></script>
-  <script src="device.js?v=20261107-31"></script>
-  <script src="rgb_preview.js?v=20261107-31"></script>
-  <script type="module" src="app.js?v=20261107-31"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261107-32"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261107-32"></script>
+  <script src="preset.js?v=20261107-32"></script>
+  <script src="templates.js?v=20261107-32"></script>
+  <script src="template_browser.js?v=20261107-32"></script>
+  <script src="library.js?v=20261107-32"></script>
+  <script src="device.js?v=20261107-32"></script>
+  <script src="rgb_preview.js?v=20261107-32"></script>
+  <script type="module" src="app.js?v=20261107-32"></script>
 </body>
 </html>

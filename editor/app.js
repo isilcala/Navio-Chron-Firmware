@@ -1,12 +1,12 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-31';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261107-32';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
-  R = NavioWebflashRules, RGB = NavioRgbPreview, $ = id => document.getElementById(id);
+  R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261107-31';
+const ASSET_VERSION = '20261107-32';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/navio_chron_0.5.26/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -14,7 +14,8 @@ const uuid = () => crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()
 const platformOf = preset => P.normalizePlatform(preset?.platform);
 const accentHex = preset => `#${preset.accent.map(value => value.toString(16).padStart(2, '0')).join('')}`;
 
-let templates = [], userPresets = [], devicePresets = [], selectedKey = null, booted = false;
+let templates = [], templateGroups = [], userPresets = [], devicePresets = [], selectedKey = null, booted = false;
+let templateQuery = '', templatePlatform = /Mac|iPhone|iPad/.test(navigator.userAgent) ? 'mac' : 'win';
 let libraryTab = 'library', workspaceTab = 'mapping', selectedInput = { type: 'btn', index: 0 };
 let deviceConnection = null, deviceClient = null, activeDeviceId = 0, deviceBusy = false;
 let deviceGeneration = 0, deviceFirmware = null, updateDismissed = false;
@@ -80,7 +81,8 @@ async function boot() {
       preset._installedId = templateInstallations[preset.templateId] || null;
     });
     if (!templates.length) throw new Error(loaded.errors[0] || '官方模板库为空');
-    selectedKey = keyFor('template', templates[0]);
+    templateGroups = TB.buildTemplateGroups(templates);
+    selectedKey = keyFor('template', defaultTemplate());
     userPresets = loadUserPresets();
     booted = true;
     renderEditor();
@@ -173,6 +175,7 @@ function findByKey(key) {
 function currentSource() { return editSession?.source || selectedKey?.split(':')[0] || 'template'; }
 function currentOriginal() { return findByKey(editSession?.sourceKey || selectedKey); }
 function currentPreset() { return editSession?.working || currentOriginal() || templates[0]; }
+function defaultTemplate() { return TB.variantForPlatform(templateGroups[0]?.items[0], templatePlatform) || templates[0]; }
 function keyboardOriginal() { return editSession?.source === 'device' ? editSession.original : null; }
 function editingKeyboard() { return editSession?.source === 'device'; }
 function sourceCopy(preset, source = currentSource()) {
@@ -205,11 +208,11 @@ function sourceLabel() {
   if (editSession) return `${editingKeyboard() ? '键盘预设' : '我的预设'} · 编辑中`;
   return { template: '官方模板', local: '我的预设', device: '键盘中的预设' }[currentSource()];
 }
-function presetItem(preset, source) {
-  const key = keyFor(source, preset), active = key === selectedKey;
+function presetItem(preset, source, display = {}) {
+  const key = keyFor(source, preset), active = display.active ?? key === selectedKey;
   const linked = source === 'device' ? null : linkedDevice(preset);
-  let subline = PLATFORM[platformOf(preset)];
-  if (source === 'template' && linked) subline += ' · 已安装';
+  let subline = display.subline || PLATFORM[platformOf(preset)];
+  if (source === 'template' && linked && !display.subline) subline += ' · 已安装';
   if (source === 'local') subline = linked ? (hasKeyboardChanges(preset) ? '已安装 · 有修改' : '已安装 · 与键盘一致') : '未安装';
   if (source === 'device') {
     subline = `${PLATFORM[platformOf(preset)]}${preset.id === activeDeviceId ? ' · 使用中' : ''}${editSession?.sourceKey === key ? ' · 编辑中' : ''}`;
@@ -228,15 +231,29 @@ function presetItem(preset, source) {
     <span class="preset-item-tail"><span class="preset-item-badge">${badge}</span>${actions}</span>
   </div>`;
 }
+function templateFamilyItem(item) {
+  const preset = TB.variantForPlatform(item, templatePlatform);
+  const platforms = item.variants.map(variant => PLATFORM_SHORT[platformOf(variant)]).join(' / ');
+  const installed = item.variants.some(variant => linkedDevice(variant));
+  return presetItem(preset, 'template', {
+    active: item.variants.some(variant => keyFor('template', variant) === selectedKey),
+    subline: `${platforms}${installed ? ' · 已安装' : ''}`,
+  });
+}
 function renderLibrary() {
   document.querySelectorAll('[data-library-tab]').forEach(button => {
     const active = button.dataset.libraryTab === libraryTab;
     button.classList.toggle('active', active);
     button.setAttribute('aria-selected', String(active));
   });
+  const filteredGroups = TB.filterTemplateGroups(templateGroups, templateQuery);
+  const applicationCount = TB.countTemplateItems(filteredGroups);
   $('deviceCount').textContent = devicePresets.length;
   $('libraryToolbar').hidden = libraryTab !== 'library';
   $('resetLibrary').hidden = libraryTab !== 'library';
+  $('templateSearchField').hidden = libraryTab !== 'library';
+  $('templateSearchStatus').textContent = libraryTab === 'library' && templateQuery
+    ? `官方模板筛选出 ${applicationCount} 个应用` : '';
   $('resetLibrary').textContent = libraryLoadError ? '备份并重建本地库' : '清空我的预设';
   $('resetLibrary').classList.toggle('recovery-action', Boolean(libraryLoadError || quarantinedPresets.length));
   if (!deviceClient && libraryTab === 'device') {
@@ -266,10 +283,14 @@ function renderLibrary() {
     $('copyDevicePreset').onclick = () => copyPresetByKey(keyFor('device', selected));
     return;
   }
+  const templateGroupsHtml = filteredGroups.map(group => `<section class="template-group" aria-labelledby="template-group-${group.id}">
+    <div class="library-heading"><h3 id="template-group-${group.id}">${escapeHtml(group.label)}</h3><span class="library-count">${group.items.length}</span></div>
+    <div class="preset-list">${group.items.map(templateFamilyItem).join('')}</div>
+  </section>`).join('');
   $('libraryContent').innerHTML = `<div class="library-heading"><h2>我的预设</h2></div>
     <div class="preset-list">${userPresets.length ? userPresets.map(preset => presetItem(preset, 'local')).join('') : '<div class="library-empty">从官方模板或键盘显式复制后，独立预设会保存在这里。</div>'}</div>
-    <div class="library-heading"><h2>官方模板</h2></div>
-    <div class="preset-list">${templates.map(preset => presetItem(preset, 'template')).join('')}</div>`;
+    <div class="library-heading"><h2>官方模板</h2><span class="library-count">${applicationCount} 个应用</span></div>
+    ${applicationCount ? `<div class="template-groups">${templateGroupsHtml}</div>` : '<div class="library-empty">没有匹配的官方模板，请尝试其他关键词。</div>'}`;
 }
 
 function focusSelector() {
@@ -494,6 +515,8 @@ function renderInspector() {
 }
 function renderPresetHeader() {
   const preset = currentPreset(), readonly = currentSource() === 'template' && !editSession;
+  const templateItem = currentSource() === 'template' ? TB.findTemplateItem(templateGroups, preset.templateId) : null;
+  const canSwitchPlatform = Boolean(templateItem && templateItem.variants.length > 1);
   $('presetTitle').textContent = preset.name;
   $('presetTitle').hidden = false;
   $('presetNameInput').hidden = true;
@@ -505,8 +528,15 @@ function renderPresetHeader() {
   $('accentButton').style.background = accentHex(preset);
   $('accentInput').value = accentHex(preset);
   $('platformButton').innerHTML = `${PLATFORM[platformOf(preset)]} <span class="chevron" aria-hidden="true"></span>`;
+  $('platformButton').title = canSwitchPlatform ? '切换此官方模板的平台版本' : '';
   $('accentButton').disabled = readonly;
-  $('platformButton').disabled = readonly;
+  $('platformButton').disabled = readonly && !canSwitchPlatform;
+  $('platformPopover').querySelector('strong').textContent = templateItem ? '选择模板平台' : '平台与修饰键';
+  for (const button of $('platformPopover').querySelectorAll('[data-platform]')) {
+    const available = !templateItem || templateItem.variants.some(variant => platformOf(variant) === button.dataset.platform);
+    button.hidden = !available;
+    button.disabled = !available;
+  }
   $('presetIdentity').classList.remove('is-pending');
   $('draftNotice').hidden = !editSession;
   if (editSession) {
@@ -644,9 +674,11 @@ async function saveAndContinue() {
   action?.();
 }
 function selectPreset(key) {
-  if (key === selectedKey || !findByKey(key)) return;
+  const next = findByKey(key);
+  if (key === selectedKey || !next) return;
   requestLeave(() => {
     selectedKey = key;
+    if (key.startsWith('template:')) templatePlatform = platformOf(next);
     selectedInput = { type: 'btn', index: 0 };
     operationMessage = null;
     renderEditor();
@@ -669,7 +701,7 @@ async function refreshDevice(selectActive = false) {
 }
 function resetDeviceConnection(connection) {
   const closing = connection.abort();
-  if (currentSource() === 'device' && !editingKeyboard()) selectedKey = keyFor('template', templates[0]);
+  if (currentSource() === 'device' && !editingKeyboard()) selectedKey = keyFor('template', defaultTemplate());
   deviceConnection = null; deviceClient = null; devicePresets = []; activeDeviceId = 0; deviceBusy = false;
   deviceFirmware = null;
   $('updateBanner').hidden = true;
@@ -878,7 +910,7 @@ $('confirmDelete').addEventListener('click', () => {
   const index = userPresets.findIndex(preset => keyFor('local', preset) === pendingDeleteKey);
   if (index < 0) return;
   userPresets.splice(index, 1);
-  if (selectedKey === pendingDeleteKey) selectedKey = userPresets.length ? keyFor('local', userPresets[Math.min(index, userPresets.length - 1)]) : keyFor('template', templates[0]);
+  if (selectedKey === pendingDeleteKey) selectedKey = userPresets.length ? keyFor('local', userPresets[Math.min(index, userPresets.length - 1)]) : keyFor('template', defaultTemplate());
   pendingDeleteKey = null;
   const saved = saveLibrary();
   closeDialog('deleteDialog'); operationMessage = null; renderEditor();
@@ -897,6 +929,10 @@ $('libraryContent').addEventListener('keydown', event => {
   if (event.target.closest('[data-copy],[data-delete]')) return;
   const item = event.target.closest('[data-preset]');
   if (item && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); selectPreset(item.dataset.preset); }
+});
+$('templateSearch').addEventListener('input', event => {
+  templateQuery = event.target.value;
+  renderLibrary();
 });
 for (const button of document.querySelectorAll('[data-library-tab]')) button.addEventListener('click', () => {
   if (button.dataset.libraryTab === libraryTab) return;
@@ -1026,7 +1062,18 @@ $('colorPopover').addEventListener('click', event => {
 });
 $('platformPopover').addEventListener('click', event => {
   const button = event.target.closest('[data-platform]');
-  if (!button || !ensureEditSession()) return;
+  if (!button) return;
+  if (currentSource() === 'template' && !editSession) {
+    const item = TB.findTemplateItem(templateGroups, currentOriginal()?.templateId);
+    const next = TB.variantForPlatform(item, button.dataset.platform);
+    if (!next || platformOf(next) !== button.dataset.platform) return;
+    templatePlatform = button.dataset.platform;
+    closePopovers();
+    if (keyFor('template', next) === selectedKey) $('platformButton').focus();
+    else selectPreset(keyFor('template', next));
+    return;
+  }
+  if (!ensureEditSession()) return;
   editSession.working.platform = button.dataset.platform;
   changeWorking(true); closePopovers(); $('platformButton').focus();
 });
@@ -1088,7 +1135,7 @@ $('confirmReset').addEventListener('click', () => {
     catch (error) { toast(`原始库备份失败，恢复已取消：${error.message}`, true); return; }
     libraryLoadError = null;
   }
-  userPresets = []; quarantinedPresets = []; selectedKey = keyFor('template', templates[0]);
+  userPresets = []; quarantinedPresets = []; selectedKey = keyFor('template', defaultTemplate());
   selectedInput = { type: 'btn', index: 0 };
   if (!saveLibrary()) {
     if (recovering) { libraryLoadError = librarySaveError; librarySaveError = null; }

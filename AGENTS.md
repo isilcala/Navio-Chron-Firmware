@@ -103,7 +103,8 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    产品化 UX 阶段 1–4 已完成：单套编辑、来源复制、单项安装与断线恢复通过本地 Chrome/模拟 HID 回归；
    跨页、可访问性、窄屏/缩放、Pages 与线上验收通过；真机正式编辑器 WebHID 读取及原内容写回验证通过；
    独立审查后续修复 ID 碰撞覆盖、刷写失败恢复、固件样式、Wheel 修饰键、焦点与缓存，293 项 Node 与 13 组浏览器回归通过；
-   网页 RGB 图形化选择与动画预览已完成（D29），23 项引擎检查通过，不开发硬件 LED_PREVIEW
+   网页 RGB 图形化选择与动画预览已完成（D29），23 项引擎检查通过，不开发硬件 LED_PREVIEW；
+   官方模板列表已按工作流分组并支持别名搜索，Win/Mac 按应用合并、标题栏切换平台（D31）
 2. 预设扩展：官方模板库共 28 套：剪映/CapCut/Resolve/Premiere/After Effects/Blender/Illustrator/
    Photoshop/Lightroom Classic/Capture One/Clip Studio Paint/Krita 各 Win/Mac，
    另有 Final Cut Pro Mac、Procreate iPad、Test、F13 Macro；
