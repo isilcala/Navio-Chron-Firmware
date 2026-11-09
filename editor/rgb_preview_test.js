@@ -144,4 +144,12 @@ test('representative breath frame uses the bright hold', () => {
 test('mode groups expose every mode once in logical order', () => {
   assert.deepEqual(R.MODE_GROUPS.flatMap(group => group.modes), [0, 3, 1, 2, 4, 5, 6, 7, 8, 9]);
 });
+test('lighting title and selected-effect summary share a sticky header', () => {
+  const fs = require('node:fs');
+  const app = fs.readFileSync(__dirname + '/app.js', 'utf8');
+  const css = fs.readFileSync(__dirname + '/styles.css', 'utf8');
+  assert.match(app, /<div class="lighting-header">\$\{inspectorHeading[\s\S]*selected-effect[\s\S]*<\/div><\/div>/);
+  assert.match(css, /\.lighting-header \{ position: sticky;/);
+  assert.match(css, /@media \(max-width: 1080px\) \{ \.lighting-header \{ position: static;/);
+});
 console.log(`All ${passed} RGB preview checks passed.`);

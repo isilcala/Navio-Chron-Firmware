@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-42';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-43';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261109-42';
+const ASSET_VERSION = '20261109-43';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/latest/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -487,8 +487,8 @@ function renderLighting(preset) {
       <span class="effect-thumb" data-effect-thumb="${mode.value}" aria-hidden="true">${thumbnailCells()}</span>
       <strong>${mode.label}</strong><small>${RGB.MODE_COLORS[mode.value]}</small></label>`;
   }).join('')}</div></section>`).join('');
-  return `${inspectorHeading('整套预设', '灯光效果', '选择按键灯的表现方式')}
-    <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${selectedMode.detail}</span></div>
+  return `<div class="lighting-header">${inspectorHeading('整套预设', '灯光效果', '选择按键灯的表现方式')}
+    <div class="selected-effect"><strong>${selectedMode.label}</strong><span>${selectedMode.detail}</span></div></div>
     ${previewControls(preset.rgbMode)}
     <div class="effect-groups">${groups}</div>
     <p class="lighting-note">上方电源、连接和预设指示灯不受影响。</p>`;
