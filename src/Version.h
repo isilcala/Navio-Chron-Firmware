@@ -1,3 +1,3 @@
 #pragma once
 
-#define NAVIO_CHRON_FW_VERSION "0.5.28"
+#define NAVIO_CHRON_FW_VERSION "0.5.29"

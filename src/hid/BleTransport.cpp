@@ -162,7 +162,7 @@ void BleTransport::begin() {
   adv->setAppearance(0x03C1);  // HID Keyboard
   adv->addServiceUUID(hid->getHidService()->getUUID());
   adv->addServiceUUID(hid->getBatteryService()->getUUID());
-  adv->setPreferredParams(0x0C, 0x0C);  // 首选连接间隔 15ms；实际参数由主机决定
+  adv->setPreferredParams(0x06, 0x06);  // 首选连接间隔 7.5ms；实际参数由主机决定
   adv->enableScanResponse(true);
   // 设备名放 scan response：主机蓝牙设置才能正确显示 "Navio Chron"（Android 必需）
   NimBLEAdvertisementData scanResp;
