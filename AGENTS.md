@@ -12,7 +12,7 @@ Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板�
 
 | 环境 | 平台 | 用途 |
 |---|---|---|
-| `navio_chron`（默认） | core 3.12 + NimBLE 2.5.1 + Adafruit_TinyUSB 3.7.7 + Adafruit_NeoPixel | 正式固件：USB 优先自动选 BLE，无 CDC |
+| `navio_chron`（默认） | core 3.12 + NimBLE 2.5.1 + Adafruit_TinyUSB 3.7.7 + Adafruit_NeoPixel | 正式固件：USB 枚举优先；电池热拔线限制见 D3；无 CDC |
 | `ble_test` | 同上 + FORCE_BLE + IGNORE_MATRIX | BLE 强制路径测试（未焊接阶段） |
 | `ble_diag` | 同上 + USB 外设让给 JTAG 串口 | BLE 实时日志诊断（串口监视器） |
 | `debug_boot` / `led_beacon` | 同一 core 3.12 基座 | 启动分步日志 / 板载 RGB 颜色信标 |
@@ -92,7 +92,9 @@ release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 
 ## 当前状态与遗留
 
-Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实战通过**。
+Phase 1 + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实战通过**。
+Phase 1b 的 BLE 与插入电脑自动切 USB 已验收；电池持续供电时热拔线不会可靠切回 BLE，
+原因是当前硬件无 VBUS 检测，现阶段接受该限制（D3）。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：

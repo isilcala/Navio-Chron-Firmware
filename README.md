@@ -10,7 +10,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 
 - [x] Matrix keys, 3 encoders, WS2812 lighting and battery sensing
 - [x] USB HID keyboard, mouse, consumer control and vendor interface
-- [x] BLE HID with pairing, reconnect and USB/BLE auto-selection
+- [x] BLE HID with pairing/reconnect and automatic USB selection when enumeration succeeds
+- [ ] Automatic BLE fallback after battery-powered USB hot-unplug; current hardware lacks VBUS sensing (accepted limitation, D3)
 - [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
 - [x] Dynamic presets in NVS and Navio Config Protocol v2; Test is the only factory-fallback preset
 - [x] Dual-slot USB OTA with SHA-256, rollback and local self-confirm
