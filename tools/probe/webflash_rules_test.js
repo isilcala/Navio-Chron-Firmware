@@ -1,5 +1,7 @@
 // 运行：node tools/probe/webflash_rules_test.js
 "use strict";
+const fs = require("node:fs");
+const path = require("node:path");
 const R = require("./webflash_rules.js");
 
 let passed = 0;
@@ -88,5 +90,32 @@ const wrongVersion = manifest(); wrongVersion.version = "0.4";
 throws(() => R.validateManifest(wrongVersion), "bad manifest SemVer rejected");
 const wrongChannel = manifest(); wrongChannel.channel = "beta";
 throws(() => R.validateManifest(wrongChannel), "bad manifest channel rejected");
+
+const flasherSource = fs.readFileSync(path.join(__dirname, "webunified_probe.html"), "utf8");
+const editorSource = fs.readFileSync(path.join(__dirname, "../../editor/app.js"), "utf8");
+equal(flasherSource.includes('value="/release/latest/manifest.json"'), true,
+  "local flasher uses the generated latest manifest");
+equal(editorSource.includes("LOCAL_SERVER ? '/release/latest/manifest.json'"), true,
+  "local editor update check uses the generated latest manifest");
+assert(!/release\/navio_chron_\d/.test(flasherSource + editorSource));
+ok("local Web entry points contain no versioned release path");
+equal(flasherSource.includes('id="connectSerial" class="button secondary">串口模式刷写</button>'), true,
+  "serial flashing has a separate secondary action");
+equal(flasherSource.includes('id="rescueConnect" class="button primary">我已完成，选择设备</button>'), true,
+  "BOOT rescue has its own connection action");
+assert(!flasherSource.includes("$('connect').textContent = '选择设备串口'"));
+ok("application connection never mutates into the serial action");
+equal((flasherSource.match(/正在写入固件，请保持 USB 连接，不要关闭页面。/g) || []).length, 2,
+  "OTA and ROM writes replace the confirmation prompt with progress guidance");
+equal(flasherSource.includes("if (!writeCompleted) throw error;"), true,
+  "ROM write failures still propagate before the write completes");
+equal(flasherSource.includes("自动重启未完成，请按 RST 或重新插拔。"), true,
+  "post-write reset failures request manual restart instead of reporting an incomplete write");
+equal((flasherSource.match(/点击“去配置预设”后，请在新页面再次点击“连接设备”。/g) || []).length, 2,
+  "OTA and ROM success messages direct users to reconnect in the preset editor");
+equal(flasherSource.includes('id="backToConnect" class="button secondary">返回上一步</button>'), true,
+  "latest and success states offer a secondary return action");
+equal(flasherSource.includes("$('backToConnect').onclick"), true,
+  "return action is connected to the connection-stage state");
 
 console.log(`\nAll ${passed} checks passed.`);

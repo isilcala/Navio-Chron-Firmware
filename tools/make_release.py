@@ -1,6 +1,6 @@
 # 生成可直接用乐鑫官方 Flash Download Tool 刷写的固件发布包。
 # 用法：python tools/make_release.py [env_name=navio_chron]
-# 输出：release/<env>_<version>/ 四件套 + FLASH_LAYOUT.txt（地址/工具参数说明）
+# 输出：release/<env>_<version>/ 四件套 + FLASH_LAYOUT.txt，并刷新 release/latest/ 本地别名
 import hashlib
 import json
 import os
@@ -95,6 +95,14 @@ def main():
     with open(os.path.join(outdir, "manifest.json"), "w", encoding="utf-8") as out:
         json.dump(manifest, out, ensure_ascii=False, indent=2)
         out.write("\n")
+
+    if ENV == "navio_chron":
+        latest = os.path.join(OUT, "latest")
+        if os.path.exists(latest):
+            shutil.rmtree(latest)
+        os.makedirs(latest)
+        for name in ["manifest.json"] + [name for _, name, _ in images]:
+            shutil.copy2(os.path.join(outdir, name), os.path.join(latest, name))
 
     zpath = os.path.join(OUT, f"{ENV}_{version}.zip")
     if os.path.exists(zpath):

@@ -14,7 +14,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
 - [x] Dynamic presets in NVS and Navio Config Protocol v2; Test is the only factory-fallback preset
 - [x] Dual-slot USB OTA with SHA-256, rollback and local self-confirm
-- [x] Unified Web flasher: OTA, demo migration and BOOT/ROM recovery,
+- [x] Unified Web flasher with explicit app-update/serial actions: OTA, demo migration and BOOT/ROM recovery,
       [deployed and verified online](https://isilcala.github.io/Navio-Chron-Firmware/)
 - [x] Browser preset editor with local library and full device management, verified on hardware;
       firmware version label and update notices use HELLO and the deployed release manifest
@@ -61,7 +61,7 @@ python tools/ota_upload.py .pio/build/navio_chron/firmware.bin
 For local Web flashing probes:
 
 ```bash
-python tools/make_release.py
+python tools/make_release.py  # also refreshes release/latest for local Web pages
 python -m http.server 8000
 # http://localhost:8000/tools/probe/webunified_probe.html
 ```

@@ -25,7 +25,7 @@ pio run -t upload       # 烧录：板上固件长按侧键 10 秒或 BOOT 键 3
                         # 插电时按住侧键同样进入
 pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin  # 已支持 OTA 的固件：Vendor HID 应用升级
-python tools/make_release.py # 构建后生成 release 四件套 + manifest
+python tools/make_release.py # 构建后生成 release 四件套 + manifest，并刷新本地 latest 别名
 python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/webunified_probe.html
 # 兜底（固件挂死/首次/诊断固件）：拔线 → 按住 BOOT → 插线 → 松开 → upload
 # 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST；装配后 RST 摸不到则重新插拔
@@ -97,7 +97,7 @@ Phase 1 + 1b + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：
 1. Phase 2：协议、动态预设与 USB OTA 核心验收完成（D19/D20/D21）；
-   Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），单入口、三条核心路径及
+   Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），应用升级/串口刷写双入口、三条核心路径及
    中断/负向验收及 GitHub Pages 线上 OTA 验收已完成；Web 编辑器 A 原型与模板分离已完成，
    B/C 均已通过真机验收，双键盘断开与换机重连已验证；刷写完成重启后不再重连验证，
    编辑器页头显示设备固件版本，新连接主动检查固件更新；RGB 十种模式（通用默认 reactive，0.5.30 起出厂 Test 使用 rainbowFlow）与编辑器选择已实现（D26/D30），真机灯效与功耗待验收；
