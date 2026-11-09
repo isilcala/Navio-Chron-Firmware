@@ -11,7 +11,7 @@ namespace navio {
 static const Preset kPresetTest = {
     "Test",
     {255, 255, 255},
-    1,
+    7,
     {
         /* K1  */ actKey(MOD_NONE, HID_1),
         /* K2  */ actKey(MOD_NONE, HID_2),

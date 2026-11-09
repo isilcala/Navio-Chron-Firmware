@@ -1,7 +1,8 @@
 # Navio 二进制预设 Schema v1
 
 > 状态：规范冻结（2026-10-27）；2026-11-02 修订 byte 13 为平台元数据（D24）；
-> 2026-11-05 启用 byte 11 三种灯效（D26）；2026-11-07 新增 off、重排枚举并默认 reactive（D30），记录版本保持 1。
+> 2026-11-05 启用 byte 11 三种灯效（D26）；2026-11-07 新增 off、重排枚举并默认 reactive（D30）；
+> 0.5.30 起出厂 Test 使用 rainbowFlow，记录版本保持 1。
 > 实现与实测状态见 `docs/PROJECT.md`。
 > 线上协议见 `PROTOCOL.md`。多字节整数均为 little-endian，禁止直接序列化 C++ 对象或依赖 padding。
 

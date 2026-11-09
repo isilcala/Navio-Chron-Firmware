@@ -92,6 +92,8 @@ equal(loaded.templates.find(t => t.templateId === "jianying-win").name, "剪映"
 const firmwareSource = fs.readFileSync(path.join(__dirname, "../src/mapping/Presets.cpp"), "utf8");
 assert(/kPresetTest\s*=\s*\{\s*"Test",\s*\{255,\s*255,\s*255\}/.test(firmwareSource), "firmware Test preset uses pure white accent");
 ok("firmware Test preset uses pure white accent");
+assert(/kPresetTest\s*=\s*\{\s*"Test",\s*\{255,\s*255,\s*255\},\s*7/.test(firmwareSource), "firmware Test preset defaults to rainbow flow");
+ok("firmware Test preset defaults to rainbow flow");
 assert(/extern const Preset kPresets\[\]\s*=\s*\{kPresetTest\}/.test(firmwareSource), "factory fallback contains only Test");
 ok("factory fallback contains only Test");
 const slugs = new Set(loaded.templates.map(t => t.templateId));
