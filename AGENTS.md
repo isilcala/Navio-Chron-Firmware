@@ -21,8 +21,8 @@ Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板�
 
 ```bash
 pio run                 # 编译（默认环境 navio_chron）
-pio run -t upload       # 烧录：板上固件长按侧键 10 秒或 BOOT 键 3 秒（RGB 变紫）进下载模式后直接 upload；
-                        # 插电时按住侧键同样进入
+pio run -t upload       # 烧录：Navio 固件下断电后按住侧键重新上电，或 BOOT 键 3 秒（RGB 变紫）进下载模式后 upload；
+                        # 任意固件的通用兜底仍是按住物理 BOOT 插 USB
 pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin  # 已支持 OTA 的固件：Vendor HID 应用升级
 python tools/make_release.py # 构建后生成 release 四件套 + manifest，并刷新本地 latest 别名
@@ -65,8 +65,9 @@ release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 - **BLE 报告细节（D12）**：报告不带 Report ID 前缀；连接后首帧需 prime 空报告；
   pressChord 必须经 `HidInputState` 写入键槽（缺失 = 发送全零报告，历史最贵 bug）。
 - **Btn 枚举即物理位**：注释里的 R2C3 对应硬件笔记矩阵表，勿按枚举顺序臆测布局。
-- **SideKey（SW11）全局保留**：短按松手=切预设 / 5-10s 内松手=BLE 配对（清绑定）/
-  长按 10s=烧写（不清绑定）；长按不会先触发短按切预设。
+- **SideKey（SW11）全局保留**：短按松手=切预设 / 侧键+K1/K2/K3=蓝牙频道 1/2/3 /
+  长按 5s=当前频道配对替换 / 上电或复位时按住=烧写；上电检测需 30ms 窗口内连续稳定 10ms。
+  空频道自动配对，普通回连仅接受当前频道；替换成功才提交。网页“蓝牙设备”仅用于异常恢复。
 - **未焊接阶段**：矩阵/编码器悬空有噪声事件，测试用 IGNORE_MATRIX 构建；
   板载 RGB(GPIO48) 是唯一可视调试手段（信标+测试键反馈）。
 - 语言约定：交流与文档中文；标识符、代码、commit message 英文。
@@ -95,6 +96,10 @@ release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 Phase 1 + 生产预设完成：**剪映 / Resolve（Win）USB/BLE 双模实战通过**。
 Phase 1b 的 BLE 与插入电脑自动切 USB 已验收；电池持续供电时热拔线不会可靠切回 BLE，
 原因是当前硬件无 VBUS 检测，现阶段接受该限制（D3）。
+0.5.31 起侧键简化为短按切预设、5 秒到位配对与上电按住刷写，启动检测带 10ms 连续稳定采样（D34）；
+0.6.0 起配对需 HID 报告订阅建立才视为成功，订阅前断开保持蓝闪；0.8.1 起固定 3 蓝牙频道，
+侧键+K1/K2/K3 选台并用对应键灯闪 3 下反馈，空频道自动配对、当前频道成功后才替换（D36/D37），
+网页按频道管理绑定，真机多频道与配对灯态待验收。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：

@@ -40,11 +40,12 @@ uint8_t errorForResult(PresetChangeResult result) {
 }  // namespace
 
 void ConfigProto::begin(VendorHid* port, PresetManager* presets, OtaManager* ota,
-                        std::function<void()> onBeforeMutation,
+                        IBleBondManager* bonds, std::function<void()> onBeforeMutation,
                         std::function<void()> onAfterMutation) {
   port_ = port;
   presets_ = presets;
   ota_ = ota;
+  bonds_ = bonds;
   onBeforeMutation_ = onBeforeMutation;
   onAfterMutation_ = onAfterMutation;
   port->onFrame = [this](const uint8_t* d, size_t l) { handleFrame(d, l); };
@@ -271,6 +272,28 @@ void ConfigProto::completeRequest_() {
     }
     if (onAfterMutation_) onAfterMutation_();
   }
+  if (cmd == CMD_DELETE_BLE_BOND || cmd == CMD_CLEAR_BLE_BONDS) {
+    bool validLength = (cmd == CMD_DELETE_BLE_BOND && completedBodyLength_ == 7) ||
+                       (cmd == CMD_CLEAR_BLE_BONDS && completedBodyLength_ == 0);
+    if (!validLength || !bonds_) {
+      finishError_(ERR_BAD_PAYLOAD);
+      return;
+    }
+    if (onBeforeMutation_) onBeforeMutation_();
+    bool ok = false;
+    if (cmd == CMD_CLEAR_BLE_BONDS) {
+      ok = bonds_->clearBonds();
+    } else {
+      BleBondAddress address;
+      address.type = rxBuf_[0];
+      memcpy(address.value, rxBuf_ + 1, sizeof(address.value));
+      ok = bonds_->deleteBond(address);
+    }
+    if (!ok) {
+      finishError_(ERR_NVS_FAILURE);
+      return;
+    }
+  }
   respondToCommand_();
 }
 
@@ -285,7 +308,7 @@ void ConfigProto::respondToCommand_() {
     case CMD_GET_INFO: {
       static const char caps[] =
           "{\"record\":1,\"maxBody\":2048,\"maxPresets\":6,"
-          "\"cmds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]}";
+          "\"cmds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]}";
       finishResponse_(reinterpret_cast<const uint8_t*>(caps), strlen(caps));
       break;
     }
@@ -304,6 +327,31 @@ void ConfigProto::respondToCommand_() {
         len += nameLength;
       }
       finishResponse_(manifest, len);
+      break;
+    }
+    case CMD_GET_BLE_BONDS: {
+      if (completedBodyLength_ != 0 || !bonds_) {
+        finishError_(ERR_BAD_PAYLOAD);
+        break;
+      }
+      uint8_t data[2 + BLE_BOND_MAX * 13] = {};
+      uint8_t count = bonds_->bondCount();
+      data[0] = 2;
+      data[1] = count;
+      for (uint8_t i = 0; i < count; ++i) {
+        BleBondInfo bond;
+        if (!bonds_->readBond(i, bond)) {
+          finishError_(ERR_NVS_FAILURE);
+          return;
+        }
+        size_t offset = 2 + i * 13;
+        data[offset] = bond.address.type;
+        memcpy(data + offset + 1, bond.address.value, sizeof(bond.address.value));
+        data[offset + 7] = bond.connected ? 1 : 0;
+        writeLe32(data + offset + 8, bond.lastUsedSeq);
+        data[offset + 12] = bond.channel;
+      }
+      finishResponse_(data, 2 + count * 13);
       break;
     }
     case CMD_READ_PRESET: {
@@ -428,6 +476,8 @@ void ConfigProto::respondToCommand_() {
     case CMD_WRITE_PRESET:
     case CMD_DELETE:
     case CMD_MOVE:
+    case CMD_DELETE_BLE_BOND:
+    case CMD_CLEAR_BLE_BONDS:
       finishResponse_();
       break;
     default:

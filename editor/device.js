@@ -2,10 +2,11 @@
 (function (root, factory) {
   const proto = root.NavioProto || (typeof require !== "undefined" ? require("../tools/probe/navio_proto.js") : null);
   const preset = root.NavioEditorPreset || (typeof require !== "undefined" ? require("./preset.js") : null);
-  const api = factory(proto, preset);
+  const bonds = root.NavioBleBonds || (typeof require !== "undefined" ? require("./ble_bonds.js") : null);
+  const api = factory(proto, preset, bonds);
   root.NavioEditorDevice = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
-})(typeof self !== "undefined" ? self : globalThis, function (P, Preset) {
+})(typeof self !== "undefined" ? self : globalThis, function (P, Preset, Bonds) {
   "use strict";
 
   const HID_FILTER = { vendorId: 0xCAFE, productId: 0xBEEF, usagePage: 0xFF00, usage: 1 };
@@ -148,6 +149,16 @@
     }
     async move(id, beforeId) {
       await this.session.request(P.CMD.MOVE, new Uint8Array([id, beforeId]));
+    }
+    async listBonds() {
+      const result = Bonds.parseBondList(await this.session.request(P.CMD.GET_BLE_BONDS));
+      return Bonds.sortBonds(result.entries);
+    }
+    async deleteBond(bond) {
+      await this.session.request(P.CMD.DELETE_BLE_BOND, Bonds.encodeDeleteBond(bond));
+    }
+    async clearBonds() {
+      await this.session.request(P.CMD.CLEAR_BLE_BONDS);
     }
   }
 

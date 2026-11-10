@@ -70,8 +70,9 @@ def main():
   esptool.py --chip esp32s3 --baud 921600 write_flash \\
     0x0 bootloader.bin 0x8000 partitions.bin 0xE000 boot_app0.bin 0x10000 firmware.bin
 
-烧录后：LED0 显示当前预设色；单击侧键=切换预设，长按 5 秒=蓝牙配对，
-长按 10 秒=进入下载模式（可直接上传新固件）。
+烧录后：LED0 显示当前预设色；单击侧键=切换预设，侧键+K1/K2/K3=选择蓝牙频道，
+长按 5 秒=当前频道添加或替换主机（成功后才替换）。
+Navio 固件下，设备断电后按住侧键再插 USB/重新上电=进入下载模式。
 """
     open(os.path.join(outdir, "FLASH_LAYOUT.txt"), "w", encoding="utf-8").write(layout)
 

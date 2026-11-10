@@ -246,7 +246,7 @@ USB 与纯 BLE 使用场景采用同一套本地确认语义。
 已静态确认当前 Arduino 包及 `qio_qspi` 变体的 sdkconfig 启用
 `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`，且未启用 anti-rollback；仍必须上机实测首启动回退，
 不得把静态配置或“应用内校验”冒充回退验收。
-侧键 10 秒及 BOOT 插拔救援路径保留到上述测试全部通过之后。
+Navio 固件的应用侧恢复使用按住侧键重新上电/复位；通用救援仍为物理 BOOT 插拔（D34）。
 
 ## 9. 主机标准流程
 

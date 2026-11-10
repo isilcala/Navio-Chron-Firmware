@@ -11,6 +11,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] Matrix keys, 3 encoders, WS2812 lighting and battery sensing
 - [x] USB HID keyboard, mouse, consumer control and vendor interface
 - [x] BLE HID with pairing/reconnect and automatic USB selection when enumeration succeeds
+- [x] Simplified side-key gestures: click to cycle presets, hold 5s to pair, or hold at power-on/reset to flash (D34)
+- [x] Three fixed BLE channels with one active connection, side-key channel selection and successful-replacement commit (D36)
 - [ ] Automatic BLE fallback after battery-powered USB hot-unplug; current hardware lacks VBUS sensing (accepted limitation, D3)
 - [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
 - [x] Dynamic presets in NVS and Navio Config Protocol v2; Test is the only factory-fallback preset
@@ -49,9 +51,10 @@ pio run
 pio run -t upload
 ```
 
-Hold the side key for 10s (or module BOOT for 3s) to enter download mode.
-Fallback: hold BOOT, plug USB, release, then upload. Tap RST or reconnect power if the board
-stays in download mode after flashing.
+With Navio firmware running, power off the device, hold the side key, then reconnect USB/power
+(or hold module BOOT for 3s) to enter download mode. Firmware-independent fallback: hold BOOT,
+plug USB, release, then upload. Tap RST or reconnect power if the board stays in download mode
+after flashing.
 
 Upgrade an OTA-capable device over Vendor HID:
 

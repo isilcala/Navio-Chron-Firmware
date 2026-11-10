@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "PresetManager.h"
+#include "hid/BleBondManager.h"
 #include "ota/OtaManager.h"
 #include "proto/VendorHid.h"
 
@@ -30,6 +31,9 @@ enum ProtoCmd : uint8_t {
   CMD_OTA_STATUS = 0x0E,
   CMD_OTA_REBOOT = 0x0F,
   CMD_OTA_CONFIRM = 0x10,
+  CMD_GET_BLE_BONDS = 0x11,
+  CMD_DELETE_BLE_BOND = 0x12,
+  CMD_CLEAR_BLE_BONDS = 0x13,
   CMD_ACK = 0x40,
   CMD_ERR = 0x41,
 };
@@ -56,7 +60,7 @@ enum ProtoStatus : uint8_t { STATUS_OK = 0, STATUS_CHUNK = 1, STATUS_MORE = 2 };
 class ConfigProto {
  public:
   void begin(VendorHid* port, PresetManager* presets, OtaManager* ota,
-             std::function<void()> onBeforeMutation,
+             IBleBondManager* bonds, std::function<void()> onBeforeMutation,
              std::function<void()> onAfterMutation);
   void poll();
   void handleFrame(const uint8_t* data, size_t len);
@@ -83,6 +87,7 @@ class ConfigProto {
   VendorHid* port_ = nullptr;
   PresetManager* presets_ = nullptr;
   OtaManager* ota_ = nullptr;
+  IBleBondManager* bonds_ = nullptr;
   std::function<void()> onBeforeMutation_;
   std::function<void()> onAfterMutation_;
   uint32_t rebootAtMs_ = 0;

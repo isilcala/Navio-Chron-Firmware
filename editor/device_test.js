@@ -158,6 +158,21 @@ test("move boundaries are rejected", () => {
     await client.remove(7); await client.move(3, 0);
     assert.deepEqual(calls, [[P.CMD.DELETE, 7], [P.CMD.MOVE, 3, 0]]);
   });
+  await asyncTest("bond client reads, deletes and clears through appended commands", async () => {
+    const calls = [], address = [6, 5, 4, 3, 2, 1];
+    const session = { request: async (cmd, body = new Uint8Array()) => {
+      calls.push([cmd, ...body]);
+      if (cmd === P.CMD.GET_BLE_BONDS) return new Uint8Array([2, 1, 2, ...address, 1, 7, 0, 0, 0, 2]);
+      return new Uint8Array();
+    } };
+    const client = new D.DeviceClient(session);
+    const bonds = await client.listBonds();
+    assert.equal(bonds[0].lastUsedSeq, 7);
+    assert.equal(bonds[0].channel, 2);
+    await client.deleteBond(bonds[0]); await client.clearBonds();
+    assert.deepEqual(calls.map(call => call[0]), [P.CMD.GET_BLE_BONDS, P.CMD.DELETE_BLE_BOND, P.CMD.CLEAR_BLE_BONDS]);
+    assert.deepEqual(calls[1], [P.CMD.DELETE_BLE_BOND, 2, ...address]);
+  });
   await asyncTest("abort rejects pending HID reads and blocks old-session sends", async () => {
     const device = new EventTarget();
     let added = 0, removed = 0, closes = 0;

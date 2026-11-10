@@ -41,6 +41,7 @@ void LedController::begin() {
 }
 
 void LedController::showPreset(const uint8_t accent[3], uint8_t rgbMode) {
+  channelFeedbackKey_ = CHANNEL_FEEDBACK_OFF;
   for (uint8_t i = 0; i < 3; ++i) accent_[i] = accent[i];
   rgbMode_ = rgbMode;
   effectStartedAt_ = millis();
@@ -54,6 +55,14 @@ void LedController::showPreset(const uint8_t accent[3], uint8_t rgbMode) {
   }
   dirty_ = true;
   flush();
+}
+
+void LedController::showChannelFeedback(uint8_t key) {
+  if (key >= KEY_COUNT) return;
+  channelFeedbackKey_ = key;
+  channelFeedbackStartedAt_ = millis();
+  for (uint8_t i = 0; i < KEY_COUNT; ++i) chain_.setPixelColor(LED_KEY_FIRST + i, 0);
+  dirty_ = true;
 }
 
 void LedController::setKeyColor_(uint8_t key, uint8_t level) {
@@ -220,7 +229,24 @@ void LedController::tick() {
       dirty_ = true;
     }
   }
-  updateEffects_(now);
+  if (channelFeedbackKey_ != CHANNEL_FEEDBACK_OFF) {
+    uint32_t elapsed = now - channelFeedbackStartedAt_;
+    if (elapsed >= 720) {
+      channelFeedbackKey_ = CHANNEL_FEEDBACK_OFF;
+      showPreset(accent_, rgbMode_);
+    } else {
+      bool on = (elapsed / 120) % 2 == 0;
+      for (uint8_t key = 0; key < KEY_COUNT; ++key) {
+        chain_.setPixelColor(LED_KEY_FIRST + key,
+                             on && key == channelFeedbackKey_
+                               ? chain_.Color(scale(0), scale(0), scale(100))
+                               : 0);
+      }
+      dirty_ = true;
+    }
+  } else {
+    updateEffects_(now);
+  }
   if (!dirty_ || now - lastShowMs_ < LED_TICK_INTERVAL_MS) return;
   chain_.show();
   dirty_ = false;

@@ -5,17 +5,22 @@
 #include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <Preferences.h>
 
+#include "hid/BleBondManager.h"
 #include "hid/HidInputState.h"
 #include "hid/ITransport.h"
 
+class NimBLEConnInfo;
+
 namespace navio {
 
-class BleTransport : public ITransport {
+class BleTransport : public ITransport, public IBleBondManager {
  public:
   void begin() override;
   void poll();
   bool isConnected() override { return connected_; }
+  bool hasReportSubscriptions() const { return subscriptions_ != 0; }
   const char* name() override { return "BLE"; }
 
   void pressChord(uint8_t modMask, uint16_t usage) override;
@@ -25,8 +30,15 @@ class BleTransport : public ITransport {
   void consumerRelease(uint16_t usage) override;
   void mouseWheel(int8_t dy) override;
 
-  // 配对模式：清绑定 + 可发现广播（侧键长按 5s 触发）
-  void enterPairing();
+  bool enterPairing();
+  void selectChannel(uint8_t channel);
+  bool isPairing() const { return pairingMode_; }
+  uint8_t currentChannel() const { return currentChannel_; }
+  uint8_t bondCount() override;
+  bool readBond(uint8_t index, BleBondInfo& out) override;
+  bool deleteBond(const BleBondAddress& address) override;
+  bool clearBonds() override;
+
   // USB 优先时段停广播省电/防误连；恢复时自动重连已配对主机
   void pauseAdvertising();
   void resumeAdvertising();
@@ -39,17 +51,20 @@ class BleTransport : public ITransport {
   bool lastSendOk() const { return lastNotifyOk_; }
 
   // NimBLE 回调只投递事件，由主循环 poll() 更新状态
-  void onConnect_(uint16_t connHandle);
-  void onDisconnect_(uint16_t connHandle);
-  void onSubscribe_(uint16_t connHandle, uint8_t reportId, uint16_t subValue);
+  void onConnect_(const NimBLEConnInfo& connInfo);
+  void onPeerSecurity_(const NimBLEConnInfo& connInfo);
+  void onDisconnect_(uint16_t connHandle, int reason);
+  void onSubscribe_(const NimBLEConnInfo& connInfo, uint8_t reportId, uint16_t subValue);
 
  private:
-  enum class EventType : uint8_t { Connect, Disconnect, Subscribe };
+  enum class EventType : uint8_t { Connect, Security, Disconnect, Subscribe };
   struct Event {
     EventType type;
     uint16_t connHandle;
     uint8_t reportId;
     uint16_t subValue;
+    BleBondAddress peerAddress;
+    BleBondAddress otaAddress;
   };
 
   HidInputState state_;
@@ -60,6 +75,14 @@ class BleTransport : public ITransport {
   bool reportReady_(uint8_t reportId) const;
   void sendKeyboardReport_();
   void sendConsumerReport_();
+  uint32_t bondUsedSeq_(const BleBondAddress& address);
+  void markBondUsed_();
+  bool wasBondedAtPairingStart_(const BleBondAddress& address) const;
+  bool isChannelBonded_(const BleBondAddress& address) const;
+  bool isSelectedHost_(const BleBondAddress& address) const;
+  void loadChannels_();
+  void saveChannel_(uint8_t channel);
+  void saveCurrentChannel_();
   bool lastNotifyOk_ = false;
   bool primed_ = false;  // 连接后首帧报告需预热（主机握手期会丢弃）
 
@@ -67,7 +90,16 @@ class BleTransport : public ITransport {
   uint8_t subscriptions_ = 0;
   bool advertisingWanted_ = true;
   bool advertising_ = false;
+  bool pairingMode_ = false;
   uint16_t connHandle_ = 0;
+  BleBondAddress peerAddress_{};
+  BleBondAddress lastUsedPeer_{};
+  BleBondAddress pairingBonds_[BLE_BOND_MAX] = {};
+  uint8_t pairingBondCount_ = 0;
+  BleBondAddress channelAddresses_[BLE_BOND_MAX] = {};
+  uint8_t currentChannel_ = 0;
+  Preferences bondPrefs_;
+  uint32_t lastUsedSeq_ = 0;
 };
 
 }  // namespace navio

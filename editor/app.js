@@ -1,12 +1,12 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-43';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-48';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
-  R = NavioWebflashRules, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
+  R = NavioWebflashRules, BB = NavioBleBonds, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
 const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261109-43';
+const ASSET_VERSION = '20261109-48';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/latest/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -22,6 +22,7 @@ let deviceGeneration = 0, deviceFirmware = null, updateDismissed = false;
 let editSession = null, pendingAfterEdit = null, pendingDeleteKey = null, pendingKeyboardDeleteId = null;
 let operationMessage = null, toastTimer, libraryLoadError = null, librarySaveError = null;
 let quarantinedPresets = [], templateInstallations = loadTemplateInstallations();
+let bluetoothBonds = [], pendingBondAction = null;
 let previewEngine = null, previewEngineKey = '', previewElapsed = 0, previewLastTick = 0, previewLastPaint = 0;
 let previewFrame = 0, previewPlaying = !matchMedia('(prefers-reduced-motion: reduce)').matches, previewSpeed = 1;
 let previewSeed = 0x6D2B79F5, previewHeld = new Set();
@@ -498,7 +499,7 @@ function renderInspector() {
   if (workspaceTab === 'lighting') { $('inspector').innerHTML = renderLighting(preset); return; }
   if (selectedInput.type === 'btn' && selectedInput.index === 15) {
     $('inspector').innerHTML = `${inspectorHeading('全局保留', 'SideKey', '设备侧面按键', false)}
-      <div class="locked-card"><span class="lock-symbol">—</span><strong>此按键不可重新映射</strong><p>短按切换预设，长按用于配对和固件烧写。导入导出时会原样保留。</p></div>`;
+      <div class="locked-card"><span class="lock-symbol">—</span><strong>此按键不可重新映射</strong><p>短按切换预设；侧键+K1/K2/K3 选择蓝牙频道；长按 5 秒在当前频道配对或替换主机。导入导出时会原样保留。</p></div>`;
     return;
   }
   if (selectedInput.type === 'encoder') {
@@ -591,7 +592,31 @@ function renderHeader() {
   $('firmwareBadge').textContent = deviceFirmware ? `固件 ${deviceFirmware}` : '';
   $('connectButton').textContent = connected ? '重新读取' : '连接设备';
   $('connectButton').disabled = deviceBusy;
+  $('bluetoothButton').disabled = !connected || deviceBusy;
   if (!connected || updateDismissed) $('updateBanner').hidden = true;
+}
+function renderBondManager() {
+  $('bondSummary').textContent = `固定 3 个蓝牙频道，任意时刻只连接一台。`;
+  $('clearBonds').disabled = !bluetoothBonds.length || deviceBusy;
+  $('confirmBondDelete').disabled = deviceBusy;
+  $('bondList').innerHTML = bluetoothBonds.length ? bluetoothBonds.map((entry, index) => {
+    const address = BB.formatAddress(entry.address);
+    const channel = entry.channel === 0xFF ? '未分配频道' : `频道 ${entry.channel}`;
+    return `<div class="bond-item"><div class="bond-info"><code class="bond-address">${escapeHtml(address)}</code><div class="bond-meta"><span class="bond-badge">${channel}</span>${entry.connected ? '<span class="bond-badge current">当前连接</span>' : ''}</div></div><button type="button" class="button small danger" data-bond-delete="${index}" ${deviceBusy ? 'disabled' : ''}>删除绑定</button></div>`;
+  }).join('') : '<div class="bond-empty">暂无已保存的蓝牙绑定</div>';
+}
+async function loadBondManager() {
+  if (!deviceClient) throw new Error('请先通过 USB 连接键盘');
+  const info = await deviceClient.info();
+  const commands = [NavioProto.CMD.GET_BLE_BONDS, NavioProto.CMD.DELETE_BLE_BOND, NavioProto.CMD.CLEAR_BLE_BONDS];
+  if (!commands.every(cmd => info.cmds.includes(cmd))) throw new Error('蓝牙绑定管理需要固件 0.8.1 或更新版本');
+  bluetoothBonds = await deviceClient.listBonds();
+  $('bondError').hidden = true;
+  renderBondManager();
+}
+function showBondError(error) {
+  $('bondError').textContent = error.message || String(error);
+  $('bondError').hidden = false;
 }
 function renderEditor() {
   if (!booted) return;
@@ -704,6 +729,8 @@ function resetDeviceConnection(connection) {
   if (currentSource() === 'device' && !editingKeyboard()) selectedKey = keyFor('template', defaultTemplate());
   deviceConnection = null; deviceClient = null; devicePresets = []; activeDeviceId = 0; deviceBusy = false;
   deviceFirmware = null;
+  bluetoothBonds = []; pendingBondAction = null;
+  closeDialog('bluetoothDialog'); closeDialog('bondDeleteDialog');
   $('updateBanner').hidden = true;
   return closing;
 }
@@ -719,6 +746,7 @@ async function runDeviceAction(action) {
   if (deviceBusy || !booted) return;
   const generation = deviceGeneration;
   deviceBusy = true; $('confirmWrite').disabled = true; renderEditor();
+  if ($('bluetoothDialog').open) renderBondManager();
   try { await action(); }
   catch (error) {
     if (generation === deviceGeneration) {
@@ -730,6 +758,7 @@ async function runDeviceAction(action) {
   } finally {
     if (generation === deviceGeneration) {
       deviceBusy = false; $('confirmWrite').disabled = false; renderEditor();
+      if ($('bluetoothDialog').open) renderBondManager();
     }
   }
 }
@@ -945,6 +974,7 @@ for (const button of document.querySelectorAll('[data-workspace-tab]')) button.a
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => {
   const id = button.dataset.close;
   if (id === 'unsavedDialog' || id === 'writeDialog') pendingAfterEdit = null;
+  if (id === 'bondDeleteDialog') pendingBondAction = null;
   closeDialog(id);
 });
 for (const tablist of document.querySelectorAll('[role="tablist"]')) tablist.addEventListener('keydown', event => {
@@ -968,6 +998,45 @@ for (const link of [$('flashLink'), $('firmwareFlashLink')]) link.addEventListen
   requestLeave(() => { location.href = FLASHER_URL; });
 });
 $('dismissUpdate').addEventListener('click', () => { updateDismissed = true; $('updateBanner').hidden = true; });
+$('bluetoothButton').addEventListener('click', () => runDeviceAction(async () => {
+  await loadBondManager();
+  openDialog('bluetoothDialog');
+}));
+$('bondList').addEventListener('click', event => {
+  const button = event.target.closest('[data-bond-delete]');
+  if (!button || deviceBusy) return;
+  const bond = bluetoothBonds[Number(button.dataset.bondDelete)];
+  if (!bond) return;
+  pendingBondAction = { all: false, bond };
+  $('bondDeleteTitle').textContent = '删除蓝牙绑定';
+  const channel = bond.channel === 0xFF ? '未分配频道' : `频道 ${bond.channel}`;
+  $('bondDeleteDescription').textContent = `将删除${channel}的 ${BB.formatAddress(bond.address)} 绑定。`;
+  $('bondDeleteWarning').textContent = '只会删除这一个绑定，其他主机不受影响';
+  openDialog('bondDeleteDialog');
+});
+$('clearBonds').addEventListener('click', () => {
+  if (!bluetoothBonds.length || deviceBusy) return;
+  pendingBondAction = { all: true };
+  $('bondDeleteTitle').textContent = '清除全部蓝牙绑定';
+  $('bondDeleteDescription').textContent = `将删除键盘保存的全部 ${bluetoothBonds.length} 个蓝牙绑定。`;
+  $('bondDeleteWarning').textContent = '所有蓝牙绑定和使用记录都会被清除';
+  openDialog('bondDeleteDialog');
+});
+$('confirmBondDelete').addEventListener('click', () => {
+  const action = pendingBondAction;
+  if (!action || deviceBusy) return;
+  pendingBondAction = null;
+  closeDialog('bondDeleteDialog');
+  runDeviceAction(async () => {
+    try {
+      if (action.all) await deviceClient.clearBonds();
+      else await deviceClient.deleteBond(action.bond);
+      bluetoothBonds = await deviceClient.listBonds();
+      renderBondManager();
+      toast(action.all ? '已清除全部蓝牙绑定' : '已删除蓝牙绑定');
+    } catch (error) { showBondError(error); }
+  });
+});
 $('helpButton').addEventListener('click', () => openDialog('helpDialog'));
 $('discardEdit').addEventListener('click', () => requestLeave(null));
 $('discardChanges').addEventListener('click', discardAndContinue);

@@ -13,6 +13,7 @@ class LedController {
   void setKeyPressed(uint8_t key, bool pressed);
   void releaseKeys();
   void setModeColor(uint8_t r, uint8_t g, uint8_t b);  // LED1
+  void showChannelFeedback(uint8_t key);                 // 指定 K 键闪 3 下，其他键灯暂时熄灭
   void flush();                                      // 阻塞过渡动画立即刷新
   void setBatteryLow(bool low);                        // LED2 红色慢闪
   void tick();                                         // 周期调用（灯效、闪烁与按需刷新）
@@ -40,6 +41,9 @@ class LedController {
   uint32_t confirmAt_[KEY_COUNT] = {};
   uint32_t fadeStartedAt_[KEY_COUNT] = {};
   uint32_t effectStartedAt_ = 0;
+  static constexpr uint8_t CHANNEL_FEEDBACK_OFF = 0xFF;
+  uint32_t channelFeedbackStartedAt_ = 0;
+  uint8_t channelFeedbackKey_ = CHANNEL_FEEDBACK_OFF;
   bool lowBattery_ = false;
   bool blinkOn_ = false;
   bool dirty_ = false;

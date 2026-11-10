@@ -86,9 +86,10 @@ static void updateLinkMode() {
     bleTransport.resumeAdvertising();
     desired = &bleTransport;  // 未连接时发送自然丢弃
     if (bleTransport.isConnected()) {
-      s_pairingMode = false;
+      if (bleTransport.hasReportSubscriptions()) s_pairingMode = false;
       if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);  // 蓝：BLE 已连接
     } else if (!s_sideHoldActive) {
+      s_pairingMode = bleTransport.isPairing();
       static bool blink = false;
       blink = !blink;
       if (s_pairingMode) {
@@ -102,9 +103,10 @@ static void updateLinkMode() {
   // force-BLE 分支的 LED 状态（与非 force 的 BLE 侧一致）
 #if NAVIO_FORCE_BLE
   if (bleTransport.isConnected()) {
-    s_pairingMode = false;
+    if (bleTransport.hasReportSubscriptions()) s_pairingMode = false;
     if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);
   } else if (!s_sideHoldActive) {
+    s_pairingMode = bleTransport.isPairing();
     static bool blink = false;
     blink = !blink;
     if (s_pairingMode) {
@@ -137,11 +139,25 @@ static void checkLongPressActions();
 static void switchPreset();
 
 // 下载模式入口见 input/DownloadMode.h（BOOT 长按 3s，各固件共用）。
-// 组装后主入口 = 侧键（SW11, R1C1，全局保留键）分级长按：
-// 短按松手=切预设；长按 5-10s 松手=蓝牙配对；长按 10s=固件烧写；
-// 插电/复位时按住侧键同样进烧写。按住期间 LED1 实时渐变反馈进度。
+// 侧键（SW11, R1C1，全局保留键）：短按松手=切预设；侧键+K1/K2/K3=蓝牙频道；
+// 按住 5s=当前频道配对；插电/复位时按住=烧写。配对前 LED1 蓝色渐亮。
 constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
+static bool s_sideComboUsed = false;
+static bool s_channelComboKeys[3] = {};
 static void dispatchEncoder(Enc id, int8_t dir);
+
+#if !NAVIO_IGNORE_MATRIX
+static bool sideKeyHeldAtBoot() {
+  uint32_t stableMs = 0;
+  for (uint32_t elapsedMs = 0;
+       elapsedMs < SIDE_BOOT_WINDOW_MS && stableMs < SIDE_BOOT_STABLE_MS;
+       ++elapsedMs) {
+    stableMs = matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL) ? stableMs + 1 : 0;
+    delay(1);
+  }
+  return stableMs >= SIDE_BOOT_STABLE_MS;
+}
+#endif
 
 void setup() {
   // 主固件 CDC_ON_BOOT=0，Serial=UART0 无接收者；诊断构建走 USB-Serial/JTAG。
@@ -152,10 +168,10 @@ void setup() {
   neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
   delay(300);
 
-  // 启动早期检查：插电/复位时按住侧键 → 直接进下载模式（组装后 BOOT 键难按的替代入口）
+  // 启动早期检查：连续稳定按住才进下载模式，避免单次毛刺误入
   matrix.begin();
 #if !NAVIO_IGNORE_MATRIX  // 未焊接阶段侧键悬空，跳过（悬空误判会直接进下载模式）
-  if (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL)) {
+  if (sideKeyHeldAtBoot()) {
     enterDownloadMode();
     return;  // 不会到达，保险
   }
@@ -174,7 +190,7 @@ void setup() {
 #if !NAVIO_FORCE_BLE
   vendorReady = vendorHid.begin();
   if (vendorReady) {
-    configProto.begin(&vendorHid, &presets, &otaManager, releaseAllActions, [] {
+    configProto.begin(&vendorHid, &presets, &otaManager, &bleTransport, releaseAllActions, [] {
       leds.showPreset(presets.active().accent, presets.active().rgbMode);
     });
   } else {
@@ -183,6 +199,7 @@ void setup() {
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
 #endif
   bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
+  s_pairingMode = bleTransport.isPairing();
   if (otaManager.runningImageState() == OtaImageState::PendingVerify) {
     if (vendorReady && presets.count() > 0) {
       OtaImageState confirmed;
@@ -244,21 +261,20 @@ void loop() {
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
 }
 
-// 侧键长按进度 → 模式灯颜色：0-5s 蓝色渐亮（配对档），5-10s 蓝→紫渐变（烧写档）
+// 侧键长按进度 → 模式灯颜色：0-5s 蓝色渐亮，到位后由配对状态灯接管
 static void showSideHoldProgress(uint32_t heldMs) {
-  if (heldMs < SIDE_HOLD_PAIRING_MS) {
-    uint8_t b = 20 + (uint8_t)(100 * heldMs / SIDE_HOLD_PAIRING_MS);
-    mirrorModeLed(0, 0, b);
-  } else {
-    uint32_t t = heldMs - SIDE_HOLD_PAIRING_MS;
-    uint32_t span = SIDE_HOLD_REFLASH_MS - SIDE_HOLD_PAIRING_MS;
-    uint8_t r = (uint8_t)(100 * t / span);
-    mirrorModeLed(r, 0, 100);
-  }
+  uint8_t b = 20 + (uint8_t)(100 * heldMs / SIDE_HOLD_PAIRING_MS);
+  mirrorModeLed(0, 0, b);
+}
+
+static void selectBluetoothChannel(uint8_t channel) {
+  if (channel == bleTransport.currentChannel()) return;
+  bleTransport.selectChannel(channel);
+  s_pairingMode = bleTransport.isPairing();
+  leds.showChannelFeedback(channel);
 }
 
 static void enterPairingMode() {
-  // 清除全部绑定并进入可发现广播；LED1 蓝快闪直到建立连接（updateLinkMode 呈现）
   bleTransport.enterPairing();
   s_pairingMode = true;
 }
@@ -289,9 +305,10 @@ static void checkLongPressActions() {
     }
   }
 
-  // 组装后主入口：侧键分级长按（直接读矩阵位，不经消抖层）
+  // 侧键单击/长按（直接读矩阵位，不经消抖层）
   static uint32_t sideHeldSince = 0;
   static bool sideArmed = false;
+  static bool sideLongPressHandled = false;
 #if NAVIO_IGNORE_MATRIX  // 未焊接阶段：侧键悬空，跳过长按检测（BOOT 键仍可用）
   if (false) {
 #endif
@@ -299,35 +316,29 @@ static void checkLongPressActions() {
     if (!sideArmed) {
       sideArmed = true;
       sideHeldSince = millis();
+      sideLongPressHandled = false;
+      s_sideComboUsed = false;
     }
-    s_sideHoldActive = true;
     uint32_t held = millis() - sideHeldSince;
-    if (held >= SIDE_HOLD_REFLASH_MS) {
-      s_sideHoldActive = false;
-      // 到位确认在用户注视的 LED1 上双闪紫，板载 RGB 由 enterDownloadMode 同步闪烁
-      for (int i = 0; i < 2; ++i) {
-        mirrorModeLed(120, 0, 120);
-        leds.flush();
-        delay(120);
-        mirrorModeLed(0, 0, 0);
-        leds.flush();
-        delay(120);
+    if (!sideLongPressHandled && !s_sideComboUsed) {
+      if (held >= SIDE_HOLD_PAIRING_MS) {
+        sideLongPressHandled = true;
+        s_sideHoldActive = false;
+        if (!otaManager.isBusy()) enterPairingMode();
+      } else {
+        s_sideHoldActive = true;
+        showSideHoldProgress(held);
       }
-      enterDownloadMode();
-    } else {
-      showSideHoldProgress(held);
     }
   } else if (sideArmed) {
     uint32_t held = millis() - sideHeldSince;
     sideArmed = false;
     s_sideHoldActive = false;  // 松手后状态灯由 updateLinkMode 在 200ms 内自动恢复
-    if (!otaManager.isBusy()) {
-      if (held >= SIDE_HOLD_PAIRING_MS && held < SIDE_HOLD_REFLASH_MS) {
-        enterPairingMode();
-      } else if (held < SIDE_HOLD_PAIRING_MS) {
-        switchPreset();
-      }
+    if (!s_sideComboUsed && !sideLongPressHandled &&
+        held < SIDE_HOLD_PAIRING_MS && !otaManager.isBusy()) {
+      switchPreset();
     }
+    s_sideComboUsed = false;
   }
 #if NAVIO_IGNORE_MATRIX
   }
@@ -348,9 +359,20 @@ static void dispatchButton(Btn id, bool pressed) {
   (void)pressed;
   return;
 #endif
+  const size_t index = static_cast<size_t>(id);
+  if (index < 3 && (matrix.rawKeyDown(SIDE_KEY_ROW, SIDE_KEY_COL) || s_channelComboKeys[index])) {
+    if (pressed && !s_channelComboKeys[index]) {
+      s_channelComboKeys[index] = true;
+      s_sideComboUsed = true;
+      s_sideHoldActive = false;
+      selectBluetoothChannel(static_cast<uint8_t>(index));
+    } else if (!pressed) {
+      s_channelComboKeys[index] = false;
+    }
+    return;
+  }
   if (id == Btn::SideKey) return;  // 短按/长按统一由 checkLongPressActions 裁决
   if (id <= Btn::K12) leds.setKeyPressed(static_cast<uint8_t>(id), pressed);
-  const size_t index = static_cast<size_t>(id);
   if (pressed) {
     if (s_buttonActions[index]) return;
     s_buttonActions[index] = presets.active().btn[index];

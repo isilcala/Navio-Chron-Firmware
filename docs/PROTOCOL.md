@@ -85,6 +85,9 @@ CRC 只用于错误检测，不提供加密或身份认证。
 | `0x08` | `READ_PRESET` | 按稳定 ID 读取一套预设 |
 | `0x09` | `READ_CHUNK` | 主机逐片拉取大响应 |
 | `0x0A`–`0x10` | `OTA_BEGIN`–`OTA_CONFIRM` | OTA 扩展，见 `OTA_PROTOCOL.md`（已实现） |
+| `0x11` | `GET_BLE_BONDS` | 读取 BLE 绑定、当前连接与最近使用序号 |
+| `0x12` | `DELETE_BLE_BOND` | 按身份地址删除一个 BLE 绑定 |
+| `0x13` | `CLEAR_BLE_BONDS` | 清除全部 BLE 绑定及使用元数据 |
 | `0x40` | `ACK` | 成功响应 |
 | `0x41` | `ERR` | 错误响应 |
 
@@ -102,11 +105,29 @@ HELLO:
 {"proto":2,"fw":"<semver>","name":"Navio Chron"}
 
 GET_INFO:
-{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9]}
+{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]}
 ```
 
 `proto` 必须为 2，不得沿用骨架的 1；`record` 是设备二进制预设记录版本。
 固件只需生成这些 JSON 字符串，不需要 JSON 解析器。响应超过 51B 时使用 MORE/READ_CHUNK。
+
+### 5.2 BLE 绑定管理（0.8.1）
+
+`GET_BLE_BONDS` 请求正文为空，响应为：
+
+```text
+[version=2][count=0..3][entry...]
+```
+
+每个 entry 固定 13B：`[addressType:1][identityAddress:6][flags:1][lastUsedSeq:4LE][channel:1]`。
+`identityAddress` 保留 NimBLE 原始字节序，网页负责格式化为常见地址文本；`flags` bit0 表示当前连接，
+其余位为 0。`lastUsedSeq=0` 表示尚无使用记录，数值越大表示越近成功使用；它不是日期时间。
+`channel` 为 1/2/3，`0xFF` 表示未分配频道。网页按频道展示，不再使用 version 1。
+
+`DELETE_BLE_BOND` 请求正文为 7B：`[addressType:1][identityAddress:6]`，地址必须来自当前绑定列表；
+不得使用可能因删除而变化的列表序号。`CLEAR_BLE_BONDS` 请求正文为空，同时清除绑定使用元数据。
+两项成功响应均为空 ACK。非法长度返回 `ERR_BAD_PAYLOAD`，地址不存在或底层删除失败返回
+`ERR_NVS_FAILURE`。OTA 写入期间这些命令与其他非 OTA 命令一样不可用。
 
 ## 6. ACK / ERR 布局
 

@@ -429,3 +429,15 @@ select optgroup { color: var(--muted); background: var(--surface); font-weight: 
 #importFileName { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .transfer-dialog .dialog-actions { flex-wrap: wrap; }
 @media (max-width: 760px) { .json-textarea { min-height: 220px; } }
+
+.bluetooth-dialog { width: min(570px, calc(100vw - 32px)); }
+.bond-list { display: grid; gap: 10px; margin-bottom: 16px; }
+.bond-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; border-radius: 13px; box-shadow: var(--inset-small); }
+.bond-info { min-width: 0; }
+.bond-address { display: block; overflow-wrap: anywhere; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+.bond-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.bond-badge { padding: 3px 7px; border-radius: 7px; box-shadow: var(--raised-small); color: var(--muted); font-size: 10px; font-weight: 650; }
+.bond-badge.current { color: var(--success); }
+.bond-empty { padding: 18px; border-radius: 13px; box-shadow: var(--inset-small); color: var(--muted); font-size: 13px; text-align: center; }
+.bond-help { margin-top: 16px; }
+@media (max-width: 480px) { .bond-item { align-items: flex-start; flex-direction: column; } .bluetooth-dialog .dialog-actions { flex-wrap: wrap; } }

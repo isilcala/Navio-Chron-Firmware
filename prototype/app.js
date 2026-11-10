@@ -248,7 +248,7 @@ function renderInspector() {
   if (state.workspaceTab === 'lighting') { $('inspector').innerHTML = renderLighting(preset); return; }
   if (state.selectedInput.type === 'btn' && state.selectedInput.index === 15) {
     $('inspector').innerHTML = `<div class="inspector-heading"><span class="selection-label">全局保留</span><h2>SideKey</h2><p>设备侧面按键</p></div>
-      <div class="locked-card"><span class="lock-symbol">—</span><strong>此按键不可重新映射</strong><p>短按切换预设，长按用于配对和固件烧写。导入导出时会原样保留。</p></div>`;
+      <div class="locked-card"><span class="lock-symbol">—</span><strong>此按键不可重新映射</strong><p>短按切换预设；侧键+K1/K2/K3 选择蓝牙频道；长按 5 秒在当前频道配对或替换主机。导入导出时会原样保留。</p></div>`;
     return;
   }
   const readonly = !state.editWorking;
