@@ -12,7 +12,7 @@ Encoders::Channel Encoders::kChannels[ENC_COUNT] = {
 };
 
 // 2bit 格雷码 → 计数变化表。无效跳变（双跳变）视为抖动，计 0。
-// 行=上次 AB，列=本次 AB（顺序 00,01,11,10）
+// 行=上次 AB，列=本次 AB（按 (A<<1)|B 二进制索引：00,01,10,11）
 static const int8_t kQuadTable[4][4] = {
     {0, -1, 1, 0},
     {1, 0, 0, -1},
@@ -55,9 +55,18 @@ bool Encoders::next(EncoderEvent& out) {
   return true;
 }
 
+uint16_t Encoders::takeDroppedEvents() {
+  uint16_t dropped = droppedEvents_;
+  droppedEvents_ = 0;
+  return dropped;
+}
+
 void Encoders::push_(const EncoderEvent& e) {
   uint8_t nextTail = (tail_ + 1) % 16;
-  if (nextTail == head_) return;
+  if (nextTail == head_) {
+    if (droppedEvents_ < UINT16_MAX) ++droppedEvents_;
+    return;
+  }
   queue_[tail_] = e;
   tail_ = nextTail;
 }

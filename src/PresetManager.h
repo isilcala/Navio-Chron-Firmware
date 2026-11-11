@@ -52,7 +52,8 @@ class PresetManager {
   bool readManifest_(Preferences& prefs, uint8_t slot, Manifest& out) const;
   bool loadInstalled_(Preferences& prefs, const Manifest& manifest);
   PresetChangeResult commit_(const InstalledPreset* next, uint8_t count, uint8_t activeId,
-                             const InstalledPreset* newRecord = nullptr);
+                             const InstalledPreset* newRecord = nullptr,
+                             bool collectGarbage = false);
 };
 
 }  // namespace navio

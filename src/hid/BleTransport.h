@@ -72,6 +72,8 @@ class BleTransport : public ITransport, public IBleBondManager {
   std::atomic<uint32_t> droppedEvents_{0};
   void postEvent_(const Event& event);
   void updateAdvertising_();
+  void restartAdvertising_();
+  void configureConnectionFilter_(bool enable, const BleBondAddress& address);
   bool reportReady_(uint8_t reportId) const;
   void sendKeyboardReport_();
   void sendConsumerReport_();

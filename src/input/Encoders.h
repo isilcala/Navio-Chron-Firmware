@@ -9,6 +9,7 @@ class Encoders {
   void begin();
   void poll();
   bool next(EncoderEvent& out);
+  uint16_t takeDroppedEvents();
 
  private:
   struct Channel {
@@ -22,6 +23,7 @@ class Encoders {
 
   EncoderEvent queue_[16];
   uint8_t head_ = 0, tail_ = 0;
+  uint16_t droppedEvents_ = 0;
   void push_(const EncoderEvent& e);
 };
 

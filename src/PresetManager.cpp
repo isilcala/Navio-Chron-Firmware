@@ -180,7 +180,8 @@ void PresetManager::begin() {
 }
 
 PresetChangeResult PresetManager::commit_(const InstalledPreset* next, uint8_t count,
-                                          uint8_t activeId, const InstalledPreset* newRecord) {
+                                          uint8_t activeId, const InstalledPreset* newRecord,
+                                          bool collectGarbage) {
   if (count == 0 || count > PRESET_MAX_INSTALLED || activeId == 0) {
     return PresetChangeResult::Invalid;
   }
@@ -215,6 +216,19 @@ PresetChangeResult PresetManager::commit_(const InstalledPreset* next, uint8_t c
     encodeManifest(manifest, data);
     if (prefs.putBytes(manifestKey(nextSlot), data, sizeof(data)) != sizeof(data)) {
       result = PresetChangeResult::NvsFailure;
+    }
+  }
+  if (result == PresetChangeResult::Ok && collectGarbage) {
+    for (uint16_t id = 1; id <= UINT8_MAX; ++id) {
+      bool referenced = false;
+      for (uint8_t i = 0; i < count && !referenced; ++i) referenced = next[i].id == id;
+      for (uint8_t i = 0; i < count_ && !referenced; ++i) referenced = installed_[i].id == id;
+      if (referenced) continue;
+      char key[5];
+      recordKey(static_cast<uint8_t>(id), key);
+      if (prefs.getBytesLength(key) > 0 && !prefs.remove(key)) {
+        Serial.printf("[Navio] preset orphan cleanup failed: %s\n", key);
+      }
     }
   }
   prefs.end();
@@ -279,7 +293,7 @@ PresetChangeResult PresetManager::remove(uint8_t id) {
     if (i != index) next[nextCount++] = installed_[i];
   }
   uint8_t nextActive = activeId_ == id ? next[0].id : activeId_;
-  return commit_(next, nextCount, nextActive);
+  return commit_(next, nextCount, nextActive, nullptr, true);
 }
 
 PresetChangeResult PresetManager::move(uint8_t id, uint8_t beforeId) {

@@ -209,7 +209,6 @@ void BleTransport::begin() {
   NimBLEAdvertisementData scanResp;
   scanResp.setName("Navio Chron");
   adv->setScanResponseData(scanResp);
-  updateAdvertising_();
 
   static_assert(sizeof(BleBondAddress) == 7, "BLE bond address must remain packed");
   bondPrefs_.begin("navio_ble", true);
@@ -219,6 +218,7 @@ void BleTransport::begin() {
   }
   bondPrefs_.end();
   loadChannels_();
+  updateAdvertising_();
 }
 
 void BleTransport::postEvent_(const Event& event) {
@@ -266,8 +266,10 @@ void BleTransport::poll() {
                                     isSelectedHost_(event.otaAddress));
       if (reject) {
         advertising_ = false;
-        subscriptions_ = 0;
-        state_.releaseAll();
+        if (connected_ && event.connHandle == connHandle_) {
+          subscriptions_ = 0;
+          state_.releaseAll();
+        }
         server->disconnect(event.connHandle);
         continue;
       }
@@ -331,12 +333,36 @@ void BleTransport::updateAdvertising_() {
   if (!server) return;
   bool shouldAdvertise = advertisingWanted_ && !connected_;
   if (shouldAdvertise == advertising_) return;
-  if (shouldAdvertise) {
-    advertising_ = server->getAdvertising()->start();
-  } else {
+  if (!shouldAdvertise) {
     server->getAdvertising()->stop();
     advertising_ = false;
+    return;
   }
+
+  BleBondAddress selected = channelAddresses_[currentChannel_];
+  bool useWhitelist = !pairingMode_ && !toNimBLEAddress(selected).isNull();
+  configureConnectionFilter_(useWhitelist, selected);
+  advertising_ = server->getAdvertising()->start();
+}
+
+void BleTransport::restartAdvertising_() {
+  if (server) server->getAdvertising()->stop();
+  advertising_ = false;
+  updateAdvertising_();
+}
+
+void BleTransport::configureConnectionFilter_(bool enable, const BleBondAddress& address) {
+  NimBLEAdvertising* advertising = server->getAdvertising();
+  bool ok = true;
+  while (NimBLEDevice::getWhiteListCount() > 0) {
+    if (!NimBLEDevice::whiteListRemove(NimBLEDevice::getWhiteListAddress(0))) {
+      ok = false;
+      break;
+    }
+  }
+  if (ok && enable) ok = NimBLEDevice::whiteListAdd(toNimBLEAddress(address));
+  if (!ok) Serial.println("[Navio] BLE whitelist update failed; advertising without connection filter");
+  advertising->setScanFilter(false, ok && enable);
 }
 
 bool BleTransport::enterPairing() {
@@ -349,7 +375,7 @@ bool BleTransport::enterPairing() {
     releaseAll();
     server->disconnect(connHandle_);
   }
-  updateAdvertising_();
+  restartAdvertising_();
   return true;
 }
 
@@ -363,7 +389,7 @@ void BleTransport::selectChannel(uint8_t channel) {
     releaseAll();
     server->disconnect(connHandle_);
   }
-  updateAdvertising_();
+  restartAdvertising_();
 }
 
 bool BleTransport::isChannelBonded_(const BleBondAddress& address) const {
@@ -489,6 +515,7 @@ bool BleTransport::deleteBond(const BleBondAddress& address) {
     if (sameAddress(channelAddresses_[channel], address)) {
       channelAddresses_[channel] = {};
       saveChannel_(channel);
+      if (channel == currentChannel_) pairingMode_ = true;
     }
   }
   for (uint8_t i = 0; i < pairingBondCount_; ++i) {
@@ -505,6 +532,7 @@ bool BleTransport::deleteBond(const BleBondAddress& address) {
   if (sameAddress(lastUsedPeer_, address)) bondPrefs_.remove("last");
   bondPrefs_.end();
   if (sameAddress(lastUsedPeer_, address)) lastUsedPeer_ = {};
+  restartAdvertising_();
   return true;
 }
 
@@ -521,6 +549,7 @@ bool BleTransport::clearBonds() {
     lastUsedSeq_ = 0;
     pairingBondCount_ = 0;
     pairingMode_ = true;
+    restartAdvertising_();
   }
   return ok;
 }

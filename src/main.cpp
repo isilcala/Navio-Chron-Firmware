@@ -39,6 +39,7 @@ static ConfigProto configProto;
 static OtaManager otaManager;
 
 static Action s_buttonActions[BTN_COUNT];
+static bool s_channelComboKeys[3] = {};
 
 struct EncoderPulse {
   Action action;
@@ -55,10 +56,10 @@ static void releaseAllActions() {
   leds.releaseKeys();
   for (Action& action : s_buttonActions) action = Action{};
   for (EncoderPulse& pulse : s_encoderPulses) pulse.active = false;
+  for (bool& comboKey : s_channelComboKeys) comboKey = false;
 }
 
 // 连接模式选择（D3）：USB 挂载优先；否则 BLE（已连=蓝 / 配对中蓝快闪 / 等待=橙闪）
-static bool s_pairingMode = false;
 static bool s_sideHoldActive = false;  // 侧键长按中：抑制状态灯刷新，让位于进度渐变
 #if NAVIO_FORCE_BLE  // 未焊接阶段：连接状态镜像到单片机板载 RGB（键盘状态灯未焊接）
 static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) {
@@ -68,6 +69,20 @@ static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) {
 #else
 static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) { leds.setModeColor(r, g, b); }
 #endif
+static void updateBleModeLed() {
+  if (bleTransport.isConnected()) {
+    if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);  // 蓝：BLE 已连接
+  } else if (!s_sideHoldActive) {
+    static bool blink = false;
+    blink = !blink;
+    if (bleTransport.isPairing()) {
+      mirrorModeLed(0, 0, blink ? 100 : 0);  // 蓝快闪：配对中
+    } else {
+      mirrorModeLed(blink ? 50 : 0, blink ? 25 : 0, 0);  // 橙慢闪：等待连接
+    }
+  }
+}
+
 static void updateLinkMode() {
   static uint32_t lastCheck = 0;
   uint32_t now = millis();
@@ -77,43 +92,16 @@ static void updateLinkMode() {
   ITransport* desired;
 #if NAVIO_FORCE_BLE  // bring-up 试验构建：无视 USB，强制 BLE（未焊接无电池时验证蓝牙用）
   desired = &bleTransport;
+  updateBleModeLed();
 #else
   if (usbTransport.isConnected()) {
     desired = &usbTransport;
-    if (!s_pairingMode) bleTransport.pauseAdvertising();  // 配对模式例外：USB 插着也保持可发现
+    if (!bleTransport.isPairing()) bleTransport.pauseAdvertising();  // 配对模式例外：USB 插着也保持可发现
     if (!s_sideHoldActive) mirrorModeLed(0, 60, 0);  // 绿：USB
   } else {
     bleTransport.resumeAdvertising();
     desired = &bleTransport;  // 未连接时发送自然丢弃
-    if (bleTransport.isConnected()) {
-      if (bleTransport.hasReportSubscriptions()) s_pairingMode = false;
-      if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);  // 蓝：BLE 已连接
-    } else if (!s_sideHoldActive) {
-      s_pairingMode = bleTransport.isPairing();
-      static bool blink = false;
-      blink = !blink;
-      if (s_pairingMode) {
-        mirrorModeLed(0, 0, blink ? 100 : 0);  // 蓝快闪：配对中
-      } else {
-        mirrorModeLed(blink ? 50 : 0, blink ? 25 : 0, 0);  // 橙慢闪：等待连接
-      }
-    }
-  }
-#endif
-  // force-BLE 分支的 LED 状态（与非 force 的 BLE 侧一致）
-#if NAVIO_FORCE_BLE
-  if (bleTransport.isConnected()) {
-    if (bleTransport.hasReportSubscriptions()) s_pairingMode = false;
-    if (!s_sideHoldActive) mirrorModeLed(0, 0, 60);
-  } else if (!s_sideHoldActive) {
-    s_pairingMode = bleTransport.isPairing();
-    static bool blink = false;
-    blink = !blink;
-    if (s_pairingMode) {
-      mirrorModeLed(0, 0, blink ? 100 : 0);
-    } else {
-      mirrorModeLed(blink ? 50 : 0, blink ? 25 : 0, 0);
-    }
+    updateBleModeLed();
   }
 #endif
   if (desired != transport) {
@@ -143,7 +131,6 @@ static void switchPreset();
 // 按住 5s=当前频道配对；插电/复位时按住=烧写。配对前 LED1 蓝色渐亮。
 constexpr uint8_t SIDE_KEY_ROW = 0, SIDE_KEY_COL = 0;
 static bool s_sideComboUsed = false;
-static bool s_channelComboKeys[3] = {};
 static void dispatchEncoder(Enc id, int8_t dir);
 
 #if !NAVIO_IGNORE_MATRIX
@@ -199,7 +186,6 @@ void setup() {
   usbTransport.begin();  // HID 就绪后才开始产生输入事件
 #endif
   bleTransport.begin();  // BLE 常开（自动重连已配对主机；广播由 updateLinkMode 调度）
-  s_pairingMode = bleTransport.isPairing();
   if (otaManager.runningImageState() == OtaImageState::PendingVerify) {
     if (vendorReady && presets.count() > 0) {
       OtaImageState confirmed;
@@ -242,6 +228,9 @@ void loop() {
     }
 
     encoders.poll();
+    if (uint16_t dropped = encoders.takeDroppedEvents()) {
+      Serial.printf("[Navio] encoder event queue overflow: %u dropped\n", dropped);
+    }
     EncoderEvent ee;
     while (encoders.next(ee)) {
       if (!otaBusy) dispatchEncoder(ee.id, ee.dir);
@@ -270,13 +259,11 @@ static void showSideHoldProgress(uint32_t heldMs) {
 static void selectBluetoothChannel(uint8_t channel) {
   if (channel == bleTransport.currentChannel()) return;
   bleTransport.selectChannel(channel);
-  s_pairingMode = bleTransport.isPairing();
   leds.showChannelFeedback(channel);
 }
 
 static void enterPairingMode() {
   bleTransport.enterPairing();
-  s_pairingMode = true;
 }
 
 static void checkLongPressActions() {

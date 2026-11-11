@@ -13,6 +13,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] BLE HID with pairing/reconnect and automatic USB selection when enumeration succeeds
 - [x] Simplified side-key gestures: click to cycle presets, hold 5s to pair, or hold at power-on/reset to flash (D34)
 - [x] Three fixed BLE channels with one active connection, side-key channel selection and successful-replacement commit (D36), verified on hardware
+- [x] Current-channel BLE connection whitelist prevents rejected-host reconnect loops (0.8.4, verified on hardware, D39)
 - [ ] Automatic BLE fallback after battery-powered USB hot-unplug; current hardware lacks VBUS sensing (accepted limitation, D3)
 - [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
 - [x] Dynamic presets in NVS and Navio Config Protocol v2; Test is the only factory-fallback preset
