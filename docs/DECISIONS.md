@@ -391,7 +391,8 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   LedController 的 20ms tick 驱动，无变化不写 WS2812；LED0 预设、LED1 连接、LED2 电量职责不变。
 - 不按 USB/BLE 改模式；省电来自按键灯空闲熄灭，整机续航提升须实测，不作量化承诺。
 - 首版编辑器只提供三模式选择并随预设写入；LED_PREVIEW 继续返回 NOT_IMPLEMENTED，不做实时硬件预览。
-- 固件版本升至 0.5.5；协议与 record 版本不变。代码与自动化测试完成后仍需真机验收灯效和功耗。
+- 固件版本升至 0.5.5；协议与 record 版本不变。十种模式的真机灯效验收已于 2026-11-11 完成；
+  电流记录与睡眠唤醒、电池续航合并验收，未测量前不作续航量化承诺。
 - 2026-11-05 修订（0.5.6）：reactive 中文名定为“按键响应”；breath 完整周期 3s→6s，
   明暗各约 3 秒，亮度范围不变，使节奏更轻柔舒缓。
 - 2026-11-05 修订（0.5.7）：breath 的线性三角波改为整数 smoothstep `x²(3−2x)`，
@@ -475,7 +476,8 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   `5=breathRandom` / `6=colorCycle` / `7=rainbowFlow` / `8=marquee` / `9=rainbowMarquee`，
   与 Web 的“基础 / 按键触发 / 整体变化 / 流动拖尾”分组一致。
 - 记录仍为 150B v1，协议仍为 v2，不新增命令；固件、Web 编解码、项目模板与预览引擎同步使用新枚举。
-  off 的网页卡片与中央 SVG 均保持按键灯熄灭。固件版本升至 0.5.26，真机默认响应、关闭模式与状态灯行为待验收。
+  off 的网页卡片与中央 SVG 均保持按键灯熄灭。固件版本升至 0.5.26；默认响应、关闭模式与状态灯行为
+  已随十种模式于 2026-11-11 完成真机验收。
 - **0.5.30 修订**：出厂回退 Test 的 `rgbMode` 改为 `7=rainbowFlow`；新建预设、项目模板和 Web 引擎
   仍默认 `1=reactive`，150B record v1 与协议 v2 不变。
 
@@ -506,7 +508,8 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 出厂回退从剪映/Resolve/Test/F13 缩减为仅 Test；项目模板库仍保留全部应用。Test 作为唯一出厂项使用
   ID 1，编辑器 `FACTORY_IDS` 同步只保留 `{1:test}`，不承担旧出厂 ID 的迁移兼容。
 - 单套出厂库仍满足至少一套、禁止删除最后一套的规则；侧键循环在单套时保持当前项。
-- 固件版本升至 0.5.27；150B record v1 与协议 v2 不变。中文名称真机写入/读回和出厂回退仍需实测。
+- 固件版本升至 0.5.27；150B record v1 与协议 v2 不变。中文名称真机写入/读回和唯一出厂 Test 回退
+  已于 2026-11-11 复验通过。
 
 ## D34. 侧键只保留单击与 5 秒配对，刷写统一为上电入口（2026-11-09）
 
@@ -560,6 +563,13 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   其他键灯暂时熄灭，720ms 后恢复原预设灯效；LED0 预设、LED1 连接、LED2 电源职责不变。
 - `GET_BLE_BONDS` 响应升级为 version 2，每条增加 `channel` 字节：1/2/3 或 `0xFF` 未分配。
   网页按频道展示并在删除确认中标注，不再兼容 version 1；删除仍按地址而非列表序号。
+
+## D38. 收尾范围：LED2 仅低电提示，无线调参后置（2026-11-11）
+
+- 撤销 PROJECT 早期 LED2 绿/黄/红分级常亮目标：LED2 固定为 ≤5% 低电红慢闪，其余熄灭。
+  核心需求是低电提示；常亮分级会增加电池功耗，本轮不再为此扩展功能。
+- 无线调参不纳入本轮收尾；现有 USB WebHID 配置、Config Protocol v2 与 150B record v1 不变，
+  BLE 配置传输后续单独评审。本项不改变固件行为，无需递增固件版本。
 
 ## D10. 主环境：官方 espressif32 8.0.0 = Arduino core 3.12.x（2026-10-25 定，10-26 复核）
 

@@ -12,7 +12,7 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] USB HID keyboard, mouse, consumer control and vendor interface
 - [x] BLE HID with pairing/reconnect and automatic USB selection when enumeration succeeds
 - [x] Simplified side-key gestures: click to cycle presets, hold 5s to pair, or hold at power-on/reset to flash (D34)
-- [x] Three fixed BLE channels with one active connection, side-key channel selection and successful-replacement commit (D36)
+- [x] Three fixed BLE channels with one active connection, side-key channel selection and successful-replacement commit (D36), verified on hardware
 - [ ] Automatic BLE fallback after battery-powered USB hot-unplug; current hardware lacks VBUS sensing (accepted limitation, D3)
 - [x] JianYing and DaVinci Resolve presets for Windows, verified over USB and BLE
 - [x] Dynamic presets in NVS and Navio Config Protocol v2; Test is the only factory-fallback preset
@@ -28,8 +28,8 @@ open-source DIY video-editing keypad (PCB V1.0, ESP32-S3 SuperMini).
 - [x] JSON export with copy/download and validated paste/file import through shared transfer logic
 - [x] Cross-page, accessibility, responsive, online and hardware WebHID UX regression
 - [x] Animated Web RGB previews and graphical effect cards for nine active effects plus an off mode; no hardware preview protocol
-- [ ] Hardware and power validation for default-reactive behavior and all ten lighting modes (implemented in 0.5.26)
-- [ ] Sleep/wake and battery-power validation
+- [x] Hardware validation for default-reactive behavior and all ten lighting modes
+- [ ] Lighting-current measurements, sleep/wake and battery-power validation (tracked together)
 
 See `docs/PROJECT.md` for the roadmap and `docs/DECISIONS.md` for technical decisions.
 

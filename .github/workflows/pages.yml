@@ -38,6 +38,7 @@ jobs:
           node editor/preset_test.js
           node editor/library_test.js
           node editor/device_test.js
+          node editor/ble_bonds_test.js
           node editor/templates_test.js
           node editor/template_browser_test.js
           node editor/import_export_test.js

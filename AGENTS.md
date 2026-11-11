@@ -99,7 +99,8 @@ Phase 1b 的 BLE 与插入电脑自动切 USB 已验收；电池持续供电时�
 0.5.31 起侧键简化为短按切预设、5 秒到位配对与上电按住刷写，启动检测带 10ms 连续稳定采样（D34）；
 0.6.0 起配对需 HID 报告订阅建立才视为成功，订阅前断开保持蓝闪；0.8.1 起固定 3 蓝牙频道，
 侧键+K1/K2/K3 选台并用对应键灯闪 3 下反馈，空频道自动配对、当前频道成功后才替换（D36/D37），
-网页按频道管理绑定，真机多频道与配对灯态待验收。
+网页按频道管理绑定；多频道手势、选台、替换、绑定删除/清除及灯态已通过真机验收。
+已知体验问题：切台后旧主机自动回连会被反复拒绝，可能显示连接/断开循环；候选方案为当前频道连接白名单。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：
@@ -107,13 +108,14 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    Web 统一刷写方案已冻结（D22，docs/WEB_FLASHING.md），应用升级/串口刷写双入口、三条核心路径及
    中断/负向验收及 GitHub Pages 线上 OTA 验收已完成；Web 编辑器 A 原型与模板分离已完成，
    B/C 均已通过真机验收，双键盘断开与换机重连已验证；刷写完成重启后不再重连验证，
-   编辑器页头显示设备固件版本，新连接主动检查固件更新；RGB 十种模式（通用默认 reactive，0.5.30 起出厂 Test 使用 rainbowFlow）与编辑器选择已实现（D26/D30），真机灯效与功耗待验收；
+   编辑器页头显示设备固件版本，新连接主动检查固件更新；RGB 十种模式（通用默认 reactive，0.5.30 起出厂 Test 使用 rainbowFlow）与编辑器选择已实现（D26/D30），真机灯效已验收，电流记录与睡眠唤醒、电池续航合并验收；
    产品化 UX 阶段 1–4 已完成：单套编辑、来源复制、单项安装与断线恢复通过本地 Chrome/模拟 HID 回归；
    跨页、可访问性、窄屏/缩放、Pages 与线上验收通过；真机正式编辑器 WebHID 读取及原内容写回验证通过；
    独立审查后续修复 ID 碰撞覆盖、刷写失败恢复、固件样式、Wheel 修饰键、焦点与缓存，293 项 Node 与 13 组浏览器回归通过；
    网页 RGB 图形化选择与动画预览已完成（D29），23 项引擎检查通过，不开发硬件 LED_PREVIEW；
    项目模板列表已按工作流分组并支持别名搜索，Win/Mac 按应用合并、标题栏切换平台（D31）；
-   剪映显示名已中文化，0.5.27 起出厂回退仅保留 Test（ID 1），项目模板库不受影响（D33）
+   剪映显示名已中文化，0.5.27 起出厂回退仅保留 Test（ID 1），项目模板库不受影响（D33）；
+   中文名称写读与出厂回退已真机复验；无线调参不纳入本轮收尾（D38）
 2. 预设扩展：项目模板库共 32 套：剪映/CapCut/万兴喵影/必剪/Resolve/Premiere/After Effects/Blender/
    Illustrator/Photoshop/Lightroom Classic/Capture One/Clip Studio Paint/Krita 各 Win/Mac，
    另有 Final Cut Pro Mac、Procreate iPad、Test、F13 Macro；
@@ -121,7 +123,7 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    两批新增模板均参考公开 TourBox 布局并核对默认快捷键，主题色按品牌识别色且跨平台一致；
    各套快捷键待目标 App 实测微调，REAPER、SAI/MediBang 与 iPad 变体等待后续评估，
    Android 平台待真实需求与实测快捷键
-3. 电池接入后：睡眠唤醒、电量灯实测、BLE 功耗策略
-4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（待查，兜底=BOOT 插拔）
+3. 电源收尾：RGB 电流记录、睡眠唤醒、电池续航与低电红闪复验合并进行
+4. 已知问题：BOOT 长按 3s 进下载模式在 BLE 连接时偶发失效（暂未复现，继续观察；兜底=BOOT 插拔）
 
 上游参考在 `reference/`（gitignore，只读，无 LICENSE，只可参考不可复制）。
