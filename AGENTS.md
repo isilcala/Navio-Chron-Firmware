@@ -103,6 +103,9 @@ Phase 1b 的 BLE 与插入电脑自动切 USB 已验收；电池持续供电时�
 0.8.4 起普通回连使用当前频道连接白名单，空频道/配对保持开放，应用层拒绝继续兜底（D39），真机复验通过。
 0.8.5 修复无关 BLE reject 误清活动 HID、组合键释放残留，配对状态直接读取 BleTransport；
 编码器溢出计数与 DELETE 双 manifest 安全回收已落地，真机回归通过。
+0.9.0 正式无线间隔为 5min 关按键灯、15min 深睡；LED0–LED2 空闲保留，深睡整链熄灭。
+USB/配对/OTA/按住键禁睡，IGNORE_MATRIX 禁用；任意矩阵键唤醒且首键不发送。RTC 列需显式输入方向，
+唤醒后解除 hold/deinit；睡眠回归已通过，电流与续航仍待测量（D40）。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：

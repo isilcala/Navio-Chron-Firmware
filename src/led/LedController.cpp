@@ -46,13 +46,41 @@ void LedController::showPreset(const uint8_t accent[3], uint8_t rgbMode) {
   rgbMode_ = rgbMode;
   effectStartedAt_ = millis();
   breathCycle_ = 0xFFFFFFFF;
-  chain_.setPixelColor(0, scale(accent_[0]), scale(accent_[1]), scale(accent_[2]));
   for (uint8_t key = 0; key < KEY_COUNT; ++key) {
     keyHeld_[key] = false;
     confirmAt_[key] = 0;
     fadeStartedAt_[key] = 0;
-    setKeyColor_(key, rgbMode_ == Follow ? 255 : 0);
   }
+  chain_.setPixelColor(0, scale(accent_[0]), scale(accent_[1]), scale(accent_[2]));
+  if (!idle_) {
+    for (uint8_t key = 0; key < KEY_COUNT; ++key) {
+      setKeyColor_(key, rgbMode_ == Follow ? 255 : 0);
+    }
+  }
+  dirty_ = true;
+  flush();
+}
+
+void LedController::setIdle(bool idle) {
+  if (idle == idle_) return;
+  idle_ = idle;
+  if (idle_) {
+    for (uint8_t key = 0; key < KEY_COUNT; ++key) chain_.setPixelColor(LED_KEY_FIRST + key, 0);
+    dirty_ = true;
+    flush();
+    return;
+  }
+
+  showPreset(accent_, rgbMode_);
+  chain_.setPixelColor(1, chain_.Color(scale(modeColor_[0]), scale(modeColor_[1]), scale(modeColor_[2])));
+  chain_.setPixelColor(2, lowBattery_ && blinkOn_ ? chain_.Color(scale(255), 0, 0) : 0);
+  dirty_ = true;
+  flush();
+}
+
+void LedController::shutdown() {
+  idle_ = true;
+  for (uint8_t i = 0; i < LED_COUNT; ++i) chain_.setPixelColor(i, 0);
   dirty_ = true;
   flush();
 }
@@ -90,7 +118,7 @@ void LedController::setKeyRgb_(uint8_t key, const uint8_t rgb[3]) {
 }
 
 void LedController::setKeyPressed(uint8_t key, bool pressed) {
-  if ((rgbMode_ != Reactive && rgbMode_ != ReactiveRandom) || key >= KEY_COUNT) return;
+  if (idle_ || (rgbMode_ != Reactive && rgbMode_ != ReactiveRandom) || key >= KEY_COUNT) return;
   if (pressed) {
     keyHeld_[key] = true;
     confirmAt_[key] = millis() + LED_REACTIVE_CONFIRM_MS;
@@ -204,6 +232,9 @@ void LedController::flush() {
 }
 
 void LedController::setModeColor(uint8_t r, uint8_t g, uint8_t b) {
+  modeColor_[0] = r;
+  modeColor_[1] = g;
+  modeColor_[2] = b;
   uint32_t color = chain_.Color(scale(r), scale(g), scale(b));
   if (chain_.getPixelColor(1) == color) return;
   chain_.setPixelColor(1, color);
@@ -229,23 +260,25 @@ void LedController::tick() {
       dirty_ = true;
     }
   }
-  if (channelFeedbackKey_ != CHANNEL_FEEDBACK_OFF) {
-    uint32_t elapsed = now - channelFeedbackStartedAt_;
-    if (elapsed >= 720) {
-      channelFeedbackKey_ = CHANNEL_FEEDBACK_OFF;
-      showPreset(accent_, rgbMode_);
-    } else {
-      bool on = (elapsed / 120) % 2 == 0;
-      for (uint8_t key = 0; key < KEY_COUNT; ++key) {
-        chain_.setPixelColor(LED_KEY_FIRST + key,
-                             on && key == channelFeedbackKey_
-                               ? chain_.Color(scale(0), scale(0), scale(100))
-                               : 0);
+  if (!idle_) {
+    if (channelFeedbackKey_ != CHANNEL_FEEDBACK_OFF) {
+      uint32_t elapsed = now - channelFeedbackStartedAt_;
+      if (elapsed >= 720) {
+        channelFeedbackKey_ = CHANNEL_FEEDBACK_OFF;
+        showPreset(accent_, rgbMode_);
+      } else {
+        bool on = (elapsed / 120) % 2 == 0;
+        for (uint8_t key = 0; key < KEY_COUNT; ++key) {
+          chain_.setPixelColor(LED_KEY_FIRST + key,
+                               on && key == channelFeedbackKey_
+                                 ? chain_.Color(scale(0), scale(0), scale(100))
+                                 : 0);
+        }
+        dirty_ = true;
       }
-      dirty_ = true;
+    } else {
+      updateEffects_(now);
     }
-  } else {
-    updateEffects_(now);
   }
   if (!dirty_ || now - lastShowMs_ < LED_TICK_INTERVAL_MS) return;
   chain_.show();

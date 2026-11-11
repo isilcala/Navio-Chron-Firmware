@@ -24,6 +24,9 @@ constexpr uint32_t BATTERY_CHECK_INTERVAL_MS = 5 * 1000;  // 5s：拔线后 ≤5
 constexpr float BATTERY_EMA_ALPHA = 0.35f;
 constexpr uint8_t BATTERY_CONFIRM_SAMPLES = 2;
 constexpr uint8_t BATTERY_LOW_PERCENT = 5;  // ≈3.43V；与 Windows 5% 低电提示一致（D25 四修）
+// 无线正式电源间隔：5min 关按键灯，15min 深睡；USB 与 IGNORE_MATRIX 诊断构建禁用。
+constexpr uint32_t POWER_LIGHTING_IDLE_MS = 5 * 60 * 1000;
+constexpr uint32_t POWER_DEEP_SLEEP_MS = 15 * 60 * 1000;
 // 放电曲线 {毫伏, 电量%} 降序，分段线性插值替代线性折算（锂电平台期 S 形）。
 // 0% 锚 3.00V：实测力竭 2.865V，3.0-3.1V 为安全下限。
 // 100% 锚 4.10V（D25 五修）：TP4054 CV 虽是 4.2V，但满充拔线后静置电压回落到

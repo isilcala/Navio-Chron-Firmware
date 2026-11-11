@@ -42,6 +42,7 @@ class BleTransport : public ITransport, public IBleBondManager {
   // USB 优先时段停广播省电/防误连；恢复时自动重连已配对主机
   void pauseAdvertising();
   void resumeAdvertising();
+  void prepareForDeepSleep();
   bool isAdvertising() const { return advertising_; }
 
   // HID 电池服务上报（main 周期调用）

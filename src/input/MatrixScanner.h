@@ -11,6 +11,9 @@ class MatrixScanner {
   void poll();
   bool next(BtnEvent& out);
   uint16_t takeDroppedEvents();
+  bool anyKeyDown() const;
+  // 深睡唤醒后先等唤醒键松开，避免把它送入正常输入路径
+  void waitForWakeKeyRelease();
   // 直接读取某个矩阵位的当前电平（不经消抖），用于启动早期/长按检测等特殊场景
   bool rawKeyDown(uint8_t row, uint8_t col);
 

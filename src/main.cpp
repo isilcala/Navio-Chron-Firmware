@@ -19,6 +19,7 @@
 #include "input/MatrixScanner.h"
 #include "led/LedController.h"
 #include "power/Battery.h"
+#include "power/PowerManager.h"
 
 using namespace navio;
 
@@ -28,6 +29,7 @@ static MatrixScanner matrix;
 static Encoders encoders;
 static LedController leds;
 static Battery battery;
+static PowerManager power;
 static PresetManager presets;
 static UsbTransport usbTransport;
 static BleTransport bleTransport;
@@ -110,6 +112,47 @@ static void updateLinkMode() {
   }
 }
 
+static bool s_lightingIdle = false;
+
+static void noteInputActivity() {
+  power.notifyActivity();
+  if (!s_lightingIdle) return;
+  s_lightingIdle = false;
+  leds.setIdle(false);
+}
+
+static void tickPowerManagement() {
+#if !NAVIO_IGNORE_MATRIX
+  if (usbTransport.isConnected() || otaManager.isBusy() || bleTransport.isPairing()) {
+    power.notifyActivity();
+    if (s_lightingIdle) {
+      s_lightingIdle = false;
+      leds.setIdle(false);
+    }
+    return;
+  }
+  if (matrix.anyKeyDown()) {
+    power.notifyActivity();
+    return;
+  }
+  if (!bleTransport.isPairing() && !s_lightingIdle && power.lightingIdle()) {
+    s_lightingIdle = true;
+    leds.setIdle(true);
+  }
+  if (!power.deepSleepDue()) return;
+  if (!power.prepareDeepSleep()) {
+    power.notifyActivity();
+    return;
+  }
+
+  releaseAllActions();
+  s_lightingIdle = true;
+  leds.shutdown();
+  bleTransport.prepareForDeepSleep();
+  power.enterDeepSleep();
+#endif
+}
+
 // 蓝牙电量上报：值变化立即推送（拔线/放电解锁 ≤5s 刷新），无变化 60s 心跳保底
 static void updateBleBattery() {
   static uint32_t last = millis() - 60 * 1000;  // 上电即首发
@@ -149,20 +192,26 @@ static bool sideKeyHeldAtBoot() {
 void setup() {
   // 主固件 CDC_ON_BOOT=0，Serial=UART0 无接收者；诊断构建走 USB-Serial/JTAG。
   Serial.begin(115200);
+  const bool wakeFromDeepSleep = PowerManager::wokeFromDeepSleep();
 
-  // 板载 RGB 启动信标（未焊接阶段唯一的可视化调试手段）
+  // 板载 RGB 启动信标（未焊接阶段唯一的可视化调试手段）；深睡唤醒走快速路径
   // 绿=进入setup 蓝=即将启动USB 青×3=全部完成
-  neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
-  delay(300);
+  if (!wakeFromDeepSleep) {
+    neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
+    delay(300);
+  }
 
-  // 启动早期检查：连续稳定按住才进下载模式，避免单次毛刺误入
+  if (wakeFromDeepSleep) PowerManager::restoreAfterWake();
   matrix.begin();
 #if !NAVIO_IGNORE_MATRIX  // 未焊接阶段侧键悬空，跳过（悬空误判会直接进下载模式）
-  if (sideKeyHeldAtBoot()) {
+  if (wakeFromDeepSleep) {
+    matrix.waitForWakeKeyRelease();
+  } else if (sideKeyHeldAtBoot()) {
     enterDownloadMode();
     return;  // 不会到达，保险
   }
 #endif
+  power.begin();
 
   battery.begin();
   leds.begin();
@@ -171,8 +220,10 @@ void setup() {
   pinMode(PIN_BOOT_KEY, INPUT_PULLUP);
   // matrix.begin() 已在启动早期完成（侧键下载模式检查），此处不重复
 
-  neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
-  delay(300);
+  if (!wakeFromDeepSleep) {
+    neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
+    delay(300);
+  }
   bool vendorReady = false;
 #if !NAVIO_FORCE_BLE
   vendorReady = vendorHid.begin();
@@ -197,12 +248,14 @@ void setup() {
     }
   }
   leds.showPreset(presets.active().accent, presets.active().rgbMode);
-  // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
-  for (int i = 0; i < 3; ++i) {
-    neopixelWrite(PIN_BOARD_RGB, 0, 60, 60);
-    delay(120);
-    neopixelWrite(PIN_BOARD_RGB, 0, 0, 0);
-    delay(120);
+  if (!wakeFromDeepSleep) {
+    // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
+    for (int i = 0; i < 3; ++i) {
+      neopixelWrite(PIN_BOARD_RGB, 0, 60, 60);
+      delay(120);
+      neopixelWrite(PIN_BOARD_RGB, 0, 0, 0);
+      delay(120);
+    }
   }
 }
 
@@ -224,7 +277,10 @@ void loop() {
     bool otaBusy = otaManager.isBusy();
     BtnEvent be;
     while (matrix.next(be)) {
-      if (!otaBusy) dispatchButton(be.id, be.pressed);
+      if (!otaBusy) {
+        noteInputActivity();
+        dispatchButton(be.id, be.pressed);
+      }
     }
 
     encoders.poll();
@@ -233,7 +289,10 @@ void loop() {
     }
     EncoderEvent ee;
     while (encoders.next(ee)) {
-      if (!otaBusy) dispatchEncoder(ee.id, ee.dir);
+      if (!otaBusy) {
+        noteInputActivity();
+        dispatchEncoder(ee.id, ee.dir);
+      }
     }
   }
 
@@ -246,6 +305,7 @@ void loop() {
   updateLinkMode();
   updateBleBattery();
   checkLongPressActions();
+  tickPowerManagement();
 
   delay(1);  // 让出 CPU（避免忙转饿死其他任务）
 }

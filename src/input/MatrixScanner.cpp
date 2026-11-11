@@ -69,6 +69,24 @@ bool MatrixScanner::rawKeyDown(uint8_t row, uint8_t col) {
   return down;
 }
 
+bool MatrixScanner::anyKeyDown() const {
+  for (bool down : state_) {
+    if (down) return true;
+  }
+  return false;
+}
+
+void MatrixScanner::waitForWakeKeyRelease() {
+  for (uint8_t pin : PIN_ROW) digitalWrite(pin, LOW);
+  for (;;) {
+    bool down = false;
+    for (uint8_t pin : PIN_COL) down = down || digitalRead(pin) == LOW;
+    if (!down) break;
+    delay(1);
+  }
+  for (uint8_t pin : PIN_ROW) digitalWrite(pin, HIGH);
+}
+
 void MatrixScanner::push_(const BtnEvent& e) {
   uint8_t nextTail = (tail_ + 1) % QUEUE_SIZE;
   if (nextTail == head_) {

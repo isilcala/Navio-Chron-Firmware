@@ -10,6 +10,8 @@ class LedController {
  public:
   void begin();
   void showPreset(const uint8_t accent[3], uint8_t rgbMode);
+  void setIdle(bool idle);                              // 空闲只关按键灯，保留状态灯
+  void shutdown();                                      // 深睡前整链熄灭（不返回）
   void setKeyPressed(uint8_t key, bool pressed);
   void releaseKeys();
   void setModeColor(uint8_t r, uint8_t g, uint8_t b);  // LED1
@@ -44,7 +46,9 @@ class LedController {
   static constexpr uint8_t CHANNEL_FEEDBACK_OFF = 0xFF;
   uint32_t channelFeedbackStartedAt_ = 0;
   uint8_t channelFeedbackKey_ = CHANNEL_FEEDBACK_OFF;
+  uint8_t modeColor_[3] = {};
   bool lowBattery_ = false;
+  bool idle_ = false;
   bool blinkOn_ = false;
   bool dirty_ = false;
   uint32_t lastBlinkMs_ = 0;

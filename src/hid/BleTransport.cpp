@@ -564,6 +564,18 @@ void BleTransport::resumeAdvertising() {
   updateAdvertising_();
 }
 
+void BleTransport::prepareForDeepSleep() {
+  if (!server) return;
+  advertisingWanted_ = false;
+  restartAdvertising_();
+  if (connected_) {
+    releaseAll();
+    server->disconnect(connHandle_);
+  }
+  delay(50);
+  if (!NimBLEDevice::deinit(false)) Serial.println("[Navio] BLE shutdown before deep sleep failed");
+}
+
 bool BleTransport::reportReady_(uint8_t reportId) const {
   return connected_ && reportId >= 1 && reportId <= 3 &&
          (subscriptions_ & (1U << (reportId - 1)));
