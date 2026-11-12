@@ -6,7 +6,7 @@
 ## 背景
 
 [Navio Chron](https://github.com/Cityforest2000/Navio-Chron) 是社区开源的视频剪辑小键盘
-（类似 TourBox），硬件由 Cityforest2000 设计（PCB V1.0 双板 + ESP32-S3 SuperMini 模块，
+（桌面剪辑控制台），硬件由 Cityforest2000 设计（PCB V1.0 双板 + ESP32-S3 SuperMini 模块，
 [oshwhub 工程](https://oshwhub.com/cityforest/)）。原固件为单文件 Arduino 草稿、仅 USB、
 面向剪映。本项目为该硬件编写**全新配套固件**，实现原作者未覆盖的蓝牙、多预设、可配置能力。
 

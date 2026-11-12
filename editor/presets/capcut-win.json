@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "capcut-win",
     "order": 30,
-    "description": "CapCut Windows：沿用剪映/TourBox 剪辑布局；Ctrl+B 分割、Shift+Z 适配、Ctrl+./, 音量、Ctrl+=/- 缩放；版本差异在应用快捷键面板复核"
+    "description": "CapCut Windows：沿用剪映剪辑布局；Ctrl+B 分割、Shift+Z 适配、Ctrl+./, 音量、Ctrl+=/- 缩放；版本差异在应用快捷键面板复核"
   },
   "preset": {
     "id": 10,

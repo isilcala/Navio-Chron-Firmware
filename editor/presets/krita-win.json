@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "krita-win",
     "order": 240,
-    "description": "Krita Windows：沿用 TourBox/CSP 笔刷/旋转/缩放布局；B/E/M、Insert 新建绘画图层、[ ] 笔刷、4/6 旋转、5 复位、2 适配页面"
+    "description": "Krita Windows：沿用 CSP 笔刷/旋转/缩放布局；B/E/M、Insert 新建绘画图层、[ ] 笔刷、4/6 旋转、5 复位、2 适配页面"
   },
   "preset": {
     "id": 27,

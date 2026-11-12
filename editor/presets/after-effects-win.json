@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "after-effects-win",
     "order": 100,
-    "description": "After Effects Windows：参考 TourBox 时间线工作流；Ctrl+Shift+D 分割、PageUp/Down 逐帧、J/K 关键帧、=/- 缩放（Adobe 官方键位）"
+    "description": "After Effects Windows：时间线工作流；Ctrl+Shift+D 分割、PageUp/Down 逐帧、J/K 关键帧、=/- 缩放（Adobe 官方键位）"
   },
   "preset": {
     "id": 13,

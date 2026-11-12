@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "final-cut-pro",
     "order": 90,
-    "description": "Final Cut Pro macOS：参考 TourBox 模板；Cmd+B 切割、Shift+Z 适配、Ctrl+=/- 音量、Cmd+=/- 时间线缩放（Apple 官方键位）"
+    "description": "Final Cut Pro macOS：Cmd+B 切割、Shift+Z 适配、Ctrl+=/- 音量、Cmd+=/- 时间线缩放（Apple 官方键位）"
   },
   "preset": {
     "id": 12,

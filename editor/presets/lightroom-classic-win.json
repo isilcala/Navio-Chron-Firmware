@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "lightroom-classic-win",
     "order": 180,
-    "description": "Lightroom Classic Windows：参考 TourBox 选片/调色工作流；P/X/U、G/E/D、R、\\ 前后对比、. / , 选参数、+/- 调当前滑块（Adobe 官方键位）"
+    "description": "Lightroom Classic Windows：选片/调色工作流；P/X/U、G/E/D、R、\\ 前后对比、. / , 选参数、+/- 调当前滑块（Adobe 官方键位）"
   },
   "preset": {
     "id": 17,

@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "capture-one-win",
     "order": 200,
-    "description": "Capture One Windows：参考 TourBox 选片/局部调整工作流；0/3/5 评分、Y 前后对比、B/E 笔刷、[ ] 大小、Shift+[ ] 硬度、Ctrl+=/- 缩放"
+    "description": "Capture One Windows：选片/局部调整工作流；0/3/5 评分、Y 前后对比、B/E 笔刷、[ ] 大小、Shift+[ ] 硬度、Ctrl+=/- 缩放"
   },
   "preset": {
     "id": 25,

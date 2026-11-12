@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "blender-win",
     "order": 120,
-    "description": "Blender Windows：参考公开 TourBox 建模布局；G/R/S、Shift+A、Tab、X；小键盘 4/6、8/2 离散旋转，+/- 缩放，Home 全景（官方键位）"
+    "description": "Blender Windows：建模工作流；G/R/S、Shift+A、Tab、X；小键盘 4/6、8/2 离散旋转，+/- 缩放，Home 全景（官方键位）"
   },
   "preset": {
     "id": 21,

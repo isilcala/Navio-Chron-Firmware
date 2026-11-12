@@ -124,7 +124,7 @@ Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INF
    Illustrator/Photoshop/Lightroom Classic/Capture One/Clip Studio Paint/Krita 各 Win/Mac，
    另有 Final Cut Pro Mac、Procreate iPad、Test、F13 Macro；
    presets/ 一预设一 JSON，平台入 150B 记录 byte 13（D24），显示名不带平台词、chip 呈现，Cmd=GUI 修饰；
-   两批新增模板均参考公开 TourBox 布局并核对默认快捷键，主题色按品牌识别色且跨平台一致；
+   两批新增模板均参考公开的主流剪辑控制台布局并核对默认快捷键，主题色按品牌识别色且跨平台一致；
    各套快捷键待目标 App 实测微调，REAPER、SAI/MediBang 与 iPad 变体等待后续评估，
    Android 平台待真实需求与实测快捷键
 3. 电源收尾：RGB 电流记录、睡眠唤醒、电池续航与低电红闪复验合并进行

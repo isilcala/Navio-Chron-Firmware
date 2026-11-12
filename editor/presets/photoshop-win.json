@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "photoshop-win",
     "order": 160,
-    "description": "Photoshop Windows：参考 TourBox 默认布局；B/E/V、Ctrl+J 复制图层、[ ] 笔刷、Shift+[ ] 硬度、Ctrl+=/- 缩放、Ctrl+0 适配"
+    "description": "Photoshop Windows：修图工作流；B/E/V、Ctrl+J 复制图层、[ ] 笔刷、Shift+[ ] 硬度、Ctrl+=/- 缩放、Ctrl+0 适配"
   },
   "preset": {
     "id": 15,

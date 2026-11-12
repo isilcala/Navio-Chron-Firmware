@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "clip-studio-paint-win",
     "order": 220,
-    "description": "Clip Studio Paint Windows：参考 TourBox 笔刷/第二属性/缩放布局；B/P/E、Ctrl+Y、Ctrl+Shift+N、Ctrl+[ ] 不透明度；不预设需自定义的画布旋转"
+    "description": "Clip Studio Paint Windows：笔刷/第二属性/缩放布局；B/P/E、Ctrl+Y、Ctrl+Shift+N、Ctrl+[ ] 不透明度；不预设需自定义的画布旋转"
   },
   "preset": {
     "id": 19,
