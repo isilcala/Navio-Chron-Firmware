@@ -49,6 +49,7 @@ jobs:
           test -n "$release_dir"
           mkdir -p _site/editor _site/firmware
           cp -r editor/. _site/
+          rm -f _site/*_test.js
           rm _site/redirect.html
           cp editor/redirect.html _site/editor/index.html
           cp tools/probe/webunified_probe.html _site/firmware/index.html

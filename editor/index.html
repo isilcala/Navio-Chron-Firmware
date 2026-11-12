@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#e0e5ec">
   <title>预设 · Navio Chron</title>
   <meta http-equiv="Cache-Control" content="no-store">
-  <link rel="stylesheet" href="styles.css?v=20261109-48">
+  <link rel="stylesheet" href="styles.css?v=20261109-49">
 </head>
 <body>
   <header class="app-header">
@@ -191,7 +191,7 @@
   <dialog id="bluetoothDialog" class="dialog bluetooth-dialog">
     <form method="dialog">
       <div class="dialog-heading"><div><span class="dialog-kicker">BLUETOOTH</span><h2>蓝牙设备</h2></div><button type="button" class="icon-button" data-close="bluetoothDialog" aria-label="关闭">×</button></div>
-      <p id="bondSummary" class="dialog-description"></p>
+      <p id="bondSummary" class="dialog-description">固定 3 个蓝牙频道，任意时刻只连接一台。</p>
       <div id="bondList" class="bond-list"></div>
       <div id="bondError" class="field-error" role="alert" hidden></div>
       <div class="delete-warning bond-help"><strong>固定 3 个蓝牙频道</strong><p>侧键 + K1/K2/K3 选择频道；空频道自动配对，当前频道成功配对后才替换。这里的删除操作仅用于异常恢复。</p></div>
@@ -221,16 +221,16 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="../tools/probe/navio_proto.js?v=20261109-48"></script>
-  <script src="../tools/probe/webflash_rules.js?v=20261109-48"></script>
-  <script src="preset.js?v=20261109-48"></script>
-  <script src="templates.js?v=20261109-48"></script>
-  <script src="template_browser.js?v=20261109-48"></script>
-  <script src="library.js?v=20261109-48"></script>
-  <script src="ble_bonds.js?v=20261109-48"></script>
-  <script src="device.js?v=20261109-48"></script>
-  <script src="rgb_preview.js?v=20261109-48"></script>
-  <script src="import_export.js?v=20261109-48"></script>
-  <script type="module" src="app.js?v=20261109-48"></script>
+  <script src="../tools/probe/navio_proto.js?v=20261109-49"></script>
+  <script src="../tools/probe/webflash_rules.js?v=20261109-49"></script>
+  <script src="preset.js?v=20261109-49"></script>
+  <script src="templates.js?v=20261109-49"></script>
+  <script src="template_browser.js?v=20261109-49"></script>
+  <script src="library.js?v=20261109-49"></script>
+  <script src="ble_bonds.js?v=20261109-49"></script>
+  <script src="device.js?v=20261109-49"></script>
+  <script src="rgb_preview.js?v=20261109-49"></script>
+  <script src="import_export.js?v=20261109-49"></script>
+  <script type="module" src="app.js?v=20261109-49"></script>
 </body>
 </html>

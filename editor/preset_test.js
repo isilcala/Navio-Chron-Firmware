@@ -45,6 +45,10 @@ equal(P.actionError({ kind: P.Kind.Wheel, mods: 0, code: 0, wheelDy: 1 }, true) 
   "Wheel rejected on button slots");
 equal(P.actionError({ kind: P.Kind.Wheel, mods: 0, code: 0, wheelDy: 1 }, false), null,
   "Wheel accepted on encoder slots");
+equal(P.actionError({ kind: P.Kind.Wheel, mods: 0, code: 0, wheelDy: -128 }, false), null,
+  "Wheel accepts the signed int8 minimum");
+equal(P.actionError({ kind: P.Kind.Wheel, mods: 0, code: 0, wheelDy: -129 }, false) !== null, true,
+  "Wheel rejects values below the signed int8 minimum");
 equal(P.actionError({ kind: P.Kind.Consumer, mods: 1, code: 0xCD, wheelDy: 0 }, false) !== null, true,
   "Consumer modifiers rejected");
 equal(P.actionError({ kind: P.Kind.KeyChord, mods: 0, code: 0xE8, wheelDy: 0 }, true) !== null, true,

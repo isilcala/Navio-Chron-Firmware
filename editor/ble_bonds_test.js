@@ -11,6 +11,10 @@ function entry(type, bytes, connected, seq, channel = 0xFF) {
 const a = [6, 5, 4, 3, 2, 1], b = [1, 2, 3, 4, 5, 6];
 
 test("address formatting uses display byte order", () => assert.equal(B.formatAddress(new Uint8Array(a)), "01:02:03:04:05:06"));
+test("channel labels cover assigned and unassigned channels", () => {
+  assert.equal(B.channelLabel({ channel: 2 }), "频道 2");
+  assert.equal(B.channelLabel({ channel: 0xFF }), "未分配频道");
+});
 test("bond list parses current state, recent sequence and channel", () => {
   const result = B.parseBondList(new Uint8Array([2, 2, ...entry(1, a, true, 9, 2), ...entry(2, b, false, 4, 1)]));
   assert.equal(result.entries.length, 2);

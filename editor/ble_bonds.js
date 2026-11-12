@@ -12,6 +12,10 @@
     return [...bytes].reverse().map(value => value.toString(16).padStart(2, "0").toUpperCase()).join(":");
   }
 
+  function channelLabel(entry) {
+    return entry.channel === 0xFF ? "未分配频道" : `频道 ${entry.channel}`;
+  }
+
   function parseBondList(data) {
     if (!(data instanceof Uint8Array) || data.length < 2 || data[0] !== 2)
       throw new Error("设备蓝牙绑定清单版本不受支持");
@@ -52,5 +56,5 @@
     return body;
   }
 
-  return { MAX_BONDS, ENTRY_SIZE, formatAddress, parseBondList, sortBonds, encodeDeleteBond };
+  return { MAX_BONDS, ENTRY_SIZE, formatAddress, channelLabel, parseBondList, sortBonds, encodeDeleteBond };
 });

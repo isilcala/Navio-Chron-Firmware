@@ -334,6 +334,7 @@ button, input, select, .preset-item, .lighting-option { transition: box-shadow 2
 .help-item p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
 .toast { position: fixed; bottom: 26px; left: 50%; z-index: 60; max-width: min(460px, calc(100vw - 32px)); padding: 12px 17px; border-radius: 13px; background: var(--surface); color: var(--text); box-shadow: var(--raised); font-size: 13px; opacity: 0; pointer-events: none; transform: translateX(-50%); transition: opacity 200ms; }
 .toast.show { opacity: 1; }
+.toast.error { color: var(--danger); }
 
 .preview-dock { position: fixed; bottom: 18px; left: 18px; z-index: 50; width: 282px; padding: 16px; border-radius: 17px; background: var(--surface); color: var(--text); box-shadow: var(--raised-large); }
 .preview-heading { display: flex; align-items: flex-start; justify-content: space-between; }

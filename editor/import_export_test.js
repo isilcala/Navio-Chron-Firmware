@@ -29,6 +29,7 @@ equal(envelope.schemaVersion, 1, "export schemaVersion");
 equal(envelope.product, "navio-chron", "export product");
 equal(envelope.record, 1, "export record version");
 equal(envelope.metadata.author, "local", "export metadata remains compatible");
+equal(Object.hasOwn(envelope.metadata, "platform"), false, "export metadata does not duplicate the preset platform");
 equal(IO.parsePreset(`\uFEFF${JSON.stringify(envelope)}`).name, "剪辑预设", "BOM and minified JSON are accepted");
 equal(IO.parsePreset(text).actions.length, 22, "all action slots including SideKey survive");
 equal(IO.parsePreset(text).actions[15].kind, 0, "locked SideKey slot survives");

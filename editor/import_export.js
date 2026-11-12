@@ -18,7 +18,7 @@
       schemaVersion: 1,
       product: "navio-chron",
       record: 1,
-      metadata: { author: "local", platform: "custom" },
+      metadata: { author: "local" },
       preset: data,
     }, null, 2) + "\n";
   }

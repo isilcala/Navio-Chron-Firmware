@@ -40,7 +40,7 @@ equal(replaced.id, 9, "accepted replacement preserves device presetId");
 equal(replaced.name, "mine", "accepted replacement preserves custom name");
 equal(replaced._dirty, true, "accepted replacement is marked as a local edit");
 equal(replaced._readonly, false, "accepted replacement remains editable");
-equal(replaced._dirtySlots.length, 0, "accepted replacement clears stale dirty slots");
+equal(Object.hasOwn(replaced, "_dirtySlots"), false, "accepted replacement removes stale dirty slots");
 equal(Object.hasOwn(replaced, "templateId"), false, "template-only identity does not leak into user presets");
 const current = { ...custom, originTemplateVersion: L.TEMPLATE_VERSION };
 equal(L.syncTemplates([current], [template], () => { throw new Error("must not prompt for current template"); }), false,

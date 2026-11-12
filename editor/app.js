@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-48';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-49';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, BB = NavioBleBonds, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261109-48';
+const ASSET_VERSION = '20261109-49';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/latest/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -200,7 +200,7 @@ function syncInstalledState() {
   for (const preset of userPresets) {
     const dirty = hasKeyboardChanges(preset);
     if (Boolean(preset._dirty) !== dirty) { preset._dirty = dirty; changed = true; }
-    if (!dirty) preset._dirtySlots = [];
+    if (Object.hasOwn(preset, '_dirtySlots')) { delete preset._dirtySlots; changed = true; }
   }
   if (changed) saveLibrary();
 }
@@ -443,7 +443,7 @@ function actionForm(preset, slot, compact = false) {
     ${action.kind === P.Kind.KeyChord ? `<label class="field">键码<select data-action-field="code" ${readonly ? 'disabled' : ''}>${keyOptions(action.code)}</select></label>` : ''}
     ${action.kind === P.Kind.KeyChord || action.kind === P.Kind.Wheel ? `<div class="field">修饰键<div class="modifier-groups">${modifierGroup(labels, 0, action.mods, readonly)}${modifierGroup(labels, 4, action.mods, readonly)}</div></div>` : ''}
     ${action.kind === P.Kind.Consumer ? `<label class="field">功能<select data-action-field="code" ${readonly ? 'disabled' : ''}>${P.CONSUMER_OPTIONS.map(option => `<option value="${option.code}" ${option.code === action.code ? 'selected' : ''}>${option.label}</option>`).join('')}</select></label>` : ''}
-    ${action.kind === P.Kind.Wheel ? `<label class="field">滚动格数<input type="number" min="-127" max="127" value="${action.wheelDy}" data-action-field="wheelDy" ${readonly ? 'disabled' : ''}><small>正数向下滚动，负数向上滚动</small></label>` : ''}
+    ${action.kind === P.Kind.Wheel ? `<label class="field">滚动格数<input type="number" min="-128" max="127" value="${action.wheelDy}" data-action-field="wheelDy" ${readonly ? 'disabled' : ''}><small>正数向下滚动，负数向上滚动</small></label>` : ''}
     <small class="field-error action-error" role="alert" hidden></small>
   </div>`;
 }
@@ -596,12 +596,11 @@ function renderHeader() {
   if (!connected || updateDismissed) $('updateBanner').hidden = true;
 }
 function renderBondManager() {
-  $('bondSummary').textContent = `固定 3 个蓝牙频道，任意时刻只连接一台。`;
   $('clearBonds').disabled = !bluetoothBonds.length || deviceBusy;
   $('confirmBondDelete').disabled = deviceBusy;
   $('bondList').innerHTML = bluetoothBonds.length ? bluetoothBonds.map((entry, index) => {
     const address = BB.formatAddress(entry.address);
-    const channel = entry.channel === 0xFF ? '未分配频道' : `频道 ${entry.channel}`;
+    const channel = BB.channelLabel(entry);
     return `<div class="bond-item"><div class="bond-info"><code class="bond-address">${escapeHtml(address)}</code><div class="bond-meta"><span class="bond-badge">${channel}</span>${entry.connected ? '<span class="bond-badge current">当前连接</span>' : ''}</div></div><button type="button" class="button small danger" data-bond-delete="${index}" ${deviceBusy ? 'disabled' : ''}>删除绑定</button></div>`;
   }).join('') : '<div class="bond-empty">暂无已保存的蓝牙绑定</div>';
 }
@@ -674,7 +673,8 @@ function saveLocal() {
     operationMessage = { text: `无法保存：${errors[0]}`, error: true };
     renderActionbar(); return false;
   }
-  const updated = { ...target, ...P.clonePresetData(editSession.working), _dirtySlots: [] };
+  const updated = { ...target, ...P.clonePresetData(editSession.working) };
+  delete updated._dirtySlots;
   updated._dirty = hasKeyboardChanges(updated);
   const next = userPresets.map(preset => preset === target ? updated : preset);
   if (!saveLibrary(next)) { renderActionbar(); return false; }
@@ -855,7 +855,7 @@ $('confirmWrite').addEventListener('click', () => runDeviceAction(async () => {
   source._installedId = plan.preset.id;
   let relationSaved = true;
   if (currentSource() === 'local') {
-    source._dirty = false; source._dirtySlots = [];
+    source._dirty = false; delete source._dirtySlots;
     relationSaved = saveLibrary();
   } else {
     templateInstallations[source.templateId] = plan.preset.id;
@@ -987,6 +987,7 @@ for (const tablist of document.querySelectorAll('[role="tablist"]')) tablist.add
   tabs[index].focus(); tabs[index].click();
 });
 for (const id of ['unsavedDialog', 'writeDialog']) $(id).addEventListener('cancel', () => { pendingAfterEdit = null; });
+$('bondDeleteDialog').addEventListener('cancel', () => { pendingBondAction = null; });
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   const trigger = !$('colorPopover').hidden ? $('accentButton') : !$('platformPopover').hidden ? $('platformButton') : null;
@@ -1009,7 +1010,7 @@ $('bondList').addEventListener('click', event => {
   if (!bond) return;
   pendingBondAction = { all: false, bond };
   $('bondDeleteTitle').textContent = '删除蓝牙绑定';
-  const channel = bond.channel === 0xFF ? '未分配频道' : `频道 ${bond.channel}`;
+  const channel = BB.channelLabel(bond);
   $('bondDeleteDescription').textContent = `将删除${channel}的 ${BB.formatAddress(bond.address)} 绑定。`;
   $('bondDeleteWarning').textContent = '只会删除这一个绑定，其他主机不受影响';
   openDialog('bondDeleteDialog');
@@ -1032,9 +1033,16 @@ $('confirmBondDelete').addEventListener('click', () => {
       if (action.all) await deviceClient.clearBonds();
       else await deviceClient.deleteBond(action.bond);
       bluetoothBonds = await deviceClient.listBonds();
+      $('bondError').hidden = true;
       renderBondManager();
       toast(action.all ? '已清除全部蓝牙绑定' : '已删除蓝牙绑定');
-    } catch (error) { showBondError(error); }
+    } catch (error) {
+      try {
+        bluetoothBonds = await deviceClient.listBonds();
+        renderBondManager();
+      } catch {}
+      showBondError(error);
+    }
   });
 });
 $('helpButton').addEventListener('click', () => openDialog('helpDialog'));
@@ -1171,7 +1179,7 @@ $('inspector').addEventListener('input', event => {
   const card = event.target.closest('[data-slot]'), slot = Number(card.dataset.slot);
   const action = { ...editSession.working.actions[slot], wheelDy: Number(event.target.value) };
   const issue = P.actionError(action, slot < 16), error = card.querySelector('.action-error');
-  error.hidden = !issue; error.textContent = issue ? '滚动格数需为非零整数，范围为 -127 到 127。' : '';
+  error.hidden = !issue; error.textContent = issue ? '滚动格数需为非零整数，范围为 -128 到 127。' : '';
   event.target.setAttribute('aria-invalid', String(Boolean(issue)));
   if (issue) return;
   editSession.working.actions[slot] = action;

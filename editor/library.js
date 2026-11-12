@@ -24,7 +24,6 @@
     copy.id = identity.id;
     copy._readonly = false;
     copy._dirty = false;
-    copy._dirtySlots = [];
     copy.originTemplateId = null;
     copy.originTemplateVersion = null;
     copy._originSourceKey = identity.originSourceKey || null;
@@ -78,8 +77,9 @@
       if (confirmReplacement(preset, template)) {
         const identity = { uuid: preset.uuid, id: preset.id, name: preset.name,
           originTemplateId: preset.originTemplateId };
-        Object.assign(preset, clone(template), identity, { _readonly: false, _dirty: true, _dirtySlots: [] });
+        Object.assign(preset, clone(template), identity, { _readonly: false, _dirty: true });
         delete preset.templateId;
+        delete preset._dirtySlots;
       }
       preset.originTemplateVersion = TEMPLATE_VERSION;
       changed = true;
