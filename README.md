@@ -96,6 +96,8 @@ reference/        upstream reference (read-only, gitignored)
 
 ## License
 
-This repository is WIP and currently has **no `LICENSE` file**; the project license is TBD.
-The upstream Navio-Chron repository also has no license file. No additional rights are implied.
-Third-party code and test assets, including the FastLED demo dump, retain their original terms.
+GPL-3.0 — see [LICENSE](LICENSE). Closed-source commercial licensing is available by
+contacting the author. The upstream Navio-Chron repository has no license file; this
+firmware is an independent implementation that reuses no upstream code.
+Third-party libraries and test assets, including the FastLED demo dump, retain their
+original terms (see Credits).
