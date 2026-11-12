@@ -43,7 +43,6 @@ editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码
                 import_export.js 统一 JSON 文本/文件导出及粘贴/文件导入校验（D32）；
                 presets/ 项目模板库（一预设一 JSON + 生成索引 index.json）；
                 rgb_preview.js 十种模式（默认 reactive）纯 JS 引擎与时间点测试，图形化卡片和 SVG 动画，不做硬件 LED_PREVIEW
-prototype/      独立 UX/UI 交互原型：模拟数据与关键场景，不接设备、不入公开部署
 include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
 src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
 src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）

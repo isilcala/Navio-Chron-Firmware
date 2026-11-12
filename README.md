@@ -72,19 +72,11 @@ python -m http.server 8000
 # http://localhost:8000/tools/probe/webunified_probe.html
 ```
 
-For the isolated UX/UI prototype (mock data only, no device access):
-
-```bash
-python -m http.server 8000
-# http://localhost:8000/prototype/
-```
-
 ## Layout
 
 ```
 include/          pin map and tunables
 editor/           SVG preset editor, local library, 150B codec and Node tests
-prototype/        isolated interactive UX/UI prototype with mock data
 src/              input, actions, mappings, HID, protocol, OTA, LEDs and power
 tools/            build/release tools and hidapi/WebHID/Web Serial probes
 docs/             protocol, decisions and hardware notes
