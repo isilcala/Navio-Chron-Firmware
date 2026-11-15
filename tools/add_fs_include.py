@@ -11,4 +11,9 @@ DefaultEnvironment().Append(CPPPATH=[
 
 fw = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
 if fw:
-    DefaultEnvironment().Append(CPPPATH=[fw + "/libraries/FS/src"])
+    fs_include = (fw + "/libraries/FS/src").replace("\\", "/")
+    # FS.h 可用时 SdFat 有意不定义 File；确认接受该共存规则，关闭其提示。
+    DefaultEnvironment().Append(
+        CCFLAGS=["-I" + fs_include],
+        CPPDEFINES=["DISABLE_FS_H_WARNING"],
+    )

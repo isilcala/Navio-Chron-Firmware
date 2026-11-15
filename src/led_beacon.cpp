@@ -19,7 +19,7 @@ static Battery battery;
 static PresetManager presets;
 
 static void beacon(uint8_t r, uint8_t g, uint8_t b) {
-  neopixelWrite(PIN_BOARD_RGB, r, g, b);
+  rgbLedWrite(PIN_BOARD_RGB, r, g, b);
   delay(400);  // 拉长便于肉眼分辨
 }
 
@@ -48,12 +48,12 @@ void setup() {
 void loop() {
   // 青色呼吸 = 固件存活心跳
   for (int i = 0; i <= 40; i += 4) {
-    neopixelWrite(PIN_BOARD_RGB, 0, i, i);
+    rgbLedWrite(PIN_BOARD_RGB, 0, i, i);
     delay(30);
     checkBootKeyForDownload();  // 自救出口：BOOT 长按 3s 进下载模式
   }
   for (int i = 40; i >= 0; i -= 4) {
-    neopixelWrite(PIN_BOARD_RGB, 0, i, i);
+    rgbLedWrite(PIN_BOARD_RGB, 0, i, i);
     delay(30);
     checkBootKeyForDownload();
   }

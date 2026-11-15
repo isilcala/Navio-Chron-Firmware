@@ -84,6 +84,8 @@ Navio Chron 由 B 站 UP 主 **火星是个喵武士**（GitHub：Cityforest2000
 | LED1 | 绿常亮 USB；蓝常亮蓝牙已连接；蓝快闪配对中；橙慢闪无线待连接 |
 | LED2 | 红慢闪低电量（约 5%） |
 
+选择蓝牙频道，或开机、深睡唤醒后进入蓝牙模式时，当前频道对应的 K1 / K2 / K3 键灯闪 3 下。
+
 ### 电源
 
 锂电池供电，模块自带充电电路。充电时电量读数偏高属正常，拔线数秒后恢复。无线模式下无输入 5 分钟关闭按键灯（状态灯保留），15 分钟进入深睡；深睡后首次按键仅用于唤醒、不发送输入。USB 模式灯光常亮、不睡眠。
@@ -130,10 +132,10 @@ A：设备可能处于深睡，首次按键仅用于唤醒，再次按压即正�
 使用 VS Code + PlatformIO，默认环境 `navio_chron`：
 
 ```bash
-pio run                 # 编译
+pio run                 # 编译正式固件，并自动生成本地发布包、刷新 release/latest
 pio run -t upload       # 烧录
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin   # 对运行中设备 OTA 升级
-python tools/make_release.py                                     # 生成本地发布包
+python tools/make_release.py                                     # 不重新编译，仅从现有产物重新打包
 node tools/build_templates.js                                    # 重新生成模板索引
 node --test editor/*_test.js tools/probe/*_test.js               # 运行测试
 ```

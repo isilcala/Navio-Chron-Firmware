@@ -21,7 +21,7 @@ static Battery battery;
 static PresetManager presets;
 
 static void step(const char* name) {
-  Serial.printf("[step] %s ... OK (heap=%u)\n", name, ESP.getFreeHeap());
+  Serial.printf("[step] %s ... OK (heap=%lu)\n", name, (unsigned long)ESP.getFreeHeap());
   Serial.flush();
 }
 
@@ -29,8 +29,8 @@ void setup() {
   Serial.begin(115200);
   delay(300);  // 等主机打开端口
   Serial.println("\n=== navio debug_boot ===");
-  Serial.printf("chip: rev%d, %dMB flash, PSRAM=%d\n", ESP.getChipRevision(),
-                ESP.getFlashChipSize() / 1024 / 1024, psramFound());
+  Serial.printf("chip: rev%d, %luMB flash, PSRAM=%d\n", ESP.getChipRevision(),
+                (unsigned long)(ESP.getFlashChipSize() / 1024 / 1024), psramFound());
 
   battery.begin();
   step("battery");
@@ -53,8 +53,8 @@ void loop() {
   uint32_t now = millis();
   if (now - lastBeat >= 5000) {
     lastBeat = now;
-    Serial.printf("[beat] %lus heap=%u\n", (unsigned long)(now / 1000),
-                  ESP.getFreeHeap());
+    Serial.printf("[beat] %lus heap=%lu\n", (unsigned long)(now / 1000),
+                  (unsigned long)ESP.getFreeHeap());
   }
 
   // 编码器原始电平监测：任一引脚电平变化即打印（定位 A/B 断线/固件解码问题）

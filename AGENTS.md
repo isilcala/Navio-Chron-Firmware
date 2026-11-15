@@ -20,12 +20,12 @@ Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板�
 ## 构建与烧录
 
 ```bash
-pio run                 # 编译（默认环境 navio_chron）
+pio run                 # 编译正式固件，并自动生成发布包、刷新 release/latest
 pio run -t upload       # 烧录：Navio 固件下断电后按住侧键重新上电，或 BOOT 键 3 秒（RGB 变紫）进下载模式后 upload；
                         # 任意固件的通用兜底仍是按住物理 BOOT 插 USB
 pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin  # 已支持 OTA 的固件：Vendor HID 应用升级
-python tools/make_release.py # 构建后生成 release 四件套 + manifest，并刷新本地 latest 别名
+python tools/make_release.py # 不重新编译，仅从现有构建产物重新生成四件套 + manifest + latest
 python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/webunified_probe.html
 # 兜底（固件挂死/首次/诊断固件）：拔线 → 按住 BOOT → 插线 → 松开 → upload
 # 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST；装配后 RST 摸不到则重新插拔
@@ -54,6 +54,7 @@ src/ota/        OtaManager：双槽应用写入、SHA-256、激活、回退状�
 src/led/        WS2812：LedController（统一 Adafruit_NeoPixel 后端）
 src/power/      电池电压估算（GPIO3 实测 1:2.2 分压 + 放电曲线表，充电中读数偏高属接受，见 D25）
 tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+manifest）/
+                local_release.py（navio_chron 构建后自动打包并刷新 latest，诊断环境跳过）/
                 build_templates.js（项目模板索引生成，改 presets/ 后必跑）；
                 probe/ 含 hidapi、WebHID OTA、ROM 与统一入口探针、webflash_rules 纯规则及
                 Node 测试、自托管 esptool-js bundle
@@ -105,6 +106,8 @@ Phase 1b 的 BLE 与插入电脑自动切 USB 已验收；电池持续供电时�
 0.9.0 正式无线间隔为 5min 关按键灯、15min 深睡；LED0–LED2 空闲保留，深睡整链熄灭。
 USB/配对/OTA/按住键禁睡，IGNORE_MATRIX 禁用；任意矩阵键唤醒且首键不发送。RTC 列需显式输入方向，
 唤醒后解除 hold/deinit；睡眠回归已通过，电流与续航仍待测量（D40）。
+0.9.1 起冷启动与深睡唤醒后首次判定为 BLE 模式时，当前频道对应 K1/K2/K3 键灯也闪 3 下；
+首次判定为 USB 不触发，持续等待与连接状态仍由 LED1 表达（D37）。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：

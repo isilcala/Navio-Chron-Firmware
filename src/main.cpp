@@ -66,7 +66,7 @@ static bool s_sideHoldActive = false;  // 侧键长按中：抑制状态灯刷�
 #if NAVIO_FORCE_BLE  // 未焊接阶段：连接状态镜像到单片机板载 RGB（键盘状态灯未焊接）
 static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) {
   leds.setModeColor(r, g, b);
-  neopixelWrite(PIN_BOARD_RGB, r, g, b);
+  rgbLedWrite(PIN_BOARD_RGB, r, g, b);
 }
 #else
 static void mirrorModeLed(uint8_t r, uint8_t g, uint8_t b) { leds.setModeColor(r, g, b); }
@@ -87,6 +87,7 @@ static void updateBleModeLed() {
 
 static void updateLinkMode() {
   static uint32_t lastCheck = 0;
+  static bool initialLinkChecked = false;
   uint32_t now = millis();
   if (now - lastCheck < 200) return;
   lastCheck = now;
@@ -109,6 +110,10 @@ static void updateLinkMode() {
   if (desired != transport) {
     releaseAllActions();
     transport = desired;
+  }
+  if (!initialLinkChecked) {
+    initialLinkChecked = true;
+    if (desired == &bleTransport) leds.showChannelFeedback(bleTransport.currentChannel());
   }
 }
 
@@ -197,7 +202,7 @@ void setup() {
   // 板载 RGB 启动信标（未焊接阶段唯一的可视化调试手段）；深睡唤醒走快速路径
   // 绿=进入setup 蓝=即将启动USB 青×3=全部完成
   if (!wakeFromDeepSleep) {
-    neopixelWrite(PIN_BOARD_RGB, 0, 50, 0);
+    rgbLedWrite(PIN_BOARD_RGB, 0, 50, 0);
     delay(300);
   }
 
@@ -221,7 +226,7 @@ void setup() {
   // matrix.begin() 已在启动早期完成（侧键下载模式检查），此处不重复
 
   if (!wakeFromDeepSleep) {
-    neopixelWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
+    rgbLedWrite(PIN_BOARD_RGB, 0, 0, 50);  // 蓝：接下来是 USB 初始化
     delay(300);
   }
   bool vendorReady = false;
@@ -251,9 +256,9 @@ void setup() {
   if (!wakeFromDeepSleep) {
     // 板载 RGB 闪三下青色 = 启动完成信标（未焊接阶段的肉眼确认手段）
     for (int i = 0; i < 3; ++i) {
-      neopixelWrite(PIN_BOARD_RGB, 0, 60, 60);
+      rgbLedWrite(PIN_BOARD_RGB, 0, 60, 60);
       delay(120);
-      neopixelWrite(PIN_BOARD_RGB, 0, 0, 0);
+      rgbLedWrite(PIN_BOARD_RGB, 0, 0, 0);
       delay(120);
     }
   }
@@ -346,7 +351,7 @@ static void checkLongPressActions() {
       // 清绑定入口 = 侧键长按 5s（配对模式，组装后）
       transport->pressChord(MOD_NONE, HID_A);
       bool ok = (transport == &bleTransport) ? bleTransport.lastSendOk() : true;
-      neopixelWrite(PIN_BOARD_RGB, ok ? 0 : 60, ok ? 60 : 0, 0);
+      rgbLedWrite(PIN_BOARD_RGB, ok ? 0 : 60, ok ? 60 : 0, 0);
       delay(300);
       transport->releaseChord(MOD_NONE, HID_A);
     }

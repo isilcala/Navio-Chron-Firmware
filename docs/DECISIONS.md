@@ -188,6 +188,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   原 JSON，GET_INFO 返回完整能力 JSON；现有 USB/BLE 输入、预设切换与 BLE 重连通过；
   全部五个构建环境通过。D15 的 63B 与回调入队
   原则保留，其“无需迁移 Adafruit”判断被本决策修订。
+- **0.9.1 修订**：Windows 构建的 FS 头路径经 CCFLAGS 以正斜杠注入，真实 `#include <FS.h>`
+  探针通过。SdFat 在检测到 FS.h 时有意不定义自己的 `File` 并发出提示，因此显式定义
+  `DISABLE_FS_H_WARNING` 表示接受该共存规则；不得改定义 `HAS_INCLUDE_FS_H`（会宏重定义）。
 
 ## D17. 独立 HID 的跨接口组合动作必须显式排序（2026-10-27）
 
@@ -442,6 +445,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 改为 `src/Version.h` 单一事实源，仅 `ConfigProto.cpp` 引用；`make_release.py` 同步从该文件
   读取版本。以后版本递增只需重编译 ConfigProto 并重新链接，HELLO 与 manifest 不会分叉。
 - 首次迁移仍会全量构建一次，不清理 `.pio` 缓存；后续用构建日志验证增量效果。
+- **0.9.1 修订**：`navio_chron` 的 `firmware.bin` 构建后动作自动调用同一 `make_release.py`，
+  同步生成版本化目录、ZIP 并刷新 `release/latest`，避免本地刷写页继续读取旧发布包。
+  诊断环境不触发；CI 复用该动作而不重复打包。手动脚本仍可用于不重新编译的重新打包。
 
 ## D28. Web 产品化：编辑器首页、独立更新工作区与专用 SVG（2026-11-06）
 
@@ -565,6 +571,9 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   其他键灯暂时熄灭，720ms 后恢复原预设灯效；LED0 预设、LED1 连接、LED2 电源职责不变。
 - `GET_BLE_BONDS` 响应升级为 version 2，每条增加 `channel` 字节：1/2/3 或 `0xFF` 未分配。
   网页按频道展示并在删除确认中标注，不再兼容 version 1；删除仍按地址而非列表序号。
+- **0.9.1 修订**：冷启动与深睡唤醒后，首次判定为 BLE 模式时也用当前频道对应的 K1/K2/K3
+  键灯闪 3 下，立即提示所选频道并覆盖回连初期的输入等待；首次判定为 USB 则不触发。
+  反馈仍在 720ms 后恢复原灯效，持续等待与连接状态继续由 LED1 表达。
 
 ## D38. 收尾范围：LED2 仅低电提示，无线调参后置（2026-11-11）
 
