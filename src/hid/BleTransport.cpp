@@ -2,6 +2,7 @@
 
 #include <NimBLEDevice.h>
 #include <NimBLEHIDDevice.h>
+#include <host/ble_store.h>
 
 #include "hid/HidUsage.h"
 
@@ -166,6 +167,20 @@ class ReportCallbacks : public NimBLECharacteristicCallbacks {
   uint8_t reportId_;
 };
 
+int handleCccdWrite(ble_gap_event* event, void* arg) {
+  (void)arg;
+  if (!s_self || event->type != BLE_GAP_EVENT_SUBSCRIBE ||
+      event->subscribe.reason != BLE_GAP_SUBSCRIBE_REASON_WRITE) {
+    return 0;
+  }
+
+  ble_gap_conn_desc desc;
+  if (ble_gap_conn_find(event->subscribe.conn_handle, &desc) != 0) return 0;
+  s_self->onCccdWrite_(event->subscribe.conn_handle, event->subscribe.attr_handle,
+                       NimBLEAddress(desc.peer_id_addr), NimBLEAddress(desc.peer_ota_addr));
+  return 0;
+}
+
 void BleTransport::begin() {
   s_self = this;
   eventQueue_ = xQueueCreate(16, sizeof(Event));
@@ -176,6 +191,9 @@ void BleTransport::begin() {
 
   NimBLEDevice::init("Navio Chron");
   NimBLEDevice::setDeviceCallbacks(&bondStoreCallbacks);
+  if (!NimBLEDevice::setCustomGapHandler(handleCccdWrite)) {
+    Serial.println("[Navio] BLE CCCD persistence handler registration failed");
+  }
   NimBLEDevice::setSecurityAuth(/*bond*/ true, /*mitm*/ false, /*secure conn*/ true);
 
   server = NimBLEDevice::createServer();
@@ -217,6 +235,7 @@ void BleTransport::begin() {
     bondPrefs_.getBytes("last", &lastUsedPeer_, sizeof(BleBondAddress));
   }
   bondPrefs_.end();
+  ownAddressReady_ = prepareOwnAddress_();
   loadChannels_();
   updateAdvertising_();
 }
@@ -249,6 +268,37 @@ void BleTransport::onSubscribe_(const NimBLEConnInfo& connInfo, uint8_t reportId
                    fromNimBLEAddress(connInfo.getAddress())});
 }
 
+void BleTransport::onCccdWrite_(uint16_t connHandle, uint16_t attrHandle,
+                                const NimBLEAddress& peerAddress,
+                                const NimBLEAddress& otaAddress) {
+  postEvent_(Event{EventType::PersistCccd, connHandle, 0, attrHandle,
+                   fromNimBLEAddress(peerAddress), fromNimBLEAddress(otaAddress)});
+}
+
+void BleTransport::persistCccd_(const Event& event) {
+  NimBLEAddress peer = toNimBLEAddress(event.peerAddress);
+  ble_store_key_cccd key = {};
+  key.peer_addr = *peer.getBase();
+  key.chr_val_handle = event.subValue;
+
+  ble_store_value_cccd value = {};
+  if (ble_store_read_cccd(&key, &value) != 0) {
+    Serial.printf("[Navio] BLE CCCD read failed for attribute %u\n", event.subValue);
+    return;
+  }
+  if (ble_store_delete_cccd(&key) != 0) {
+    Serial.printf("[Navio] BLE CCCD delete failed for attribute %u\n", event.subValue);
+    return;
+  }
+  if (value.flags && ble_store_write_cccd(&value) != 0) {
+    Serial.printf("[Navio] BLE CCCD rewrite failed for attribute %u\n", event.subValue);
+    return;
+  }
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.printf("[BLE] CCCD persisted attribute=%u flags=%04X\n", event.subValue, value.flags);
+#endif
+}
+
 void BleTransport::poll() {
   if (uint32_t dropped = droppedEvents_.exchange(0, std::memory_order_relaxed)) {
     Serial.printf("[Navio] BLE event queue overflow: %lu dropped\n",
@@ -257,6 +307,14 @@ void BleTransport::poll() {
 
   Event event;
   while (eventQueue_ && xQueueReceive(eventQueue_, &event, 0) == pdTRUE) {
+#if ARDUINO_USB_CDC_ON_BOOT
+    uint8_t protocolMode = 0xFF;
+    NimBLEAttValue modeValue = hid->getProtocolMode()->getValue();
+    if (modeValue.size()) protocolMode = modeValue.data()[0];
+    Serial.printf("[BLE] event=%u handle=%u report=%u sub=%u proto=%u subscriptions=%02X reason=%u\n",
+                  static_cast<unsigned>(event.type), event.connHandle, event.reportId,
+                  event.subValue, protocolMode, subscriptions_, event.subValue);
+#endif
     if (event.type != EventType::Disconnect) {
       bool knownHost = wasBondedAtPairingStart_(event.peerAddress) ||
                        wasBondedAtPairingStart_(event.otaAddress) ||
@@ -265,6 +323,9 @@ void BleTransport::poll() {
                                 : !(isSelectedHost_(event.peerAddress) ||
                                     isSelectedHost_(event.otaAddress));
       if (reject) {
+#if ARDUINO_USB_CDC_ON_BOOT
+        Serial.printf("[BLE] reject handle=%u\n", event.connHandle);
+#endif
         advertising_ = false;
         if (connected_ && event.connHandle == connHandle_) {
           subscriptions_ = 0;
@@ -325,8 +386,55 @@ void BleTransport::poll() {
           markBondUsed_();
         }
         break;
+      case EventType::PersistCccd:
+        persistCccd_(event);
+        break;
     }
   }
+}
+
+bool BleTransport::prepareOwnAddress_() {
+  bondPrefs_.begin("navio_ble", false);
+  if (bondPrefs_.getBytesLength("own") == sizeof(ownAddressBase_)) {
+    bondPrefs_.getBytes("own", ownAddressBase_, sizeof(ownAddressBase_));
+    bondPrefs_.end();
+    return true;
+  }
+  bondPrefs_.end();
+
+  for (uint8_t& value : ownAddressBase_) value = static_cast<uint8_t>(esp_random());
+  ownAddressBase_[0] &= 0xFC;
+  ownAddressBase_[5] = (ownAddressBase_[5] & 0x3F) | 0xC0;
+
+  if (!NimBLEDevice::deleteAllBonds()) {
+    Serial.println("[Navio] BLE identity migration failed to clear old bonds");
+    return false;
+  }
+
+  bondPrefs_.begin("navio_ble", false);
+  bool ok = bondPrefs_.clear();
+  if (ok) ok = bondPrefs_.putBytes("own", ownAddressBase_, sizeof(ownAddressBase_)) == sizeof(ownAddressBase_);
+  bondPrefs_.end();
+  Serial.println(ok ? "[Navio] BLE per-channel identities initialized; previous bonds cleared"
+                    : "[Navio] BLE identity address persistence failed");
+  return ok;
+}
+
+bool BleTransport::configureOwnAddress_() {
+  if (!ownAddressReady_ || configuredOwnAddressChannel_ == currentChannel_) return true;
+
+  uint8_t address[6];
+  memcpy(address, ownAddressBase_, sizeof(address));
+  address[0] += currentChannel_;
+  if (!NimBLEDevice::setOwnAddr(address) ||
+      !NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM)) {
+    Serial.printf("[Navio] BLE identity switch to channel %u failed\n", currentChannel_ + 1);
+    return false;
+  }
+
+  configuredOwnAddressChannel_ = currentChannel_;
+  Serial.printf("[Navio] BLE identity channel %u active\n", currentChannel_ + 1);
+  return true;
 }
 
 void BleTransport::updateAdvertising_() {
@@ -338,6 +446,7 @@ void BleTransport::updateAdvertising_() {
     advertising_ = false;
     return;
   }
+  if (!configureOwnAddress_()) return;
 
   BleBondAddress selected = channelAddresses_[currentChannel_];
   bool useWhitelist = !pairingMode_ && !toNimBLEAddress(selected).isNull();
@@ -543,6 +652,9 @@ bool BleTransport::clearBonds() {
   }
   bondPrefs_.begin("navio_ble", false);
   bool ok = bondPrefs_.clear();
+  if (ok && ownAddressReady_) {
+    ok = bondPrefs_.putBytes("own", ownAddressBase_, sizeof(ownAddressBase_)) == sizeof(ownAddressBase_);
+  }
   bondPrefs_.end();
   if (ok) {
     lastUsedPeer_ = {};
@@ -600,6 +712,9 @@ void BleTransport::sendKeyboardReport_() {
     uint8_t empty[8] = {};
     chrKeyboard->setValue(empty, 8);
     if (!chrKeyboard->notify()) {
+#if ARDUINO_USB_CDC_ON_BOOT
+      Serial.println("[BLE] keyboard prime notify failed");
+#endif
       lastNotifyOk_ = false;
       return;
     }
@@ -610,10 +725,19 @@ void BleTransport::sendKeyboardReport_() {
   memcpy(report + 2, state_.keys(), 6);
   chrKeyboard->setValue(report, sizeof(report));
   lastNotifyOk_ = chrKeyboard->notify();
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.printf("[BLE] keyboard report mods=%02X keys=%02X %02X %02X %02X %02X %02X ok=%u\n",
+                report[0], report[2], report[3], report[4], report[5], report[6], report[7],
+                static_cast<unsigned>(lastNotifyOk_));
+#endif
 }
 
 void BleTransport::pressChord(uint8_t modMask, uint16_t usage) {
   if (!reportReady_(1)) {
+#if ARDUINO_USB_CDC_ON_BOOT
+    Serial.printf("[BLE] drop key=%02X connected=%u subscriptions=%02X\n",
+                  usage, static_cast<unsigned>(connected_), subscriptions_);
+#endif
     lastNotifyOk_ = false;
     return;
   }

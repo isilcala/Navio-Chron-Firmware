@@ -161,6 +161,8 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
   release 产物不入库，更新页默认 manifest 为 `../manifest.json`，兼容 project Pages 子路径。
 - 本地刷写页与编辑器更新检查统一读取 `release/latest/manifest.json`；`make_release.py` 每次生成版本化
   发布包时同步刷新该目录的 manifest 与四件套，本地页面不得再硬编码具体固件版本。
+  固定 `latest` URL 的 manifest 与镜像请求必须使用 `cache: "no-store"`，避免重建后混用新旧缓存导致
+  SHA-256 误报；版本化发布目录仍用于 ZIP 和明确版本归档。
   `navio_chron` 构建成功后由 `tools/local_release.py` 自动调用发布脚本，诊断环境不刷新该别名。
 
 ## 6. 错误与恢复规则

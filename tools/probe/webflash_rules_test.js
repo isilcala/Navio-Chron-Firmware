@@ -97,6 +97,9 @@ equal(flasherSource.includes('value="/release/latest/manifest.json"'), true,
   "local flasher uses the generated latest manifest");
 equal(editorSource.includes("LOCAL_SERVER ? '/release/latest/manifest.json'"), true,
   "local editor update check uses the generated latest manifest");
+equal(flasherSource.includes("fetch(url, { cache: 'no-store' })") &&
+      flasherSource.includes("fetch(new URL(image.file, releaseBase), { cache: 'no-store' })"), true,
+  "latest manifest and images bypass HTTP cache");
 assert(!/release\/navio_chron_\d/.test(flasherSource + editorSource));
 ok("local Web entry points contain no versioned release path");
 equal(flasherSource.includes('id="connectSerial" class="button secondary">串口模式刷写</button>'), true,

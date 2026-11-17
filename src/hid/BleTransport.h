@@ -11,6 +11,7 @@
 #include "hid/HidInputState.h"
 #include "hid/ITransport.h"
 
+class NimBLEAddress;
 class NimBLEConnInfo;
 
 namespace navio {
@@ -56,9 +57,11 @@ class BleTransport : public ITransport, public IBleBondManager {
   void onPeerSecurity_(const NimBLEConnInfo& connInfo);
   void onDisconnect_(uint16_t connHandle, int reason);
   void onSubscribe_(const NimBLEConnInfo& connInfo, uint8_t reportId, uint16_t subValue);
+  void onCccdWrite_(uint16_t connHandle, uint16_t attrHandle,
+                    const NimBLEAddress& peerAddress, const NimBLEAddress& otaAddress);
 
  private:
-  enum class EventType : uint8_t { Connect, Security, Disconnect, Subscribe };
+  enum class EventType : uint8_t { Connect, Security, Disconnect, Subscribe, PersistCccd };
   struct Event {
     EventType type;
     uint16_t connHandle;
@@ -72,8 +75,11 @@ class BleTransport : public ITransport, public IBleBondManager {
   QueueHandle_t eventQueue_ = nullptr;
   std::atomic<uint32_t> droppedEvents_{0};
   void postEvent_(const Event& event);
+  void persistCccd_(const Event& event);
   void updateAdvertising_();
   void restartAdvertising_();
+  bool prepareOwnAddress_();
+  bool configureOwnAddress_();
   void configureConnectionFilter_(bool enable, const BleBondAddress& address);
   bool reportReady_(uint8_t reportId) const;
   void sendKeyboardReport_();
@@ -101,6 +107,9 @@ class BleTransport : public ITransport, public IBleBondManager {
   uint8_t pairingBondCount_ = 0;
   BleBondAddress channelAddresses_[BLE_BOND_MAX] = {};
   uint8_t currentChannel_ = 0;
+  uint8_t ownAddressBase_[6] = {};
+  bool ownAddressReady_ = false;
+  int8_t configuredOwnAddressChannel_ = -1;
   Preferences bondPrefs_;
   uint32_t lastUsedSeq_ = 0;
 };

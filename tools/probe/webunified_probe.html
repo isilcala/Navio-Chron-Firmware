@@ -139,7 +139,7 @@ async function run(fn) {
 
 async function loadRelease() {
   const url = $('manifest').value;
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`发布包加载失败：HTTP ${response.status}`);
   const parsed = await response.json();
   R.validateManifest(parsed);
@@ -150,7 +150,7 @@ async function loadRelease() {
   log(`MANIFEST ${manifest.version} ${manifest.flash.mode}/${manifest.flash.freq}/${manifest.flash.size}`);
 }
 async function downloadImage(image) {
-  const response = await fetch(new URL(image.file, releaseBase));
+  const response = await fetch(new URL(image.file, releaseBase), { cache: 'no-store' });
   if (!response.ok) throw new Error(`${image.file}: HTTP ${response.status}`);
   const data = new Uint8Array(await response.arrayBuffer());
   if (await sha256(data) !== image.sha256) throw new Error(`${image.file}: SHA-256 mismatch`);

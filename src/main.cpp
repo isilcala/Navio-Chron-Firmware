@@ -322,8 +322,7 @@ static void showSideHoldProgress(uint32_t heldMs) {
 }
 
 static void selectBluetoothChannel(uint8_t channel) {
-  if (channel == bleTransport.currentChannel()) return;
-  bleTransport.selectChannel(channel);
+  if (channel != bleTransport.currentChannel()) bleTransport.selectChannel(channel);
   leds.showChannelFeedback(channel);
 }
 
@@ -431,6 +430,11 @@ static void dispatchButton(Btn id, bool pressed) {
   }
   const Action a = s_buttonActions[index];
   if (!pressed) s_buttonActions[index] = Action{};
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.printf("[INPUT] preset=%s button=%u pressed=%u kind=%u mods=%02X code=%04X transport=%s\n",
+                presets.active().name, static_cast<unsigned>(id), static_cast<unsigned>(pressed),
+                static_cast<unsigned>(a.kind), a.mods, a.code, transport->name());
+#endif
   if (!a) return;
   switch (a.kind) {
     case Action::KeyChord:
