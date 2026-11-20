@@ -35,6 +35,7 @@ void setup() {
 
   leds.begin();
   leds.showPreset(kPresets[0].accent, kPresets[0].rgbMode);
+  leds.tick();
   beacon(80, 80, 0);  // 黄：WS2812 链驱动 OK
 
   matrix.begin();

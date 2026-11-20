@@ -49,6 +49,7 @@ void setup() {
 }
 
 void loop() {
+  leds.tick();
   static uint32_t lastBeat = 0;
   uint32_t now = millis();
   if (now - lastBeat >= 5000) {

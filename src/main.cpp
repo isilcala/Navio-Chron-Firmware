@@ -86,7 +86,7 @@ static void updateBleModeLed() {
 }
 
 static void updateLinkMode() {
-  static uint32_t lastCheck = 0;
+  static uint32_t lastCheck = millis() - 200;
   static bool initialLinkChecked = false;
   uint32_t now = millis();
   if (now - lastCheck < 200) return;
@@ -262,6 +262,7 @@ void setup() {
       delay(120);
     }
   }
+  updateLinkMode();
 }
 
 void loop() {

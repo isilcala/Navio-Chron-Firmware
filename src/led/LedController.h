@@ -11,12 +11,11 @@ class LedController {
   void begin();
   void showPreset(const uint8_t accent[3], uint8_t rgbMode);
   void setIdle(bool idle);                              // 空闲只关按键灯，保留状态灯
-  void shutdown();                                      // 深睡前整链熄灭（不返回）
+  void shutdown();                                      // 深睡前立即熄灭整链
   void setKeyPressed(uint8_t key, bool pressed);
   void releaseKeys();
   void setModeColor(uint8_t r, uint8_t g, uint8_t b);  // LED1
   void showChannelFeedback(uint8_t key);                 // 指定 K 键闪 3 下，其他键灯暂时熄灭
-  void flush();                                      // 阻塞过渡动画立即刷新
   void setBatteryLow(bool low);                        // LED2 红色慢闪
   void tick();                                         // 周期调用（灯效、闪烁与按需刷新）
 
@@ -32,6 +31,7 @@ class LedController {
   void setKeyHueLevel_(uint8_t key, uint8_t hue, uint8_t level);
   void setKeyRgb_(uint8_t key, const uint8_t rgb[3]);
   void updateEffects_(uint32_t now);
+  void flush_();
 
   Adafruit_NeoPixel chain_{LED_COUNT, PIN_LED_DATA, NEO_GRB + NEO_KHZ800};
   uint8_t accent_[3] = {};

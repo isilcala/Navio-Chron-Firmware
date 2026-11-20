@@ -58,7 +58,6 @@ void LedController::showPreset(const uint8_t accent[3], uint8_t rgbMode) {
     }
   }
   dirty_ = true;
-  flush();
 }
 
 void LedController::setIdle(bool idle) {
@@ -67,7 +66,6 @@ void LedController::setIdle(bool idle) {
   if (idle_) {
     for (uint8_t key = 0; key < KEY_COUNT; ++key) chain_.setPixelColor(LED_KEY_FIRST + key, 0);
     dirty_ = true;
-    flush();
     return;
   }
 
@@ -75,14 +73,13 @@ void LedController::setIdle(bool idle) {
   chain_.setPixelColor(1, chain_.Color(scale(modeColor_[0]), scale(modeColor_[1]), scale(modeColor_[2])));
   chain_.setPixelColor(2, lowBattery_ && blinkOn_ ? chain_.Color(scale(255), 0, 0) : 0);
   dirty_ = true;
-  flush();
 }
 
 void LedController::shutdown() {
   idle_ = true;
   for (uint8_t i = 0; i < LED_COUNT; ++i) chain_.setPixelColor(i, 0);
   dirty_ = true;
-  flush();
+  flush_();
 }
 
 void LedController::showChannelFeedback(uint8_t key) {
@@ -224,7 +221,7 @@ void LedController::updateEffects_(uint32_t now) {
   }
 }
 
-void LedController::flush() {
+void LedController::flush_() {
   if (!dirty_) return;
   chain_.show();
   dirty_ = false;
@@ -281,9 +278,7 @@ void LedController::tick() {
     }
   }
   if (!dirty_ || now - lastShowMs_ < LED_TICK_INTERVAL_MS) return;
-  chain_.show();
-  dirty_ = false;
-  lastShowMs_ = now;
+  flush_();
 }
 
 }  // namespace navio
