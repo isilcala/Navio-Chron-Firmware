@@ -8,7 +8,7 @@
 Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板硬件，16 路输入，
 3 编码器，15 颗 WS2812）。全新实现，不依赖上游代码。**USB/BLE 双模 HID 已全链路实测**。
 
-## 构建环境（platformio.ini，5 个）
+## 构建环境（platformio.ini，5 固件 + 1 宿主测试）
 
 | 环境 | 平台 | 用途 |
 |---|---|---|
@@ -16,20 +16,26 @@ Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板�
 | `ble_test` | 同上 + FORCE_BLE + IGNORE_MATRIX | BLE 强制路径测试（未焊接阶段） |
 | `ble_diag` | 同上 + USB 外设让给 JTAG 串口 | BLE 实时日志诊断（串口监视器） |
 | `debug_boot` / `led_beacon` | 同一 core 3.12 基座 | 启动分步日志 / 板载 RGB 颜色信标 |
+| `native_test` | native + Unity | 直接编译 PresetRecord / LedController 生产代码的宿主 C++ 回归（D43） |
 
 ## 构建与烧录
 
 ```bash
 pio run                 # 编译正式固件，并自动生成发布包、刷新 release/latest
+pio run -e navio_chron -e ble_test -e ble_diag -e debug_boot -e led_beacon  # 五固件环境
+pio test -e native_test # 宿主 C++ 回归；测试替身仅在 test/，不进入固件
 pio run -t upload       # 烧录：Navio 固件下断电后按住侧键重新上电，或 BOOT 键 3 秒（RGB 变紫）进下载模式后 upload；
                         # 任意固件的通用兜底仍是按住物理 BOOT 插 USB
 pio device monitor      # 串口 115200（主固件 CDC 关闭 D9；日志用 ble_diag/debug_boot 环境）
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin  # 已支持 OTA 的固件：Vendor HID 应用升级
 python tools/make_release.py # 不重新编译，仅从现有构建产物重新生成四件套 + manifest + latest
+node --test editor/*_test.js tools/probe/*_test.js  # Web 编辑器与刷写规则测试
 python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/webunified_probe.html
 # 兜底（固件挂死/首次/诊断固件）：拔线 → 按住 BOOT → 插线 → 松开 → upload
 # 烧完偶发停在下载模式（esptool 硬复位不生效）：点按 RST；装配后 RST 摸不到则重新插拔
 ```
+
+宿主测试需要 GCC；Windows 可在 WSL 中运行同一 `pio test -e native_test` 命令。
 
 **烧录纪律（教训固化）**：烧任何非 navio_chron 环境（debug_boot/ble_diag/ble_test）后，
 必须明确告知用户"当前板上固件 = X，不具备正式固件的 HID/手势功能"；诊断结束的默认动作
@@ -38,7 +44,7 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 ## 代码地图与核心约定
 
 ```
-.github/workflows/pages.yml  GitHub Pages：编辑器首页 / + /firmware/ 更新页、manifest 与四件套
+.github/workflows/pages.yml  CI 五固件环境 + native/Node 回归；GitHub Pages 编辑器与固件更新页
 editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
                 import_export.js 统一 JSON 文本/文件导出及粘贴/文件导入校验（D32）；
                 presets/ 项目模板库（一预设一 JSON + 生成索引 index.json）；
@@ -53,6 +59,7 @@ src/proto/      独立 Vendor HID（ID6 + 63B）+ ConfigProto v2；回调入队�
 src/ota/        OtaManager：双槽应用写入、SHA-256、激活、回退状态与本地自检确认
 src/led/        WS2812：LedController（统一 Adafruit_NeoPixel 后端）
 src/power/      电池电压估算（GPIO3 实测 1:2.2 分压 + 放电曲线表，充电中读数偏高属接受，见 D25）
+test/test_native/ 宿主 Unity 测试与 Arduino 时钟 / NeoPixel 替身；直接执行生产 C++
 tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+manifest）/
                 local_release.py（navio_chron 构建后自动打包并刷新 latest，诊断环境跳过）/
                 build_templates.js（项目模板索引生成，改 presets/ 后必跑）；

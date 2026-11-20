@@ -655,3 +655,15 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - PIO 踩坑（core 3.x 特有）：库依赖声明改用 idf_component.yml，PIO LDF 读不到，
   USB 库编译 MSC 模块缺 FS.h —— `pre:tools/add_fs_include.py` 在库环境克隆前注入路径
   （post 阶段注入无效；build_flags 里 `{platformio.packages_dir}` 不展开）。
+
+## D43. 最小固件宿主回归与 CI 五环境构建（2026-11-20）
+
+- 启动灯效时序回归后，增加 `native_test` + Unity，直接编译生产 `PresetRecord.cpp` 与
+  `LedController.cpp`；只在 `test/test_native/stubs/` 替换 Arduino 时钟和 NeoPixel 硬件边界，
+  不在 JS 另写一套固件规则，也不为测试向生产类注入新框架。
+- 预设测试覆盖 150B 往返、中文 UTF-8、平台与 Wheel 修饰键、CRC/长度/版本/保留字节及非法动作；
+  灯光测试覆盖首次 `tick()` 前不输出、频道反馈独占与恢复、空闲保留状态灯、深睡立即熄灭。
+- CI 从仅构建 `navio_chron` 扩为五个固件环境，并运行宿主回归及既有 Node 测试。
+  宿主测试不覆盖 `main.cpp` 启动装配、NimBLE 或真实硬件时序，相关路径仍须真机验收。
+- 本轮不改变正式固件行为，不递增 `NAVIO_CHRON_FW_VERSION`。不为覆盖率模拟完整 NimBLE，
+  后续拆 BLE 时再为其纯状态逻辑补测试。

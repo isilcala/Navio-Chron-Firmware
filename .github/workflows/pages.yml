@@ -28,7 +28,9 @@ jobs:
       - name: Install PlatformIO
         run: python -m pip install 'platformio==6.2.0'
       - name: Build firmware and release images
-        run: pio run -e navio_chron
+        run: pio run -e navio_chron -e ble_test -e ble_diag -e debug_boot -e led_beacon
+      - name: Test firmware host logic
+        run: pio test -e native_test
       - name: Test Web flasher rules and protocol
         run: |
           node tools/probe/webflash_rules_test.js

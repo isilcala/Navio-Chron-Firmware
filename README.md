@@ -138,8 +138,11 @@ pio run -t upload       # 烧录
 python tools/ota_upload.py .pio/build/navio_chron/firmware.bin   # 对运行中设备 OTA 升级
 python tools/make_release.py                                     # 不重新编译，仅从现有产物重新打包
 node tools/build_templates.js                                    # 重新生成模板索引
-node --test editor/*_test.js tools/probe/*_test.js               # 运行测试
+pio test -e native_test                                         # 固件宿主 C++ 回归（预设记录与灯光）
+node --test editor/*_test.js tools/probe/*_test.js               # Web 编辑器与刷写规则测试
 ```
+
+宿主测试需要 GCC；Windows 可在 WSL 中运行同一 `pio test -e native_test` 命令。
 
 新增预设模板：在编辑器中导出 `.navio.json` → 放入 `editor/presets/` 并补充 metadata → 运行 `build_templates.js` → 提交 PR。
 
