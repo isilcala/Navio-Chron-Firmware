@@ -124,8 +124,8 @@ USB/配对/OTA/按住键禁睡，IGNORE_MATRIX 禁用；任意矩阵键唤醒且
 NimBLE 2.5.2 不含该 CCCD 修复，本轮继续锁定 2.5.1。
 0.9.4-dev 将 `MYNEWT_VAL_BLE_STORE_MAX_CCCDS` 从默认 8 提至 20，覆盖 4 个过渡 bond ×
 （Service Changed + 3 HID + BAS），修复三主机订阅容量溢出（D42），Windows/Android 交替及重启回连复测通过。
-0.9.6-procreate.1 为辅助触控旋转实验：普通鼠标系统路径已在 iPadOS 27.0.1 验证，Navio 的
-滚轮下压、大旋钮方向、鼠标时序与 USB/BLE 实际手感仍待真机测试，不视为正式验收（D45）。
+0.9.6-procreate.2 为辅助触控旋转实验：普通鼠标系统路径已在 iPadOS 27.0.1 验证，Navio 的
+大旋钮下压/方向、鼠标时序与 USB/BLE 实际手感仍待真机测试，不视为正式验收（D45）。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：

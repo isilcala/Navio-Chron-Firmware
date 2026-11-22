@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "procreate",
     "order": 260,
-    "description": "Procreate iPad 实验：⌘Z/⇧⌘Z、画笔橡皮与面板、[ ] 笔刷大小；滚轮下压+大旋钮=辅助触控旋转"
+    "description": "Procreate iPad 实验：大旋钮下压+转动=辅助触控旋转；垂直滚轮下压=⌘K、滚动缩放；中央旋钮调笔刷/选区"
   },
   "preset": {
     "id": 9,
@@ -98,15 +98,15 @@
         "wheelDy": 0
       },
       {
-        "kind": 1,
-        "mods": 8,
-        "code": 14,
-        "wheelDy": 0
-      },
-      {
         "kind": 4,
         "mods": 0,
         "code": 1,
+        "wheelDy": 0
+      },
+      {
+        "kind": 1,
+        "mods": 8,
+        "code": 14,
         "wheelDy": 0
       },
       {

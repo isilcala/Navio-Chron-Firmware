@@ -1,3 +1,3 @@
 #pragma once
 
-#define NAVIO_CHRON_FW_VERSION "0.9.6-procreate.1"
+#define NAVIO_CHRON_FW_VERSION "0.9.6-procreate.2"
