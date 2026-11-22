@@ -62,7 +62,9 @@
 - `actions[16..21]`：Center / Large / Wheel 的 CW、CCW，顺序与固件 `enc[ENC_COUNT][2]` 一致。
 
 每个编码器使用一个热点，右侧面板按“逆时针、顺时针”旋转组 → 分割线 → 下压排列。
-`enc[0]=顺时针`，`enc[1]=逆时针`；旋转槽与按钮槽都允许 KeyChord / Consumer，旋转槽另允许 Wheel。
+`enc[0]=顺时针`，`enc[1]=逆时针`；旋转槽与按钮槽都允许 KeyChord / Consumer / TouchGesture，旋转槽另允许 Wheel。
+iPad 预设提供实验性的“辅助触控旋转”手势；离线编辑与导出不受设备限制，写入前检查固件
+`GET_INFO.features` 是否包含 `assistiveRotate`，旧固件明确拒绝。
 
 动作约束与 `docs/PRESET_SCHEMA.md` 一致：
 

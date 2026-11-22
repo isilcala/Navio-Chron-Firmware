@@ -668,3 +668,26 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   宿主测试不覆盖 `main.cpp` 启动装配、NimBLE 或真实硬件时序，相关路径仍须真机验收。
 - 本轮不改变正式固件行为，不递增 `NAVIO_CHRON_FW_VERSION`。不为覆盖率模拟完整 NimBLE，
   后续拆 BLE 时再为其纯状态逻辑补测试。
+
+## D44. 测试固件通过白名单通道分发（2026-11-22）
+
+- 开发固件需要复用现有 Web OTA/ROM 页面分发给少量测试者，但默认用户仍必须读取正式 `latest`。
+  采用 `?channel=<名称>` 到固定 manifest 的显式映射，不接受任意 URL，也不把名称直接拼入路径。
+- 首版仅追加 `procreate-test`，对应固定 `testing/procreate/manifest.json`；未知名称在任何网络
+  请求和设备连接前报错。测试包独立部署、保留既有 SHA-256 与版本确认，不覆盖正式发布入口。
+- 白名单降低分享链接加载非预期来源的风险，但不承担访问控制或来源签名。高级选项的自定义
+  manifest 保留为开发者诊断能力；本轮只改 Web 刷写与发布规则，不改变固件行为和版本。
+- 发布边界修订：`procreate-test` 仅构建实验固件并运行回归，不部署 Pages，也不自动更新
+  `testing/procreate/`；测试包通过本地 HTTP 或另行显式分发，正式 Pages 仅由 main 发布。
+
+## D45. Procreate 旋转采用 iPadOS 辅助触控鼠标手势（2026-11-22，实验）
+
+- Procreate 官方没有旋转画布键盘快捷键；普通鼠标在 iPadOS 27.0.1 真机上已验证：辅助触控
+  “旋转”唤出手势、再次点击确认中心、移动鼠标即可旋转。实验固件不伪装妙控板，也不依赖专用 App。
+- 150B `record v1` 追加 `kind=4 TouchGesture`、`code=1 AssistiveRotate`，其余字段为 0；JSON 和
+  Config Protocol v2 不变。旧固件/旧网页拒绝未知动作，新网页写入前检查 `GET_INFO.features`。
+- 滚轮下压进入/退出，大旋钮方向驱动旋转。进入依次发送鼠标中键、左键确认，退出发送右键；
+  状态机非阻塞，切预设、传输切换和统一清理时强制退出。点击 30ms、进入等待 150ms、每格 X=±8
+  均为待真机调优常量，不提前进入预设格式。
+- 实验版本从 `0.9.6-procreate.1` 开始，经 D44 的 `procreate-test` 通道分发。宿主回归覆盖记录
+  往返和完整鼠标状态序列；真实 Procreate 旋转、方向、时序、BLE/USB 手感仍需朋友验收。

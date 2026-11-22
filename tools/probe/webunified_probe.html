@@ -67,10 +67,10 @@
     </div></details>
     <p class="flash-footer firmware-note">写入完成后设备会自动重启，无需在网页中重新连接。</p>
   </main>
-  <script src="navio_proto.js?v=20261109-49"></script>
-  <script src="webflash_rules.js?v=20261109-49"></script>
+  <script src="navio_proto.js?v=20261122-50"></script>
+  <script src="webflash_rules.js?v=20261122-50"></script>
 <script type="module">
-import { ESPLoader, Transport } from './esptool-js.bundle.js?v=20261109-49';
+import { ESPLoader, Transport } from './esptool-js.bundle.js?v=20261122-50';
 
 const P = NavioProto, R = NavioWebflashRules;
 const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
@@ -78,7 +78,8 @@ const CMD = { HELLO: 1, GET_INFO: 2, GET_PRESETS: 3, OTA_BEGIN: 10,
   OTA_REBOOT: 15, OTA_CONFIRM: 16 };
 const LONG = { timeoutMs: 10000, maxRetries: 2 };
 const $ = id => document.getElementById(id);
-const editorUrl = location.pathname.includes('/tools/probe/') ? '/editor/' : '../';
+const localFlasher = location.pathname.includes('/tools/probe/');
+const editorUrl = localFlasher ? '/editor/' : '../';
 $('editorLink').href = editorUrl;
 $('successEditorLink').href = editorUrl;
 const out = $('out'), waiters = [], reports = [];
@@ -552,7 +553,14 @@ window.addEventListener('beforeunload', event => {
   event.preventDefault();
   event.returnValue = '';
 });
-window.addEventListener('load', () => { setStage('connect'); run(loadRelease); });
+window.addEventListener('load', () => {
+  setStage('connect');
+  run(async () => {
+    const channel = new URLSearchParams(location.search).get('channel');
+    $('manifest').value = R.manifestForChannel(channel, localFlasher);
+    await loadRelease();
+  });
+});
 </script>
 </body>
 </html>

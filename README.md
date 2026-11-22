@@ -61,7 +61,7 @@ Navio Chron 由 B 站 UP 主 **火星是个喵武士**（GitHub：Cityforest2000
 
 ### 输入映射
 
-12 颗按键、中央旋钮与大旋钮按压、滚轮下压，及 3 个编码器的正反转，共 21 个可映射槽位。动作类型包括快捷键（可带 Ctrl / Shift / Alt / Win 修饰键）、多媒体控制、鼠标滚轮。预设携带平台标记（Windows / macOS / iPad），编辑器按平台区分显示；macOS 的 Cmd 对应 Win 修饰键。
+12 颗按键、中央旋钮与大旋钮按压、滚轮下压，及 3 个编码器的正反转，共 21 个可映射槽位。动作类型包括快捷键（可带 Ctrl / Shift / Alt / Win 修饰键）、多媒体控制、鼠标滚轮；实验固件另提供 iPad 辅助触控旋转。预设携带平台标记（Windows / macOS / iPad），编辑器按平台区分显示；macOS 的 Cmd 对应 Win 修饰键。
 
 ### 灯效
 
@@ -145,6 +145,7 @@ node --test editor/*_test.js tools/probe/*_test.js               # Web 编辑器
 宿主测试需要 GCC；Windows 可在 WSL 中运行同一 `pio test -e native_test` 命令。
 
 新增预设模板：在编辑器中导出 `.navio.json` → 放入 `editor/presets/` 并补充 metadata → 运行 `build_templates.js` → 提交 PR。
+开发固件可通过刷写页的白名单 `channel` 参数在本地或另行显式部署后独立分发，不覆盖正式 `latest`；固定映射与部署约束见 [WEB_FLASHING.md](docs/WEB_FLASHING.md)。`procreate-test` 仅构建和测试，不部署 Pages；当前实验用于辅助触控旋转，实际 Procreate 手感尚未验收。
 
 构建环境、代码结构与协议文档详见 [AGENTS.md](AGENTS.md) 与 [docs/](docs/)；技术决策及理由见 [docs/DECISIONS.md](docs/DECISIONS.md)。
 

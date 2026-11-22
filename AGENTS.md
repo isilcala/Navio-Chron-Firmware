@@ -16,7 +16,7 @@ Navio Chron 视频剪辑小键盘的配套固件（ESP32-S3 SuperMini，双板�
 | `ble_test` | 同上 + FORCE_BLE + IGNORE_MATRIX | BLE 强制路径测试（未焊接阶段） |
 | `ble_diag` | 同上 + USB 外设让给 JTAG 串口 | BLE 实时日志诊断（串口监视器） |
 | `debug_boot` / `led_beacon` | 同一 core 3.12 基座 | 启动分步日志 / 板载 RGB 颜色信标 |
-| `native_test` | native + Unity | 直接编译 PresetRecord / LedController 生产代码的宿主 C++ 回归（D43） |
+| `native_test` | native + Unity | 直接编译 PresetRecord / LedController / AssistiveRotate 生产代码的宿主 C++ 回归（D43/D45） |
 
 ## 构建与烧录
 
@@ -52,7 +52,7 @@ editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码
                 rgb_preview.js 十种模式（默认 reactive）纯 JS 引擎与时间点测试，图形化卡片和 SVG 动画，不做硬件 LED_PREVIEW
 include/        引脚表(Pins.h)、参数(Config.h) —— 与硬件笔记一一对应
 src/input/      矩阵扫描 + 编码器解码 → BtnEvent/EncoderEvent
-src/action/     Action 模型：KeyChord / Consumer / Wheel（可带修饰键）
+src/action/     Action 模型：KeyChord / Consumer / Wheel / TouchGesture（实验性辅助触控旋转）
 src/mapping/    出厂预设 + PresetRecord 150B 编解码（Schema 见 docs/PRESET_SCHEMA.md）
 src/hid/        ITransport 接口 + Adafruit_TinyUSB 独立 HID + NimBLE 2.5 BLE
 src/proto/      独立 Vendor HID（ID6 + 63B）+ ConfigProto v2；回调入队，主循环处理
@@ -65,7 +65,7 @@ tools/          add_fs_include.py / ota_upload.py / make_release.py（四件套+
                 local_release.py（navio_chron 构建后自动打包并刷新 latest，诊断环境跳过）/
                 build_templates.js（项目模板索引生成，改 presets/ 后必跑）；
                 probe/ 含 hidapi、WebHID OTA、ROM 与统一入口探针、webflash_rules 纯规则及
-                Node 测试、自托管 esptool-js bundle
+                Node 测试、白名单测试固件通道、自托管 esptool-js bundle
 release/        构建生成的四件套、manifest 与 ZIP（gitignored）
 ```
 
@@ -124,6 +124,8 @@ USB/配对/OTA/按住键禁睡，IGNORE_MATRIX 禁用；任意矩阵键唤醒且
 NimBLE 2.5.2 不含该 CCCD 修复，本轮继续锁定 2.5.1。
 0.9.4-dev 将 `MYNEWT_VAL_BLE_STORE_MAX_CCCDS` 从默认 8 提至 20，覆盖 4 个过渡 bond ×
 （Service Changed + 3 HID + BAS），修复三主机订阅容量溢出（D42），Windows/Android 交替及重启回连复测通过。
+0.9.6-procreate.1 为辅助触控旋转实验：普通鼠标系统路径已在 iPadOS 27.0.1 验证，Navio 的
+滚轮下压、大旋钮方向、鼠标时序与 USB/BLE 实际手感仍待真机测试，不视为正式验收（D45）。
 大旋钮 B 相（IO40/R2R）已补焊复验。2026-10-27 完成 core 3.x 单轨与
 Adafruit_TinyUSB 四独立 HID 迁移（D16）：hidapi / WebHID HELLO、GET_INFO、
 现有双模输入与五环境构建均通过。遗留（按优先级）：

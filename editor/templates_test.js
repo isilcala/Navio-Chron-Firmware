@@ -155,4 +155,10 @@ for (const template of loaded.templates)
   assert(!/ (Win|Mac|iPad)$/.test(template.name), `name embeds platform: ${template.name}`);
 ok("template names do not embed platform labels");
 
+const procreate = loaded.templates.find(template => template.templateId === "procreate");
+for (const slot of [14, 18, 19])
+  assert(JSON.stringify(procreate.actions[slot]) === JSON.stringify({ kind: P.Kind.TouchGesture, mods: 0, code: 1, wheelDy: 0 }),
+    `Procreate AssistiveRotate slot ${slot}`);
+ok("Procreate test template wires wheel press and large knob to AssistiveRotate");
+
 console.log(`\nAll ${passed} checks passed.`);

@@ -29,6 +29,7 @@ class BleTransport : public ITransport, public IBleBondManager {
   void releaseAll() override;
   void consumerPress(uint16_t usage) override;
   void consumerRelease(uint16_t usage) override;
+  void mouseReport(uint8_t buttons, int8_t dx, int8_t dy) override;
   void mouseWheel(int8_t dy) override;
 
   bool enterPairing();

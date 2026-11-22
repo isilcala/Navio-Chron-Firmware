@@ -16,6 +16,8 @@ function sample() {
   preset.actions[16] = { kind: P.Kind.Wheel, mods: 4, code: 0, wheelDy: 1 };
   preset.actions[17] = { kind: P.Kind.Consumer, mods: 0, code: 0xCD, wheelDy: 0 };
   preset.actions[18] = { kind: P.Kind.KeyChord, mods: 8, code: 0, wheelDy: 0 };
+  preset.actions[14] = { kind: P.Kind.TouchGesture, mods: 0, code: P.TouchGesture.AssistiveRotate, wheelDy: 0 };
+  preset.actions[19] = { kind: P.Kind.TouchGesture, mods: 0, code: P.TouchGesture.AssistiveRotate, wheelDy: 0 };
   preset.actions[P.SIDE_KEY_SLOT] = { kind: P.Kind.KeyChord, mods: 0x80, code: 0xE7, wheelDy: 0 };
   return preset;
 }
@@ -86,6 +88,8 @@ equal(decoded.actions[0].code, 0x06, "button action round trip");
 equal(decoded.actions[16].wheelDy, 1, "encoder Wheel round trip");
 equal(decoded.actions[17].kind, P.Kind.Consumer, "encoder Consumer round trip");
 equal(decoded.actions[18].mods, 8, "modifier-only encoder action round trip");
+equal(decoded.actions[14].kind, P.Kind.TouchGesture, "button TouchGesture round trip");
+equal(decoded.actions[19].code, P.TouchGesture.AssistiveRotate, "encoder TouchGesture round trip");
 equal(decoded.actions[P.SIDE_KEY_SLOT].mods, 0x80, "SideKey modifiers preserved");
 equal(decoded.actions[P.SIDE_KEY_SLOT].code, 0xE7, "SideKey code preserved");
 sameBytes(P.encodePresetRecord(decoded), encoded, "encode/decode/encode is byte-identical");
@@ -104,6 +108,7 @@ throws(() => P.decodePresetRecord(badAction), "invalid action payload rejected")
 equal(P.actionLabel(sample().actions[0]), "Ctrl+C", "short action label");
 equal(P.actionLabel(sample().actions[16]), "Alt+滚轮+1", "encoder label includes direction");
 equal(P.actionLabel(sample().actions[18]), "Win", "modifier-only action omits zero usage code");
+equal(P.actionLabel(sample().actions[14], "ipad"), "iPad 辅助触控旋转", "TouchGesture label is explicit");
 equal(P.actionLabel({ kind: P.Kind.KeyChord, mods: 1, code: 0x1E, wheelDy: 0 }), "Ctrl+1",
   "main keyboard digit keeps its concise label");
 equal(P.actionLabel({ kind: P.Kind.KeyChord, mods: 1, code: 0x59, wheelDy: 0 }), "Ctrl+小键盘 1",
@@ -150,6 +155,12 @@ equal(keyAction.code > 0 || keyAction.mods > 0, true, "KeyChord default is not e
 equal(P.actionError(P.actionForKind(P.Kind.None), false), null, "None default is valid");
 equal(P.actionError(P.actionForKind(P.Kind.Consumer), false), null, "Consumer default is valid");
 equal(P.actionError(P.actionForKind(P.Kind.Wheel), false), null, "Wheel default is valid");
+equal(P.actionError(P.actionForKind(P.Kind.TouchGesture), true), null, "TouchGesture default is valid");
+equal(P.actionError(P.actionForKind(P.Kind.TouchGesture), false), null, "TouchGesture is valid on encoder slots");
+equal(P.actionError({ kind: P.Kind.TouchGesture, mods: 1, code: 1, wheelDy: 0 }, true) !== null, true,
+  "TouchGesture modifiers rejected");
+equal(P.actionError({ kind: P.Kind.TouchGesture, mods: 0, code: 2, wheelDy: 0 }, false) !== null, true,
+  "unknown TouchGesture code rejected");
 const changedWheel = P.actionForKind(P.Kind.Wheel);
 changedWheel.wheelDy = -1;
 equal(P.actionForKind(P.Kind.Wheel).wheelDy, 1, "kind defaults return independent actions");

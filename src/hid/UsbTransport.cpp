@@ -102,6 +102,10 @@ void UsbTransport::sendConsumerReport_() {
   if (reportsReady()) consumer.sendReport16(REPORT_ID_CONSUMER, state_.consumerUsage());
 }
 
+void UsbTransport::mouseReport(uint8_t buttons, int8_t dx, int8_t dy) {
+  if (reportsReady()) mouse.mouseReport(REPORT_ID_MOUSE, buttons, dx, dy, 0, 0);
+}
+
 void UsbTransport::mouseWheel(int8_t dy) {
   if (reportsReady()) mouse.mouseReport(REPORT_ID_MOUSE, 0, 0, 0, dy, 0);
 }

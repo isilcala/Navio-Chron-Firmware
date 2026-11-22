@@ -78,6 +78,17 @@ equal(R.decide({}).path, "rescue", "no observable device enters rescue");
 equal(R.decide({ navioConfirmed: true, serialOnly: true, romSyncOk: false }).path, "rescue",
   "confirmed identity does not bypass failed ROM sync");
 
+equal(R.manifestForChannel(null, true), "/release/latest/manifest.json",
+  "missing channel keeps the local stable manifest");
+equal(R.manifestForChannel(null), "../manifest.json",
+  "missing channel keeps the deployed stable manifest");
+equal(R.manifestForChannel("procreate-test", true), "/release/testing/procreate/manifest.json",
+  "local test channel uses its fixed manifest");
+equal(R.manifestForChannel("procreate-test"), "../testing/procreate/manifest.json",
+  "deployed test channel uses its fixed manifest");
+for (const channel of ["beta", "../latest", "https://example.com/manifest.json", "__proto__"])
+  throws(() => R.manifestForChannel(channel), `unlisted channel rejected: ${channel}`);
+
 const valid = manifest();
 equal(R.validateManifest(valid), valid, "valid manifest accepted");
 const wrongChip = manifest(); wrongChip.chip = "esp32";
@@ -97,6 +108,8 @@ equal(flasherSource.includes('value="/release/latest/manifest.json"'), true,
   "local flasher uses the generated latest manifest");
 equal(editorSource.includes("LOCAL_SERVER ? '/release/latest/manifest.json'"), true,
   "local editor update check uses the generated latest manifest");
+equal(flasherSource.includes("R.manifestForChannel(channel, localFlasher)"), true,
+  "flasher initialization resolves channels through the whitelist");
 equal(flasherSource.includes("fetch(url, { cache: 'no-store' })") &&
       flasherSource.includes("fetch(new URL(image.file, releaseBase), { cache: 'no-store' })"), true,
   "latest manifest and images bypass HTTP cache");

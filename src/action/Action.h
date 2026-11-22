@@ -6,10 +6,12 @@
 
 namespace navio {
 
+constexpr uint16_t TOUCH_GESTURE_ASSISTIVE_ROTATE = 1;
+
 struct Action {
-  enum Kind : uint8_t { None = 0, KeyChord, Consumer, Wheel } kind = None;
+  enum Kind : uint8_t { None = 0, KeyChord, Consumer, Wheel, TouchGesture } kind = None;
   uint8_t mods = 0;      // KeyChord / Wheel 的修饰键掩码
-  uint16_t code = 0;     // KeyChord: 键盘 usage；Consumer: 消费控制 usage
+  uint16_t code = 0;     // KeyChord: 键盘 usage；Consumer: 消费控制 usage；TouchGesture: 手势 ID
   int8_t wheelDy = 0;    // Wheel: 每次触发的滚轮格数
 
   explicit constexpr operator bool() const { return kind != None; }
@@ -21,6 +23,9 @@ constexpr Action actKey(uint8_t mods, uint16_t usage) {
 }
 constexpr Action actConsumer(uint16_t usage) {
   return Action{Action::Consumer, MOD_NONE, usage, 0};
+}
+constexpr Action actTouchGesture(uint16_t gesture) {
+  return Action{Action::TouchGesture, MOD_NONE, gesture, 0};
 }
 constexpr Action actWheel(int8_t dy, uint8_t mods = MOD_NONE) {
   return Action{Action::Wheel, mods, 0, dy};

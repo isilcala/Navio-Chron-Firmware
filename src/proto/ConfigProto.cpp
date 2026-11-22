@@ -308,7 +308,8 @@ void ConfigProto::respondToCommand_() {
     case CMD_GET_INFO: {
       static const char caps[] =
           "{\"record\":1,\"maxBody\":2048,\"maxPresets\":6,"
-          "\"cmds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]}";
+          "\"cmds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"
+          "\"features\":[\"assistiveRotate\"]}";
       finishResponse_(reinterpret_cast<const uint8_t*>(caps), strlen(caps));
       break;
     }

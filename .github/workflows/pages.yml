@@ -44,6 +44,7 @@ jobs:
           node editor/import_export_test.js
           node editor/rgb_preview_test.js
       - name: Assemble static site
+        if: github.ref_name == 'main'
         run: |
           release_dir=$(find release -mindepth 1 -maxdepth 1 -type d -name 'navio_chron_*' -print -quit)
           test -n "$release_dir"
@@ -60,7 +61,9 @@ jobs:
           cp "$release_dir"/*.bin _site/
           sed -i 's#value="/release/[^"]*/manifest.json"#value="../manifest.json"#; s#\.\./\.\./editor/styles\.css#../styles.css#' _site/firmware/index.html
       - uses: actions/configure-pages@v5
+        if: github.ref_name == 'main'
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref_name == 'main'
         with:
           path: _site
   deploy:

@@ -2,7 +2,7 @@
 
 > 状态：规范冻结（2026-10-27）；2026-11-02 修订 byte 13 为平台元数据（D24）；
 > 2026-11-05 启用 byte 11 三种灯效（D26）；2026-11-07 新增 off、重排枚举并默认 reactive（D30）；
-> 0.5.30 起出厂 Test 使用 rainbowFlow，记录版本保持 1。
+> 0.5.30 起出厂 Test 使用 rainbowFlow，记录版本保持 1；2026-11-22 实验性追加 TouchGesture。
 > 实现与实测状态见 `docs/PROJECT.md`。
 > 线上协议见 `PROTOCOL.md`。多字节整数均为 little-endian，禁止直接序列化 C++ 对象或依赖 padding。
 
@@ -61,6 +61,8 @@
 - `kind=2 Consumer`：`code` 为 `0x0001..0x03FF`，`mods=0`、`wheelDy=0`；
   上限与固件现有 Consumer 描述符及 `HidUsage.h` 支持范围一致。
 - `kind=3 Wheel`：`code=0`、`wheelDy!=0`，`mods` 可为任意 8 位掩码；按钮动作不允许 Wheel。
+- `kind=4 TouchGesture`（实验）：`code=1` 为 `AssistiveRotate`，`mods=0`、`wheelDy=0`；
+  按钮槽用于进入/退出 iPadOS 辅助触控旋转，编码器槽的方向用于旋转。其他手势 ID 保留。
 - 其他 kind 或字段组合均非法。SideKey 在固件中仍为全局保留，映射值应使用 None。
 
 ## 4. 协议命令正文

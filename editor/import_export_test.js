@@ -19,6 +19,7 @@ source.accent = [49, 168, 255];
 source.rgbMode = 8;
 source.actions[0] = { kind: 1, mods: 10, code: 29, wheelDy: 0 };
 source.actions[16] = { kind: 3, mods: 4, code: 0, wheelDy: -2 };
+source.actions[14] = { kind: 4, mods: 0, code: 1, wheelDy: 0 };
 const original = JSON.stringify(source);
 const text = IO.serializePreset(source);
 const parsed = IO.parsePreset(text);

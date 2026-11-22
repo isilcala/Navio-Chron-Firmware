@@ -58,6 +58,8 @@ bool decodeAction(const uint8_t* data, Action& action, bool button) {
     valid = code >= 1 && code <= 0x03FF && mods == 0 && wheelDy == 0;
   } else if (kind == Action::Wheel) {
     valid = !button && code == 0 && wheelDy != 0;
+  } else if (kind == Action::TouchGesture) {
+    valid = code == TOUCH_GESTURE_ASSISTIVE_ROTATE && mods == 0 && wheelDy == 0;
   }
   if (!valid) return false;
   action.kind = static_cast<Action::Kind>(kind);

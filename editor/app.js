@@ -1,4 +1,4 @@
-import { renderDevice, escapeHtml } from './device_svg.js?v=20261109-49';
+import { renderDevice, escapeHtml } from './device_svg.js?v=20261122-50';
 
 const P = NavioEditorPreset, L = NavioEditorLibrary, D = NavioEditorDevice, T = NavioEditorTemplates,
   R = NavioWebflashRules, BB = NavioBleBonds, RGB = NavioRgbPreview, TB = NavioTemplateBrowser, IO = NavioEditorImportExport, $ = id => document.getElementById(id);
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'navio-editor-library-v1';
 const INSTALLATION_KEY = 'navio-editor-template-installations-v1';
 const PLATFORM = { win: 'Windows', mac: 'macOS', ipad: 'iPadOS' };
 const PLATFORM_SHORT = { win: 'Win', mac: 'Mac', ipad: 'iPad' };
-const ASSET_VERSION = '20261109-49';
+const ASSET_VERSION = '20261122-50';
 const LOCAL_SERVER = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RELEASE_MANIFEST_URL = LOCAL_SERVER ? '/release/latest/manifest.json' : './manifest.json';
 const FLASHER_URL = LOCAL_SERVER ? '/tools/probe/webunified_probe.html' : './firmware/';
@@ -430,7 +430,8 @@ function modifierGroup(labels, start, mods, readonly) {
 function actionForm(preset, slot, compact = false) {
   const action = preset.actions[slot], readonly = currentSource() === 'template' && !editSession, isButton = slot < 16;
   const labels = P.modLabels(platformOf(preset));
-  const typeName = action.kind === P.Kind.None ? '未设置' : action.kind === P.Kind.KeyChord ? '快捷键' : action.kind === P.Kind.Consumer ? '媒体控制' : '滚轮';
+  const typeName = action.kind === P.Kind.None ? '未设置' : action.kind === P.Kind.KeyChord ? '快捷键' :
+    action.kind === P.Kind.Consumer ? '媒体控制' : action.kind === P.Kind.Wheel ? '滚轮' : '触控手势';
   const direction = slot >= 16 ? (slot % 2 === 0 ? '顺时针' : '逆时针') : '下压';
   return `<div class="action-card" data-slot="${slot}">
     ${compact ? `<div class="action-card-title"><strong>${direction}</strong><span>${typeName}</span></div>` : ''}
@@ -439,11 +440,13 @@ function actionForm(preset, slot, compact = false) {
       <option value="1" ${action.kind === 1 ? 'selected' : ''}>快捷键</option>
       <option value="2" ${action.kind === 2 ? 'selected' : ''}>媒体控制</option>
       ${!isButton ? `<option value="3" ${action.kind === 3 ? 'selected' : ''}>滚轮</option>` : ''}
+      ${platformOf(preset) === 'ipad' ? `<option value="4" ${action.kind === 4 ? 'selected' : ''}>触控手势（实验）</option>` : ''}
     </select></label>
     ${action.kind === P.Kind.KeyChord ? `<label class="field">键码<select data-action-field="code" ${readonly ? 'disabled' : ''}>${keyOptions(action.code)}</select></label>` : ''}
     ${action.kind === P.Kind.KeyChord || action.kind === P.Kind.Wheel ? `<div class="field">修饰键<div class="modifier-groups">${modifierGroup(labels, 0, action.mods, readonly)}${modifierGroup(labels, 4, action.mods, readonly)}</div></div>` : ''}
     ${action.kind === P.Kind.Consumer ? `<label class="field">功能<select data-action-field="code" ${readonly ? 'disabled' : ''}>${P.CONSUMER_OPTIONS.map(option => `<option value="${option.code}" ${option.code === action.code ? 'selected' : ''}>${option.label}</option>`).join('')}</select></label>` : ''}
     ${action.kind === P.Kind.Wheel ? `<label class="field">滚动格数<input type="number" min="-128" max="127" value="${action.wheelDy}" data-action-field="wheelDy" ${readonly ? 'disabled' : ''}><small>正数向下滚动，负数向上滚动</small></label>` : ''}
+    ${action.kind === P.Kind.TouchGesture ? `<label class="field">手势<select data-action-field="code" ${readonly ? 'disabled' : ''}><option value="1">iPad 辅助触控旋转</option></select></label><small>需要支持该动作的固件，并预先配置 iPadOS 辅助触控。</small>` : ''}
     <small class="field-error action-error" role="alert" hidden></small>
   </div>`;
 }
@@ -827,8 +830,15 @@ $('installAsNew').addEventListener('change', event => {
     : `将用“${preset.name}”更新上次安装的目标“${linked.name}”。不会创建重复预设。`;
   $('confirmWrite').textContent = event.target.checked ? '确认安装' : '确认更新';
 });
+async function requireTouchGestureSupport(preset) {
+  if (!preset?.actions.some(action => action.kind === P.Kind.TouchGesture)) return;
+  const info = await deviceClient.info();
+  if (!Array.isArray(info.features) || !info.features.includes('assistiveRotate'))
+    throw new Error('触控手势需要支持 assistiveRotate 的测试固件，请先更新固件');
+}
 $('confirmWrite').addEventListener('click', () => runDeviceAction(async () => {
   if (!deviceClient) throw new Error('键盘已断开，请重新连接');
+  await requireTouchGestureSupport(editingKeyboard() ? editSession.working : currentOriginal());
   if (editingKeyboard()) {
     const continuation = pendingAfterEdit;
     const target = devicePresets.find(item => item.id === editSession.original.id);

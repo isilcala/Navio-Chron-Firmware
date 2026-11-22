@@ -776,6 +776,13 @@ void BleTransport::sendConsumerReport_() {
   chrConsumer->notify();
 }
 
+void BleTransport::mouseReport(uint8_t buttons, int8_t dx, int8_t dy) {
+  if (!chrMouse || !reportReady_(3)) return;
+  uint8_t report[4] = {buttons, static_cast<uint8_t>(dx), static_cast<uint8_t>(dy), 0};
+  chrMouse->setValue(report, 4);
+  chrMouse->notify();
+}
+
 void BleTransport::mouseWheel(int8_t dy) {
   if (!chrMouse || !reportReady_(3)) return;
   uint8_t report[4] = {0, 0, 0, static_cast<uint8_t>(dy)};  // 按钮, X, Y, 滚轮

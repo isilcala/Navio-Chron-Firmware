@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ByteOrder.h"
+#include "action/AssistiveRotate.h"
 #include "led/LedController.h"
 #include "mapping/PresetRecord.h"
 #include "proto/Crc.h"
@@ -35,6 +36,30 @@ InstalledPreset validPreset() {
   preset.preset.enc[2][1] = actWheel(-3, MOD_CTRL);
   return preset;
 }
+
+struct MouseReport {
+  uint8_t buttons;
+  int8_t dx;
+  int8_t dy;
+};
+
+class MockTransport : public ITransport {
+ public:
+  void begin() override {}
+  bool isConnected() override { return true; }
+  const char* name() override { return "mock"; }
+  void pressChord(uint8_t, uint16_t) override {}
+  void releaseChord(uint8_t, uint16_t) override {}
+  void releaseAll() override {}
+  void consumerPress(uint16_t) override {}
+  void consumerRelease(uint16_t) override {}
+  void mouseReport(uint8_t buttons, int8_t dx, int8_t dy) override {
+    mouseReports.push_back({buttons, dx, dy});
+  }
+  void mouseWheel(int8_t) override {}
+
+  std::vector<MouseReport> mouseReports;
+};
 
 void tickAt(LedController& leds, uint32_t at) {
   fakeMillis = at;
@@ -119,6 +144,66 @@ void testPresetRecordRejectsMalformedRecords() {
   encodePresetRecord(source, record.data());
   TEST_ASSERT_EQUAL(PresetRecordResult::Invalid,
                     decodePresetRecord(record.data(), record.size(), decoded));
+}
+
+void testTouchGestureRecordRoundTrip() {
+  InstalledPreset source = validPreset();
+  source.preset.btn[14] = actTouchGesture(TOUCH_GESTURE_ASSISTIVE_ROTATE);
+  source.preset.enc[1][0] = actTouchGesture(TOUCH_GESTURE_ASSISTIVE_ROTATE);
+  source.preset.enc[1][1] = actTouchGesture(TOUCH_GESTURE_ASSISTIVE_ROTATE);
+  std::array<uint8_t, PRESET_RECORD_SIZE> record = {};
+  encodePresetRecord(source, record.data());
+
+  InstalledPreset decoded = {};
+  TEST_ASSERT_EQUAL(PresetRecordResult::Ok,
+                    decodePresetRecord(record.data(), record.size(), decoded));
+  TEST_ASSERT_EQUAL_UINT8(Action::TouchGesture, decoded.preset.btn[14].kind);
+  TEST_ASSERT_EQUAL_UINT16(TOUCH_GESTURE_ASSISTIVE_ROTATE, decoded.preset.btn[14].code);
+  TEST_ASSERT_EQUAL_UINT8(Action::TouchGesture, decoded.preset.enc[1][0].kind);
+  TEST_ASSERT_EQUAL_UINT8(Action::TouchGesture, decoded.preset.enc[1][1].kind);
+
+  source.preset.btn[14].mods = MOD_SHIFT;
+  encodePresetRecord(source, record.data());
+  TEST_ASSERT_EQUAL(PresetRecordResult::Invalid,
+                    decodePresetRecord(record.data(), record.size(), decoded));
+}
+
+void testAssistiveRotateSequenceAndReset() {
+  MockTransport transport;
+  AssistiveRotate gesture;
+  gesture.toggle(transport, 0);
+  gesture.rotate(transport, 1);
+  TEST_ASSERT_EQUAL_UINT32(1, transport.mouseReports.size());
+  TEST_ASSERT_EQUAL_UINT8(4, transport.mouseReports[0].buttons);
+
+  gesture.tick(29);
+  TEST_ASSERT_EQUAL_UINT32(1, transport.mouseReports.size());
+  gesture.tick(30);
+  gesture.tick(180);
+  gesture.tick(210);
+  TEST_ASSERT_TRUE(gesture.active());
+  TEST_ASSERT_EQUAL_UINT32(4, transport.mouseReports.size());
+  TEST_ASSERT_EQUAL_UINT8(1, transport.mouseReports[2].buttons);
+
+  gesture.rotate(transport, 1);
+  gesture.rotate(transport, -1);
+  TEST_ASSERT_EQUAL_INT8(8, transport.mouseReports[4].dx);
+  TEST_ASSERT_EQUAL_INT8(-8, transport.mouseReports[5].dx);
+
+  gesture.toggle(transport, 500);
+  gesture.tick(530);
+  TEST_ASSERT_FALSE(gesture.active());
+  TEST_ASSERT_EQUAL_UINT8(2, transport.mouseReports[6].buttons);
+  TEST_ASSERT_EQUAL_UINT8(0, transport.mouseReports[7].buttons);
+
+  gesture.toggle(transport, 1000);
+  gesture.reset();
+  TEST_ASSERT_EQUAL_UINT8(2, transport.mouseReports[9].buttons);
+  TEST_ASSERT_EQUAL_UINT8(0, transport.mouseReports[10].buttons);
+  const size_t count = transport.mouseReports.size();
+  gesture.tick(2000);
+  TEST_ASSERT_EQUAL_UINT32(count, transport.mouseReports.size());
+  TEST_ASSERT_FALSE(gesture.active());
 }
 
 void testPresetWaitsForTickBeforeShowing() {
@@ -206,6 +291,8 @@ int main() {
   UNITY_BEGIN();
   RUN_TEST(testPresetRecordRoundTrip);
   RUN_TEST(testPresetRecordRejectsMalformedRecords);
+  RUN_TEST(testTouchGestureRecordRoundTrip);
+  RUN_TEST(testAssistiveRotateSequenceAndReset);
   RUN_TEST(testPresetWaitsForTickBeforeShowing);
   RUN_TEST(testChannelFeedbackOwnsFramesAndRestoresPreset);
   RUN_TEST(testIdlePreservesStatusAndShutdownFlushesImmediately);

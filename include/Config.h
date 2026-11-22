@@ -14,6 +14,11 @@ constexpr uint32_t ENCODER_PULSE_US = 3000;        // 编码器点触动作的�
 // 上游固件全脉冲编码器用 2（每个棘齿触发 2 次），沿用其手感，硬件实测后可调。
 constexpr int ENC_DETENT_DIVISOR[3] = {2, 2, 2};
 
+// —— iPadOS 辅助触控旋转（实验参数，待真机调优）——
+constexpr uint32_t ASSISTIVE_ROTATE_CLICK_MS = 30;
+constexpr uint32_t ASSISTIVE_ROTATE_ENTER_WAIT_MS = 150;
+constexpr int8_t ASSISTIVE_ROTATE_STEP = 8;
+
 // —— 电源 ——
 // 分压比 2026-11-03 实测标定：电池 3.76V → GPIO3 1.713V（=2.195，非假设的 ÷2）。
 // 充电中（含充电头：USB 不枚举）节点被充电电路抬高，读数偏高甚至 100%——接受，简单优先（D25）。

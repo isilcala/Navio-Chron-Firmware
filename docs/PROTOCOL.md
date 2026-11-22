@@ -105,10 +105,12 @@ HELLO:
 {"proto":2,"fw":"<semver>","name":"Navio Chron"}
 
 GET_INFO:
-{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]}
+{"record":1,"maxBody":2048,"maxPresets":6,"cmds":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"features":["assistiveRotate"]}
 ```
 
 `proto` 必须为 2，不得沿用骨架的 1；`record` 是设备二进制预设记录版本。
+`features` 为可选的追加能力列表；`assistiveRotate` 表示支持实验性 `TouchGesture` 旋转动作，
+旧固件可省略该字段，网页写入含此动作的预设前必须检查。
 固件只需生成这些 JSON 字符串，不需要 JSON 解析器。响应超过 51B 时使用 MORE/READ_CHUNK。
 
 ### 5.2 BLE 绑定管理（0.8.1）

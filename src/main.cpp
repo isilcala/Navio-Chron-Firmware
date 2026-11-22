@@ -6,6 +6,7 @@
 #include "Config.h"
 #include "Pins.h"
 #include "PresetManager.h"
+#include "action/AssistiveRotate.h"
 #include "hid/BleTransport.h"
 #include "hid/HidUsage.h"
 #include "hid/ITransport.h"
@@ -34,6 +35,7 @@ static PresetManager presets;
 static UsbTransport usbTransport;
 static BleTransport bleTransport;
 static ITransport* transport = &usbTransport;
+static AssistiveRotate assistiveRotate;
 
 // Phase 2 配置通道（Vendor HID，桌面端/WebHID 下发预设用）
 static VendorHid vendorHid;
@@ -54,6 +56,7 @@ struct EncoderPulse {
 static EncoderPulse s_encoderPulses[8];
 
 static void releaseAllActions() {
+  assistiveRotate.reset();
   transport->releaseAll();
   leds.releaseKeys();
   for (Action& action : s_buttonActions) action = Action{};
@@ -268,6 +271,7 @@ void setup() {
 void loop() {
   bleTransport.poll();
   tickEncoderPulses();
+  assistiveRotate.tick(millis());
 
   // 1ms 输入轮询（矩阵整轮 + 编码器全量 <100µs）
   static uint32_t lastPollUs = 0;
@@ -450,6 +454,10 @@ static void dispatchButton(Btn id, bool pressed) {
       else
         transport->consumerRelease(a.code);
       break;
+    case Action::TouchGesture:
+      if (pressed && a.code == TOUCH_GESTURE_ASSISTIVE_ROTATE)
+        assistiveRotate.toggle(*transport, millis());
+      break;
     default:
       break;
   }
@@ -523,6 +531,10 @@ static void dispatchEncoder(Enc id, int8_t dir) {
       } else {
         transport->mouseWheel(a.wheelDy);
       }
+      break;
+    case Action::TouchGesture:
+      if (a.code == TOUCH_GESTURE_ASSISTIVE_ROTATE)
+        assistiveRotate.rotate(*transport, dir);
       break;
     default:
       break;

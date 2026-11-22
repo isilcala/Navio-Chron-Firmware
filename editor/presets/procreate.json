@@ -6,7 +6,7 @@
     "author": "official",
     "templateId": "procreate",
     "order": 260,
-    "description": "Procreate iPad：⌘Z/⇧⌘Z、B/E 画笔橡皮、L/C/S/V 面板与工具、X 换色、Space=QuickMenu、[ ] 笔刷大小（官方手册）"
+    "description": "Procreate iPad 实验：⌘Z/⇧⌘Z、画笔橡皮与面板、[ ] 笔刷大小；滚轮下压+大旋钮=辅助触控旋转"
   },
   "preset": {
     "id": 9,
@@ -104,9 +104,9 @@
         "wheelDy": 0
       },
       {
-        "kind": 1,
+        "kind": 4,
         "mods": 0,
-        "code": 23,
+        "code": 1,
         "wheelDy": 0
       },
       {
@@ -128,15 +128,15 @@
         "wheelDy": 0
       },
       {
-        "kind": 1,
-        "mods": 2,
-        "code": 48,
+        "kind": 4,
+        "mods": 0,
+        "code": 1,
         "wheelDy": 0
       },
       {
-        "kind": 1,
-        "mods": 2,
-        "code": 47,
+        "kind": 4,
+        "mods": 0,
+        "code": 1,
         "wheelDy": 0
       },
       {

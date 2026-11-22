@@ -9,7 +9,8 @@
 
   if (!Proto) throw new Error("NavioEditorPreset requires NavioProto; load navio_proto.js first");
   const RECORD_SIZE = 150, ACTION_SIZE = 5, ACTION_COUNT = 22, SIDE_KEY_SLOT = 15;
-  const Kind = { None: 0, KeyChord: 1, Consumer: 2, Wheel: 3 };
+  const Kind = { None: 0, KeyChord: 1, Consumer: 2, Wheel: 3, TouchGesture: 4 };
+  const TouchGesture = { AssistiveRotate: 1 };
   const BUTTON_LABELS = [
     "K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "K10", "K11", "K12",
     "中央旋钮按压", "大旋钮按压", "滚轮下压", "SideKey",
@@ -88,6 +89,7 @@
     if (kind === Kind.KeyChord) action.code = 0x04;
     else if (kind === Kind.Consumer) action.code = 0xCD;
     else if (kind === Kind.Wheel) action.wheelDy = 1;
+    else if (kind === Kind.TouchGesture) action.code = TouchGesture.AssistiveRotate;
     return action;
   }
   function createEmptyPreset(id = 1, name = "自定义预设") {
@@ -136,7 +138,10 @@
     if (action.kind === Kind.Consumer)
       return action.code >= 1 && action.code <= 0x03FF && action.mods === 0 && action.wheelDy === 0
         ? null : "Invalid Consumer fields";
-    return !button && action.code === 0 && action.wheelDy !== 0 ? null : "Wheel is only valid on encoder slots";
+    if (action.kind === Kind.Wheel)
+      return !button && action.code === 0 && action.wheelDy !== 0 ? null : "Wheel is only valid on encoder slots";
+    return action.code === TouchGesture.AssistiveRotate && action.mods === 0 && action.wheelDy === 0
+      ? null : "Invalid TouchGesture fields";
   }
   function presetErrors(preset) {
     const errors = [];
@@ -207,6 +212,8 @@
   }
   function actionLabel(action, platform = "win") {
     if (!action || action.kind === Kind.None) return "未设置";
+    if (action.kind === Kind.TouchGesture && action.code === TouchGesture.AssistiveRotate)
+      return "iPad 辅助触控旋转";
     const mods = modLabels(platform).filter((_, bit) => action.mods & (1 << bit));
     if (action.kind === Kind.KeyChord && action.code === 0) return mods.join("+");
     const code = action.kind === Kind.Wheel ? `滚轮${action.wheelDy > 0 ? "+" : ""}${action.wheelDy}` :
@@ -215,7 +222,7 @@
   }
 
   return {
-    RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, BUTTON_LABELS, ENCODERS,
+    RECORD_SIZE, ACTION_SIZE, ACTION_COUNT, SIDE_KEY_SLOT, Kind, TouchGesture, BUTTON_LABELS, ENCODERS,
     KEY_GROUPS, KEY_OPTIONS, CONSUMER_OPTIONS, MOD_LABELS, MOD_LABELS_MAC, PLATFORMS, RGB_MODES, PLATFORM_CODES, normalizePlatform, modLabels,
     crc16, emptyAction, actionForKind, createEmptyPreset, clonePreset, clonePresetData,
     utf8Length, nameError, actionError, presetErrors, encodePresetRecord, decodePresetRecord, actionLabel

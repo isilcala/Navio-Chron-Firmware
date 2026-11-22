@@ -16,6 +16,7 @@ class ITransport {
   virtual void releaseAll() = 0;
   virtual void consumerPress(uint16_t usage) = 0;
   virtual void consumerRelease(uint16_t usage) = 0;
+  virtual void mouseReport(uint8_t buttons, int8_t dx, int8_t dy) = 0;
   virtual void mouseWheel(int8_t dy) = 0;
 };
 
