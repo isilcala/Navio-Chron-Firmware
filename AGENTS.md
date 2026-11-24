@@ -44,7 +44,8 @@ python -m http.server 8000   # 统一探针：http://localhost:8000/tools/probe/
 ## 代码地图与核心约定
 
 ```
-.github/workflows/pages.yml  CI 五固件环境 + native/Node 回归；GitHub Pages 编辑器与固件更新页
+.github/workflows/pages.yml  main/procreate-test CI 五固件环境 + native/Node 回归；
+                            仅 main 发布 GitHub Pages 编辑器与固件更新页，分支并发隔离
 editor/         Web 预设编辑器：SVG 设备图、预设库、150B 编解码与 Node 测试；
                 import_export.js 统一 JSON 文本/文件导出及粘贴/文件导入校验（D32）；
                 presets/ 项目模板库（一预设一 JSON + 生成索引 index.json）；

@@ -322,9 +322,10 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   `0x600080B0=0x50D83AA1`、`0x6000809C=2000`、`0x60008098=(1<<31)|(5<<28)|(1<<8)|2`，
   再锁 WPROTECT，触发完整系统复位。网页只读探针已验证自动进入 Navio；RST/断电仅作兜底。
   单入口 OTA、BOOT/ROM 与演示自动迁移均完成核心验收。
-- 托管定案为 GitHub Pages：`.github/workflows/pages.yml` 在 main 与手动触发时构建同一
-  `navio_chron` 产物和 manifest，发布根目录 `index.html`、`manifest.json` 与四件套，避免
-  project Pages 子路径问题。发布页源复用统一探针，仅将默认 manifest 改为 `./manifest.json`；
+- 托管定案为 GitHub Pages：`.github/workflows/pages.yml` 在 main、procreate-test 与手动触发时
+  构建固件并运行回归，但仅 main 可部署 Pages；各分支使用独立并发组，测试分支不能取消 main 部署。
+  发布根目录 `index.html`、`manifest.json` 与四件套，避免 project Pages 子路径问题。
+  发布页源复用统一探针，仅将默认 manifest 改为 `./manifest.json`；
   release 构建产物仍不入库。2026-10-30 已通过 `a482bfa` 首次部署
   https://isilcala.github.io/Navio-Chron-Firmware/ ，线上 manifest 与 firmware SHA-256 一致；
   线上 OTA 验收已通过（2026-10-30）。
