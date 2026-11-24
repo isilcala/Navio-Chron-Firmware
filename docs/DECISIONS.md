@@ -669,16 +669,15 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - 本轮不改变正式固件行为，不递增 `NAVIO_CHRON_FW_VERSION`。不为覆盖率模拟完整 NimBLE，
   后续拆 BLE 时再为其纯状态逻辑补测试。
 
-## D44. 测试固件通过白名单通道分发（2026-11-22）
+## D44. 测试工作区以独立 Artifact 注入 Pages（2026-11-22）
 
-- 开发固件需要复用现有 Web OTA/ROM 页面分发给少量测试者，但默认用户仍必须读取正式 `latest`。
-  采用 `?channel=<名称>` 到固定 manifest 的显式映射，不接受任意 URL，也不把名称直接拼入路径。
-- 首版仅追加 `procreate-test`，对应固定 `testing/procreate/manifest.json`；未知名称在任何网络
-  请求和设备连接前报错。测试包独立部署、保留既有 SHA-256 与版本确认，不覆盖正式发布入口。
-- 白名单降低分享链接加载非预期来源的风险，但不承担访问控制或来源签名。高级选项的自定义
-  manifest 保留为开发者诊断能力；本轮只改 Web 刷写与发布规则，不改变固件行为和版本。
-- 发布边界修订：`procreate-test` 仅构建实验固件并运行回归，不部署 Pages，也不自动更新
-  `testing/procreate/`；测试包通过本地 HTTP 或另行显式分发，正式 Pages 仅由 main 发布。
+- 开发固件和配套编辑器需要同时分发给少量测试者，但正式编辑器与固件必须继续来自 main。
+  `procreate-test` 只构建并上传完整 `procreate-test-workspace` Artifact，不直接部署 Pages。
+- main 是唯一 Pages 发布者。普通 push 只组装正式内容；手工传入 `procreate_test_run_id` 时，
+  下载该 Artifact 并放入 `_site/testing/procreate/` 后统一部署。Pages 每次发布完整快照，
+  未包含的测试目录会被移除，不积累废弃文件。Artifact 保留 14 天。
+- 测试编辑器、刷写页、manifest 与镜像同目录部署，刷写页直接读取同目录 manifest；原先
+  `?channel=` 白名单映射因此移除。单一实验不使用通道注册表或动态分支发现。
 
 ## D45. Procreate 旋转采用 iPadOS 辅助触控鼠标手势（2026-11-22，实验）
 
@@ -689,6 +688,6 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
 - `0.9.6-procreate.2` 起由大旋钮下压进入/退出、同旋钮方向驱动旋转；垂直滚轮下压保留 `Cmd+K`，
   滚动继续缩放。进入依次发送鼠标中键、左键确认，退出发送右键；状态机非阻塞，切预设、传输切换和
   统一清理时强制退出。点击 30ms、进入等待 150ms、每格 X=±8 均为待真机调优常量，不提前进入预设格式。
-- 实验版本从 `0.9.6-procreate.1` 开始，经 D44 的 `procreate-test` 通道分发；初版曾把开关放在垂直
+- 实验版本从 `0.9.6-procreate.1` 开始，经 D44 的 `testing/procreate/` 工作区分发；初版曾把开关放在垂直
   滚轮下压，`.2` 根据术语澄清改到同一控件以改善盲操。宿主回归覆盖记录往返和完整鼠标状态序列；
   真实 Procreate 旋转、方向、时序、BLE/USB 手感仍需朋友验收。

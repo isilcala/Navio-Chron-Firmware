@@ -7,20 +7,6 @@
   "use strict";
 
   const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-  const CHANNEL_MANIFESTS = {
-    stable: { local: "/release/latest/manifest.json", deployed: "../manifest.json" },
-    "procreate-test": {
-      local: "/release/testing/procreate/manifest.json",
-      deployed: "../testing/procreate/manifest.json",
-    },
-  };
-
-  function manifestForChannel(channel, local = false) {
-    const key = channel === null || channel === undefined || channel === "" ? "stable" : channel;
-    if (typeof key !== "string" || !Object.prototype.hasOwnProperty.call(CHANNEL_MANIFESTS, key))
-      throw new Error(`Unknown firmware channel: ${key}`);
-    return local ? CHANNEL_MANIFESTS[key].local : CHANNEL_MANIFESTS[key].deployed;
-  }
 
   function parseSemver(version) {
     if (typeof version !== "string") throw new Error("Invalid SemVer");
@@ -143,5 +129,5 @@
     return manifest;
   }
 
-  return { manifestForChannel, parseSemver, compareSemver, versionPermission, decide, validateManifest, hidNumber };
+  return { parseSemver, compareSemver, versionPermission, decide, validateManifest, hidNumber };
 });

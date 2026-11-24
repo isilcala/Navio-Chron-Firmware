@@ -145,14 +145,10 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
   `eraseAll=false`；只能取得 Web Serial、无法确认身份时默认 `eraseAll=true` 获得干净起点。
   确认页必须明确显示“保留预设”或“擦除设备数据”。后续可实测仅擦 NVS 区域的优化，不作为首版依赖。
 - manifest、图片和页面必须满足 HTTPS/CORS；第三方依赖固定版本并记录来源与许可证。
-- 分享测试固件使用白名单通道，不接受任意 URL 或把名称拼入路径：无 `channel` 参数保持正式
-  `latest`；`?channel=procreate-test` 固定读取部署站点的 `testing/procreate/manifest.json`
-  （本地为 `release/testing/procreate/manifest.json`）。未知、路径跳转及完整 URL 均在读取清单和
-  连接设备前拒绝。测试资产只有显式部署到该目录才存在，不得覆盖正式 `latest`。
-  `procreate-test` 不部署 Pages，也不自动更新 `testing/procreate/`；线上测试目录只有另行显式
-  发布才存在，本地测试使用 `release/testing/procreate/`。
-- 高级选项中的自定义 manifest 仍是开发者显式诊断入口，不是测试分享链接的安全边界。
-  白名单只限制页面可选来源，不提供私密访问或固件来源签名。
+- 测试编辑器与固件组成独立 `procreate-test-workspace` Artifact。测试分支只构建和上传，
+  main 手工发布时可按 run ID 注入 `testing/procreate/`；普通 main 部署不包含该目录。
+  刷写页读取同目录 manifest，不使用 `channel` 参数或跨工作区路径映射。
+- 高级选项中的自定义 manifest 仍是开发者显式诊断入口，不提供私密访问或固件来源签名。
 
 首版不把签名作为伪装成已有能力的卖点；公开分发前另评审发布签名与信任链。
 

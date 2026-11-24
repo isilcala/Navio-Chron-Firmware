@@ -1,17 +1,15 @@
-name: Build and deploy Navio Web apps
+name: Build Procreate test workspace
 
 on:
   push:
-    branches: [main, procreate-test]
+    branches: [procreate-test]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages-${{ github.ref_name }}
+  group: procreate-test-workspace
   cancel-in-progress: true
 
 jobs:
@@ -43,36 +41,23 @@ jobs:
           node editor/template_browser_test.js
           node editor/import_export_test.js
           node editor/rgb_preview_test.js
-      - name: Assemble static site
-        if: github.ref_name == 'main'
+      - name: Assemble test workspace
         run: |
           release_dir=$(find release -mindepth 1 -maxdepth 1 -type d -name 'navio_chron_*' -print -quit)
           test -n "$release_dir"
-          mkdir -p _site/editor _site/firmware
-          cp -r editor/. _site/
-          rm -f _site/*_test.js
-          rm _site/redirect.html
-          cp editor/redirect.html _site/editor/index.html
-          cp tools/probe/webunified_probe.html _site/firmware/index.html
-          cp tools/probe/navio_proto.js tools/probe/webflash_rules.js _site/
-          cp tools/probe/navio_proto.js tools/probe/webflash_rules.js tools/probe/esptool-js.bundle.js tools/probe/esptool-js.LICENSE _site/firmware/
-          sed -i 's#\.\./tools/probe/navio_proto\.js#navio_proto.js#; s#\.\./tools/probe/webflash_rules\.js#webflash_rules.js#' _site/index.html
-          cp "$release_dir/manifest.json" _site/
-          cp "$release_dir"/*.bin _site/
-          sed -i 's#value="/release/[^"]*/manifest.json"#value="../manifest.json"#; s#\.\./\.\./editor/styles\.css#../styles.css#' _site/firmware/index.html
-      - uses: actions/configure-pages@v5
-        if: github.ref_name == 'main'
-      - uses: actions/upload-pages-artifact@v3
-        if: github.ref_name == 'main'
+          workspace=_site/testing/procreate
+          mkdir -p "$workspace/firmware"
+          cp -r editor/. "$workspace/"
+          rm -f "$workspace"/*_test.js
+          rm "$workspace/redirect.html"
+          cp tools/probe/webunified_probe.html "$workspace/firmware/index.html"
+          cp tools/probe/navio_proto.js tools/probe/webflash_rules.js "$workspace/"
+          cp tools/probe/navio_proto.js tools/probe/webflash_rules.js tools/probe/esptool-js.bundle.js tools/probe/esptool-js.LICENSE "$workspace/firmware/"
+          sed -i 's#\.\./tools/probe/navio_proto\.js#navio_proto.js#; s#\.\./tools/probe/webflash_rules\.js#webflash_rules.js#' "$workspace/index.html"
+          cp "$release_dir/manifest.json" "$release_dir"/*.bin "$workspace/"
+          sed -i 's#value="/release/[^"]*/manifest.json"#value="../manifest.json"#; s#\.\./\.\./editor/styles\.css#../styles.css#' "$workspace/firmware/index.html"
+      - uses: actions/upload-artifact@v4
         with:
-          path: _site
-  deploy:
-    if: github.ref_name == 'main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          name: procreate-test-workspace
+          path: _site/testing/procreate
+          retention-days: 14

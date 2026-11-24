@@ -553,14 +553,7 @@ window.addEventListener('beforeunload', event => {
   event.preventDefault();
   event.returnValue = '';
 });
-window.addEventListener('load', () => {
-  setStage('connect');
-  run(async () => {
-    const channel = new URLSearchParams(location.search).get('channel');
-    $('manifest').value = R.manifestForChannel(channel, localFlasher);
-    await loadRelease();
-  });
-});
+window.addEventListener('load', () => { setStage('connect'); run(loadRelease); });
 </script>
 </body>
 </html>
