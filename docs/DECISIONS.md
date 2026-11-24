@@ -668,3 +668,13 @@ BleTransport 的条件编译中（advertiseOnDisconnect、startServices、API �
   宿主测试不覆盖 `main.cpp` 启动装配、NimBLE 或真实硬件时序，相关路径仍须真机验收。
 - 本轮不改变正式固件行为，不递增 `NAVIO_CHRON_FW_VERSION`。不为覆盖率模拟完整 NimBLE，
   后续拆 BLE 时再为其纯状态逻辑补测试。
+
+## D44. 测试工作区以独立 Artifact 注入 Pages（2026-11-24）
+
+- 开发固件和配套编辑器需要同时分发给少量测试者，但正式编辑器与固件必须继续来自 main。
+  `procreate-test` 只构建并上传完整 `procreate-test-workspace` Artifact，不直接部署 Pages。
+- main 是唯一 Pages 发布者。普通 push 只组装正式内容；手工传入 `procreate_test_run_id` 时，
+  下载该 Artifact 并放入 `_site/testing/procreate/` 后统一部署。Pages 每次发布完整快照，
+  未包含的测试目录会被移除，不积累废弃文件。Artifact 保留 14 天。
+- 测试编辑器、刷写页、manifest 与镜像同目录部署，刷写页直接读取同目录 manifest；不使用
+  `?channel=` 白名单映射。单一实验不使用通道注册表或动态分支发现。

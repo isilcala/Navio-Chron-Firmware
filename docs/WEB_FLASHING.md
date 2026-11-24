@@ -158,7 +158,10 @@ HELLO 与 app0/UNDEFINED 已实测通过。其他 VID/PID 不自动复位，统�
 - 首版不支持 Firefox/Safari、BLE OTA、在线升级 bootloader/分区表或任意芯片型号；
   除上述身份规则外，不提供用户可选的整片擦除功能。
 - GitHub Pages 由 `.github/workflows/pages.yml` 仅从 main 的同一次构建发布根目录编辑器、`/firmware/` 更新页、manifest 与四件套；
-  procreate-test 只构建和测试，不部署 Pages；release 产物不入库，更新页默认 manifest 为 `../manifest.json`，兼容 project Pages 子路径。
+  procreate-test 只构建并上传独立工作区 Artifact，不直接部署 Pages。main 手工发布时可按
+  `procreate_test_run_id` 将测试编辑器与固件注入 `testing/procreate/`，普通 main 部署不包含该目录。
+  刷写页读取同目录 manifest，不使用 `channel` 参数或跨工作区路径映射。
+  release 产物不入库，更新页默认 manifest 为 `../manifest.json`，兼容 project Pages 子路径。
 - 本地刷写页与编辑器更新检查统一读取 `release/latest/manifest.json`；`make_release.py` 每次生成版本化
   发布包时同步刷新该目录的 manifest 与四件套，本地页面不得再硬编码具体固件版本。
   固定 `latest` URL 的 manifest 与镜像请求必须使用 `cache: "no-store"`，避免重建后混用新旧缓存导致

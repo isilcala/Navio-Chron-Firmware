@@ -2,8 +2,13 @@ name: Build and deploy Navio Web apps
 
 on:
   push:
-    branches: [main, procreate-test]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      procreate_test_run_id:
+        description: Optional procreate-test workflow run ID to publish under testing/procreate/
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -59,12 +64,18 @@ jobs:
           cp "$release_dir/manifest.json" _site/
           cp "$release_dir"/*.bin _site/
           sed -i 's#value="/release/[^"]*/manifest.json"#value="../manifest.json"#; s#\.\./\.\./editor/styles\.css#../styles.css#' _site/firmware/index.html
+      - name: Inject Procreate test workspace
+        if: github.event.inputs.procreate_test_run_id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download "${{ inputs.procreate_test_run_id }}" --repo "${{ github.repository }}" --name procreate-test-workspace --dir _site/testing/procreate
+          test -f _site/testing/procreate/manifest.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
   deploy:
-    if: github.ref_name == 'main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
